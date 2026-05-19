@@ -55,6 +55,14 @@ namespace UHE {
 		return std::make_shared<T>(std::forward<Args>(args)...);
 	}
 
+	template<typename T>
+	using WeakRef = std::weak_ptr<T>;
+
+	template<typename T,typename ... Args>
+	constexpr WeakRef<T> CreateWeakRef(Args&& ... args)
+	{
+        return std::shared_ptr<T>(std::forward<Args>(args)...);
+    }
 }
 using u8 = uint8_t;
 using u16 = uint16_t;

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <glfw/glfw3.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <vk_mem_alloc.h>
@@ -15,8 +15,8 @@ namespace UHE {
     VkLogicalDevice(const VkLogicalDevice &) = delete;
     VkLogicalDevice &operator=(const VkLogicalDevice &) = delete;
 
-    void initialize(PhysicalDevice m_physicalDevice, VkSurfaceKHR surface, instance_vk instance);
-    void CreateSurface(instance_vk instance,GLFWwindow *window);
+    void initialize(PhysicalDevice& physicalDevice, VkSurfaceKHR surface, instance_vk& instance);
+    void CreateSurface(instance_vk& instance, GLFWwindow *window);
     void cleanup();
 
    private:

@@ -1,4 +1,4 @@
-﻿#define VK_NO_PROTOTYPES
+#define VK_NO_PROTOTYPES
 #include <volk.h>
 #include "uhepch.h"
 #include "VulkanLogicalDevice.h"
@@ -8,9 +8,9 @@
 
 
 namespace UHE {
-  void VkLogicalDevice::initialize(PhysicalDevice m_physicalDevice,VkSurfaceKHR surface,instance_vk instance) 
+  void VkLogicalDevice::initialize(PhysicalDevice& physicalDevice, VkSurfaceKHR surface, instance_vk& instance) 
   {
-     const auto& phyDevice = m_physicalDevice.getPhysicalDevice();
+     const auto& phyDevice = physicalDevice.getPhysicalDevice();
      std::vector<vk::QueueFamilyProperties> queueFamilies  =  phyDevice.getQueueFamilyProperties();
      for (size_t i = 0; i < queueFamilies.size(); i++) {
          if (queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics) {
@@ -65,7 +65,7 @@ namespace UHE {
 
      VmaAllocatorCreateInfo allocatorCreateInfo = {};
      allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
-     allocatorCreateInfo.physicalDevice = *m_physicalDevice.getPhysicalDevice();
+     allocatorCreateInfo.physicalDevice = *physicalDevice.getPhysicalDevice();
      allocatorCreateInfo.device = *m_logicalDevice;
      allocatorCreateInfo.instance = *instance.getInstance();
      allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
@@ -76,7 +76,7 @@ namespace UHE {
      }
   }
 
-  void VkLogicalDevice::CreateSurface(instance_vk instance,GLFWwindow* window) 
+  void VkLogicalDevice::CreateSurface(instance_vk& instance, GLFWwindow* window) 
   {
     auto const &m_instance = instance.getInstance();
 

@@ -32,6 +32,8 @@ namespace UHE {
        swapChainImages = swapChain.getImages();
      }
      
+   
+
      vk::Extent2D VulkanSwapChain::chooseSwapExtent(
          const vk::SurfaceCapabilitiesKHR &capabilities, GLFWwindow *window) {
        if (capabilities.currentExtent.width != 0xFFFFFFFF) {
@@ -85,16 +87,7 @@ namespace UHE {
        return formatIt != availableFormats.end() ? *formatIt : availableFormats[0];
      }
      
-     u32 VulkanSwapChain::ChooseSwapMinImage(
-         vk::SurfaceCapabilitiesKHR const &surfaceCapabilites) {
-       auto minImageCount = std::max(3u, surfaceCapabilites.minImageCount);
-       if ((0 < surfaceCapabilites.maxImageCount) &&
-           (minImageCount > surfaceCapabilites.maxImageCount)) {
-         minImageCount = surfaceCapabilites.maxImageCount;
-       }
-     
-       return minImageCount;
-     }
+
      
      void VulkanSwapChain::cleanupSwapChain() {
     

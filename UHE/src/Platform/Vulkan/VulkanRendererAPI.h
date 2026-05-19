@@ -13,7 +13,5 @@ namespace UHE {
 
        virtual void DrawIndexed(const std::shared_ptr<VertexArray> &vertexArray,
                                 u32 indexCount = 0) override;
-
-
     };
 }

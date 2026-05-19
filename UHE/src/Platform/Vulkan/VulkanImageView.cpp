@@ -6,9 +6,9 @@ namespace UHE {
    vk::raii::ImageView VulkanImageView::CreateImageView(const vk::raii::Device &device,
 	   vk::Image image,vk::Format format) 
    {
-	   if (image)
+	   if (!image)
 	   {
-         throw std::runtime_error("Invalid error");
+         throw std::runtime_error("Invalid image handle");
 	   }
 
 	   vk::ImageViewCreateInfo imageViewCreateinfo{};
@@ -18,14 +18,14 @@ namespace UHE {
            imageViewCreateinfo.subresourceRange.aspectMask =
                vk::ImageAspectFlagBits::eColor;
            imageViewCreateinfo.subresourceRange.baseMipLevel = 0;
-           imageViewCreateinfo.subresourceRange.levelCount = 0;
+           imageViewCreateinfo.subresourceRange.levelCount = 1;
            imageViewCreateinfo.subresourceRange.baseArrayLayer = 0;
            imageViewCreateinfo.subresourceRange.layerCount = 1;
            
            return vk::raii::ImageView(device, imageViewCreateinfo);
    }
 
-   void VulkanImageView::CreateImageViews(vulkanctx& ctx) 
+   void VulkanImageView::CreateImageViews() 
    {   
        swapChainImageViews.clear();
 
@@ -60,5 +60,6 @@ namespace UHE {
 
    void VulkanImageView::CreateTextureSampler() 
    {
+
    }
 } // namespace UHE

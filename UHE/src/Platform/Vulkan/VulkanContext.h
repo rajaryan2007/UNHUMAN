@@ -4,6 +4,8 @@
 
 struct GLFWwindow;
 namespace UHE {
+ 
+
    class VkContext : public GraphicsContext {
    public:
      VkContext(GLFWwindow *windowHandle);

@@ -1,9 +1,10 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
-#include "vulkanctx.h"
+
 #include <vector>
 
-namespace UHE {
+namespace UHE::RHI {
+   class VulkanDevice;
    class VulkanImageView {
    public: 
 	   VulkanImageView() = default;
@@ -12,8 +13,8 @@ namespace UHE {
 
        vk::raii::ImageView CreateImageView(const vk::raii::Device &device,
                                            vk::Image image, vk::Format format);
-       void CreateImageViews(vulkanctx& ctx);
-       void CreateTextureImageView();
+       void CreateImageViews(VulkanDevice& device);
+       void CreateTextureImageView(VulkanDevice& device);
        void CreateTextureSampler();
    private:
        std::vector<vk::raii::ImageView> swapChainImageViews;
