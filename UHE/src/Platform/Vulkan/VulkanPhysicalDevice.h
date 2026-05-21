@@ -3,7 +3,7 @@
 #include "VulkanInstance.h"
 
 
-namespace UHE {
+namespace UHE::RHI {
    class PhysicalDevice {
    public:
      PhysicalDevice() = default;

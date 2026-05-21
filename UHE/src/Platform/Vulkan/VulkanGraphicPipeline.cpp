@@ -1,5 +1,5 @@
 #include "VulkanGraphicPipeline.h"
 
-namespace UHE {
+namespace UHE::RHI {
 	
-} // namespace UHE
+} // namespace UHE::RHI

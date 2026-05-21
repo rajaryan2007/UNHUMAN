@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "UHE/Renderer/GraphicsContext.h"
-#include <vulkan/vulkan_raii.hpp>
+
 
 struct GLFWwindow;
 namespace UHE {

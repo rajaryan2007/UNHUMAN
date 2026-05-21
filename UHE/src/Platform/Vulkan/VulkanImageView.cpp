@@ -50,7 +50,7 @@ namespace UHE {
 
    }
 
-   void VulkanImageView::CreateTextureImageView(vulkanctx& ctx) 
+   void VulkanImageView::CreateTextureImageView() 
    {
      const auto &physicaldevice = ctx.physicalDevice;
 

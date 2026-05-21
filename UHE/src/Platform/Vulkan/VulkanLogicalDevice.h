@@ -5,7 +5,7 @@
 
 
 
-namespace UHE {
+namespace UHE::RHI {
   class PhysicalDevice;
   class instance_vk; 
 

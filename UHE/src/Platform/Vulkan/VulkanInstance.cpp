@@ -13,7 +13,7 @@ constexpr bool enableValidationLayers = false;
 constexpr bool enableValidationLayers = true;
 #endif
 
-namespace UHE {
+namespace UHE::RHI {
 
     instance_vk::instance_vk()
         : m_context(), m_instance(nullptr), m_debugMessenger(nullptr)

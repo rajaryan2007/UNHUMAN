@@ -7,7 +7,7 @@
 
 
 
-namespace UHE {
+namespace UHE::RHI {
   void VkLogicalDevice::initialize(PhysicalDevice& physicalDevice, VkSurfaceKHR surface, instance_vk& instance) 
   {
      const auto& phyDevice = physicalDevice.getPhysicalDevice();

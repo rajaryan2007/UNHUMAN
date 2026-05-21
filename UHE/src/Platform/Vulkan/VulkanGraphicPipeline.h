@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
 
-namespace UHE {
+namespace UHE::RHI {
 class VulkanGraphicPipeline {
 public:
   VulkanGraphicPipeline();

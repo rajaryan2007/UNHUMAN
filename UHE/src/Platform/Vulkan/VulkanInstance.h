@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
-namespace UHE {
+namespace UHE::RHI {
 	class instance_vk {
 	  public:
         instance_vk();

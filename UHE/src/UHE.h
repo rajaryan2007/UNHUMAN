@@ -26,7 +26,7 @@
 
 #include "UHE\Renderer\Renderer.h"
 #include "UHE\Renderer\RenderCommand.h"
-#include "UHE\Renderer\Buffer.h"
+
 #include "UHE\Renderer\VertexArray.h"
 #include "UHE\Renderer\Shader.h"
 #include "UHE\Renderer\Texture.h"
