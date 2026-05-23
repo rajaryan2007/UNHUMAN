@@ -13,6 +13,14 @@ public:
     virtual void Begin() = 0;
     virtual void End() = 0;
 
+    virtual BufferHandle CreateBuffer(const BufferDesc &desc) = 0;
+    virtual TextureHandle CreateTexture(const TextureDesc &desc) = 0;
+    virtual ShaderHandle CreateShader(const ShaderDesc &desc) = 0;
+    virtual PipelineHandle
+    CreateGraphicsPipeline(const GraphicsPipelineDesc &desc) = 0;
+
+
+
     // ─── Render Pass ───
     virtual void BeginRenderPass(const RenderPassDesc &desc) = 0;
     virtual void EndRenderPass() = 0;

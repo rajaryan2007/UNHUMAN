@@ -1,9 +1,10 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
+#include "UHE/RHI/RHISwapchain.h"
 
-namespace UHE {
-  class VulkanSwapChain {
+namespace UHE::RHI {
+  class VulkanSwapChain : RHISwapChain {
    public:
      VulkanSwapChain() = default;
      VulkanSwapChain(const VulkanSwapChain &) = delete;
@@ -14,6 +15,12 @@ namespace UHE {
      
      void cleanupSwapChain();
 
+     virtual void AcquireNextImage() override;
+     virtual void Present() override;
+     virtual void ResizeSwapchain(u32 width, u32 height) override;
+     virtual TextureHandle GetSwapchainImage() override;
+     virtual TextureFormat GetSwapchainFormat() override;
+
      inline vk::raii::SwapchainKHR& GetSwapchain() { return swapChain; }
      inline const std::vector<vk::Image>& GetImages() const { return swapChainImages; }
      inline const vk::Extent2D& GetExtent() const { return swapChainExtent; }
@@ -23,7 +30,7 @@ namespace UHE {
 
      vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities,
                                    GLFWwindow *window);
-     
+
      u32 chooseSwapMinImageCount(
          vk::SurfaceCapabilitiesKHR const &surfaceCapablities);
 

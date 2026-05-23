@@ -1,7 +1,7 @@
 #include "uhepch.h"
 #include "VulkanSwapChain.h"
 
-namespace UHE {
+namespace UHE::RHI  {
      void VulkanSwapChain::createSwapChain(vk::raii::Device &device,
                                            vk::raii::PhysicalDevice &physicalDevice,
                                            vk::raii::SurfaceKHR &surface,
@@ -89,12 +89,32 @@ namespace UHE {
      
 
      
-     void VulkanSwapChain::cleanupSwapChain() {
-    
+     void VulkanSwapChain::cleanupSwapChain() 
+     {
        if (swapChain != nullptr) {
          swapChain = nullptr;
        }
      }
 
+     void VulkanSwapChain::AcquireNextImage()
+     {
+
+     }
+
+     void VulkanSwapChain::Present() 
+     {
+     }
+
+     void VulkanSwapChain::ResizeSwapchain(u32 width, u32 height) 
+     {
+     }
+
+     TextureHandle VulkanSwapChain::GetSwapchainImage() 
+     {
+     }
+
+     TextureFormat VulkanSwapChain::GetSwapchainFormat() 
+     {
+     }
 }
 

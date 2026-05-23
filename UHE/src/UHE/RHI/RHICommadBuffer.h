@@ -10,6 +10,8 @@ public:
   virtual void Begin() = 0;
   virtual void End() = 0;
 
+
+
   // ─── Render Pass ───
   virtual void BeginRenderPass(const RenderPassDesc &desc) = 0;
   virtual void EndRenderPass() = 0;

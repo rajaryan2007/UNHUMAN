@@ -2,9 +2,9 @@
 #include "VulkanImageView.h"
 
 
-namespace UHE {
-   vk::raii::ImageView VulkanImageView::CreateImageView(const vk::raii::Device &device,
-	   vk::Image image,vk::Format format) 
+namespace UHE::RHI {
+   vk::raii::ImageView VulkanImageView::CreateImageView(vk::Image image,
+       vk::Format format) 
    {
 	   if (!image)
 	   {
@@ -22,18 +22,16 @@ namespace UHE {
            imageViewCreateinfo.subresourceRange.baseArrayLayer = 0;
            imageViewCreateinfo.subresourceRange.layerCount = 1;
            
-           return vk::raii::ImageView(device, imageViewCreateinfo);
+           return vk::raii::ImageView(*logicaldevice, imageViewCreateinfo);
    }
 
    void VulkanImageView::CreateImageViews() 
    {   
        swapChainImageViews.clear();
 
-       const auto &device = ctx.device;
-
        vk::ImageViewCreateInfo m_imageViewCreateInfo{};
         m_imageViewCreateInfo.viewType = vk::ImageViewType::e2D;
-        m_imageViewCreateInfo.format = swapChainSurfaceFormat.format; 
+        m_imageViewCreateInfo.format = swapChainSurfaceFormat->format; 
         m_imageViewCreateInfo.subresourceRange.aspectMask =
            vk::ImageAspectFlagBits::eColor;
         m_imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
@@ -44,7 +42,7 @@ namespace UHE {
         {
           m_imageViewCreateInfo.image = image;
           swapChainImageViews.emplace_back(
-              vk::raii::ImageView(device, m_imageViewCreateInfo)
+              vk::raii::ImageView(*logicaldevice, m_imageViewCreateInfo)
           );
         }
 
@@ -52,14 +50,53 @@ namespace UHE {
 
    void VulkanImageView::CreateTextureImageView() 
    {
-     const auto &physicaldevice = ctx.physicalDevice;
+    
 
-     vk::PhysicalDeviceProperties properties = physicaldevice.getProperties();
+
 
    }
 
    void VulkanImageView::CreateTextureSampler() 
    {
+     vk::PhysicalDeviceProperties properties = physicaldevice->getProperties();
+
+     vk::SamplerCreateInfo samplerInfo{};
+     samplerInfo.magFilter = vk::Filter::eLinear;
+     samplerInfo.minFilter = vk::Filter::eLinear;
+     samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+     samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+     samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+     samplerInfo.anisotropyEnable = VK_TRUE;
+     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+     samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+     samplerInfo.unnormalizedCoordinates = VK_FALSE;
+     samplerInfo.compareEnable = VK_FALSE;
+     samplerInfo.compareOp = vk::CompareOp::eAlways;
+     samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+     textureSampler = vk::raii::Sampler(*logicaldevice, samplerInfo);
+   }
+
+   void VulkanImageView::CreateDepthImageView(
+       vk::Format depthFormat )
+   {
+     vk::ImageCreateInfo imageinfo{};
+     imageinfo.imageType = vk::ImageType::e2D;
+     imageinfo.extent.width = swapChainExtent.width;
+     imageinfo.extent.height = swapChainExtent.height;
+     imageinfo.extent.depth = 1;
+     imageinfo.mipLevels = 1;
+     imageinfo.arrayLayers = 1;
+     imageinfo.format = depthFormat;
+     imageinfo.tiling = vk::ImageTiling::eOptimal;
+     imageinfo.initialLayout = vk::ImageLayout::eUndefined;
+     imageinfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+     imageinfo.samples = vk::SampleCountFlagBits::e1;
+     imageinfo.sharingMode = vk::SharingMode::eExclusive;
+
+
+
 
    }
-} // namespace UHE
+
+   //void VulkanImageView::CreateImageViews() {}   
+   } // namespace UHE

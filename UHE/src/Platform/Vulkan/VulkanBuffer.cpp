@@ -3,4 +3,6 @@
 
 namespace UHE::RHI {
 
-}
+
+
+} // namespace UHE::RHI

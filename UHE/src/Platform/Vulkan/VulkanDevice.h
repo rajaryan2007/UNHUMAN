@@ -2,21 +2,19 @@
 #include "UHE/RHI/RHIDevice.h"
 #include "Platform/Vulkan/VulkanFrameContext.h"
 
-// Vulkan wrappers
+
 #include "Platform/Vulkan/VulkanInstance.h"
 #include "Platform/Vulkan/VulkanPhysicalDevice.h"
 #include "Platform/Vulkan/VulkanLogicalDevice.h"
 #include "Platform/Vulkan/VulkanSwapChain.h"
 
 #include <vk_mem_alloc.h>
-#include <array>
-#include <memory>
 
 namespace UHE::RHI {
 
 class VulkanDevice final : public RHIDevice {
 public:
-    VulkanDevice(const SwapchainDesc& swapDesc);
+    VulkanDevice(GLFWwindow* windowHandle, const SwapchainDesc& swapDesc);
     ~VulkanDevice() override;
 
     // ─── Resource Creation ──────────────────────────────────────
@@ -25,22 +23,12 @@ public:
     ShaderHandle   CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
 
-    // ─── Resource Destruction ───────────────────────────────────
-    void DestroyBuffer(BufferHandle handle) override;
-    void DestroyTexture(TextureHandle handle) override;
-    void DestroyShader(ShaderHandle handle) override;
-    void DestroyPipeline(PipelineHandle handle) override;
+    // ─── Window Management ────────────────────────────────────────
+    GLFWwindow *GetWindowHandle() const { return m_WindowHandle; }
 
     // ─── Data Upload ────────────────────────────────────────────
     void UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset = 0) override;
     void UpdateTexture(TextureHandle handle, const void* data, u64 size) override;
-    void* MapBuffer(BufferHandle handle) override;
-    void  UnmapBuffer(BufferHandle handle) override;
-
-    // ─── Frame Lifecycle ────────────────────────────────────────
-    void BeginFrame() override;
-    void EndFrame() override;
-    void WaitIdle() override;
 
     // ─── Command Recording ──────────────────────────────────────
     void BeginRenderPass(const RenderPassDesc& desc) override;
@@ -58,21 +46,16 @@ public:
     void DrawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) override;
 
     // ─── Swapchain ──────────────────────────────────────────────
-    TextureHandle GetSwapchainImage() override;
-    TextureFormat GetSwapchainFormat() override;
-    void ResizeSwapchain(u32 width, u32 height) override;
+ 
 
     // ─── Descriptors ────────────────────────────────────────────
     void BindTexture(u32 slot, TextureHandle handle) override;
 
     // ─── Info ───────────────────────────────────────────────────
-    Backend GetBackend() const override { return Backend::Vulkan; }
-    u32 GetCurrentFrameIndex() const override { return m_CurrentFrame; }
+   
 
     // ─── Internal Vulkan Access (for backend only) ──────────────
-    inline vk::raii::Device& GetDevice() { return *m_LogicalDevice.getLogicalDevice(); }
-    inline VmaAllocator GetAllocator() { return m_LogicalDevice.getAllocator(); }
-    inline DeletionQueue& GetCurrentDeletionQueue() { return m_Frames[m_CurrentFrame].deletionQueue; }
+  
 
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);

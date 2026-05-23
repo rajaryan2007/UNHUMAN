@@ -1,4 +1,8 @@
 
 
 
-namespace UHE::RHI {}
+namespace UHE::RHI {
+  class VulkanCommandBuffer {
+public:
+  };
+}
