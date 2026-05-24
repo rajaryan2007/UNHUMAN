@@ -1,6 +1,6 @@
 #include "uhepch.h"
 #include "VulkanImageView.h"
-
+#include <vk_mem_alloc.h>
 
 namespace UHE::RHI {
    vk::raii::ImageView VulkanImageView::CreateImageView(vk::Image image,
@@ -50,10 +50,7 @@ namespace UHE::RHI {
 
    void VulkanImageView::CreateTextureImageView() 
    {
-    
-
-
-
+      
    }
 
    void VulkanImageView::CreateTextureSampler() 
@@ -76,8 +73,8 @@ namespace UHE::RHI {
      textureSampler = vk::raii::Sampler(*logicaldevice, samplerInfo);
    }
 
-   void VulkanImageView::CreateDepthImageView(
-       vk::Format depthFormat )
+   void VulkanImageView::CreateDepthImageView(vk::Format depthFormat,
+                                              vk::Extent2D swapChainExtent)
    {
      vk::ImageCreateInfo imageinfo{};
      imageinfo.imageType = vk::ImageType::e2D;
@@ -93,10 +90,45 @@ namespace UHE::RHI {
      imageinfo.samples = vk::SampleCountFlagBits::e1;
      imageinfo.sharingMode = vk::SharingMode::eExclusive;
 
+     VkImageCreateInfo rawImageInfo =
+         static_cast<VkImageCreateInfo>(imageinfo);
+     VmaAllocationCreateInfo allocInfo{};
+     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
+     VkImage rawImage;
+     if (vmaCreateImage(m_allocator, &rawImageInfo, &allocInfo, &rawImage,
+                        &depthImageAllocation,
+                        NULL) != VK_SUCCESS) {
+         throw std::runtime_error("Failed to create depth image");
+     }
 
+     depthImage = vk::raii::Image(*logicaldevice, rawImage); 
+     rawHandle = depthImage.release();
+
+     vk::ImageViewCreateInfo DepthViewInfo{};
+     DepthViewInfo.viewType = vk::ImageViewType::e2D;
+     DepthViewInfo.format = depthFormat;
+     DepthViewInfo.image = *depthImage;
+     DepthViewInfo.subresourceRange.aspectMask =
+         vk::ImageAspectFlagBits::eDepth;
+     DepthViewInfo.subresourceRange.baseMipLevel = 0;
+     DepthViewInfo.subresourceRange.levelCount = 1;
+     DepthViewInfo.subresourceRange.baseArrayLayer = 0;
+     DepthViewInfo.subresourceRange.layerCount = 1;
+
+     depthImageView = vk::raii::ImageView(*logicaldevice, DepthViewInfo);
 
    }
 
+   VulkanImageView::~VulkanImageView()
+   {
+     if (depthImage != nullptr) {
+       vmaDestroyImage(m_allocator, rawImage,
+                       depthImageAllocation);
+       depthImage.release();
+       depthImageAllocation = nullptr;
+     }
+     depthImageView = nullptr;
+   }
    //void VulkanImageView::CreateImageViews() {}   
    } // namespace UHE

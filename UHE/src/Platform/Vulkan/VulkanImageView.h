@@ -11,6 +11,8 @@ namespace UHE::RHI {
        VulkanImageView(const VulkanImageView &) = delete;
        VulkanImageView &operator=(const VulkanImageView &) = delete;
 
+       ~VulkanImageView();
+
        vk::raii::ImageView CreateImageView(vk::Image image, vk::Format format);
        
        void setPyhsicalDevice(vk::raii::PhysicalDevice &physicalDevice) {
@@ -26,8 +28,8 @@ namespace UHE::RHI {
        void CreateImageViews();
        void CreateTextureImageView();
        void CreateTextureSampler();
-       void
-       CreateDepthImageView(vk::Format depthFormat = vk::Format::eD32Sfloat);
+       void CreateDepthImageView(vk::Format depthFormat = vk::Format::eD32Sfloat,
+           vk::Extent2D swapChainExtent);
 
    private:
        vk::raii::PhysicalDevice* physicaldevice = nullptr;
@@ -36,5 +38,11 @@ namespace UHE::RHI {
        std::vector<vk::raii::ImageView> swapChainImageViews;
        std::vector<vk::Image> swapChainImages; 
        vk::raii::Sampler textureSampler;
+       vk::raii::ImageView depthImageView;
+       vk::Image rawHandle = nullptr; 
+       vk::raii::Image depthImage;
+       VmaAllocator m_allocator = nullptr;
+       VmaAllocation depthImageAllocation;
+
    };
 }

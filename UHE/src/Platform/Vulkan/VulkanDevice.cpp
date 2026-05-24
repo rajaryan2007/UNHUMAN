@@ -22,7 +22,7 @@ void VulkanDevice::RecreateSwapchain() {
     m_SwapChain.createSwapChain(*m_LogicalDevice.getLogicalDevice(), m_PhysicalDevice, m_Surface, m_WindowHandle);
 }
 
-
+// ─── Resource Management Stubs  ───
 
 BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc) { return nullptr; }
 TextureHandle VulkanDevice::CreateTexture(const TextureDesc& desc) { return nullptr; }
@@ -44,5 +44,11 @@ void VulkanDevice::DrawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset)
 
 
 void VulkanDevice::BindTexture(u32 slot, TextureHandle handle) {}
+
+void VulkanDevice::UpdateBuffer(BufferHandle handle, const void *data, u64 size,
+                                u64 offset /*= 0*/) {}
+
+void VulkanDevice::UpdateTexture(TextureHandle handle, const void *data,
+                                 u64 size) {}
 
 } // namespace UHE::RHI

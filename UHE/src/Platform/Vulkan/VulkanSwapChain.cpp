@@ -32,7 +32,7 @@ namespace UHE::RHI  {
        swapChainImages = swapChain.getImages();
      }
      
-   
+      
 
      vk::Extent2D VulkanSwapChain::chooseSwapExtent(
          const vk::SurfaceCapabilitiesKHR &capabilities, GLFWwindow *window) {

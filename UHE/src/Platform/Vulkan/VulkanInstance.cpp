@@ -15,7 +15,7 @@ constexpr bool enableValidationLayers = true;
 
 namespace UHE::RHI {
 
-    instance_vk::instance_vk()
+    VulkanInstance::VulkanInstance()
         : m_context(), m_instance(nullptr), m_debugMessenger(nullptr)
     {
         if (volkInitialize() != VK_SUCCESS) {
@@ -26,7 +26,7 @@ namespace UHE::RHI {
         }
     }
 
-    void instance_vk::initialize()
+    void VulkanInstance::initialize()
     {
         VG_PROFILE_FUNCTION();
         VkApplicationInfo appInfo{};
@@ -101,7 +101,7 @@ namespace UHE::RHI {
         }
     }
 
-    std::vector<const char*> instance_vk::getRequiredExtensions()
+    std::vector<const char*> VulkanInstance::getRequiredExtensions()
     {
         u32 glfwExtensionCount = 0;
         auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -114,12 +114,12 @@ namespace UHE::RHI {
         return extensions;
     }
 
-    vk::raii::Instance& instance_vk::getInstance()
+    vk::raii::Instance& VulkanInstance::getInstance()
     { 
         return m_instance;
     }
 
-    VKAPI_ATTR vk::Bool32 VKAPI_CALL instance_vk::debugCallback(
+    VKAPI_ATTR vk::Bool32 VKAPI_CALL VulkanInstance::debugCallback(
         vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
         vk::DebugUtilsMessageTypeFlagsEXT type,
         const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData, void *)
@@ -136,7 +136,7 @@ namespace UHE::RHI {
         return vk::False;
     }
 
-    void instance_vk::cleanup() 
+    void VulkanInstance::cleanup() 
     {
 	  VG_PROFILE_FUNCTION();
 	

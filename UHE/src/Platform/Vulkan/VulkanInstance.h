@@ -3,11 +3,11 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
 namespace UHE::RHI {
-	class instance_vk {
+	class VulkanInstance {
 	  public:
-        instance_vk();
-		instance_vk(const instance_vk &) = delete;
-		instance_vk &operator=(const instance_vk &) = delete;
+        VulkanInstance();
+		VulkanInstance(const VulkanInstance &) = delete;
+		VulkanInstance &operator=(const VulkanInstance&) = delete;
 		void initialize();
         std::vector<const char *> getRequiredExtensions();
         static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(

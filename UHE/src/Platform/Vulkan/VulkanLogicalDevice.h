@@ -6,18 +6,25 @@
 
 
 namespace UHE::RHI {
-  class PhysicalDevice;
-  class instance_vk; 
+  class VulkanPhysicalDevice;
+  class VulkanInstance;
 
-  class VkLogicalDevice {
+  class VulkanLogicalDevice {
   public:
-    VkLogicalDevice() = default;
-    VkLogicalDevice(const VkLogicalDevice &) = delete;
-    VkLogicalDevice &operator=(const VkLogicalDevice &) = delete;
+    VulkanLogicalDevice() = default;
+    VulkanLogicalDevice(const VulkanLogicalDevice &) = delete;
+    VulkanLogicalDevice &operator=(const VulkanLogicalDevice &) = delete;
 
-    void initialize(PhysicalDevice& physicalDevice, VkSurfaceKHR surface, instance_vk& instance);
-    void CreateSurface(instance_vk& instance, GLFWwindow *window);
+    void initialize(VulkanPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VulkanInstance& instance);
+    void CreateSurface(VulkanInstance& instance, GLFWwindow *window);
     void cleanup();
+
+    VmaAllocator &getAllocator() 
+    {
+      return m_allocator;
+    };
+
+    inline const vk::raii::Device &getLogicalDevice() { return m_logicalDevice; }
 
    private:
     u32 m_graphicsQueueFamilyIndex{0};

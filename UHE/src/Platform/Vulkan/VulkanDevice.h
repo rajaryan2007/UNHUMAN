@@ -45,17 +45,14 @@ public:
     void Draw(u32 vertexCount, u32 firstVertex = 0) override;
     void DrawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) override;
 
-    // ─── Swapchain ──────────────────────────────────────────────
- 
+    void GetLogicalDeviceInfo(u32 &vendorID, u32 &deviceID) const {
+      return m_PhysicalDevice.GetLogicalDeviceInfo(vendorID, deviceID);
+    };
 
-    // ─── Descriptors ────────────────────────────────────────────
+    vk::raii::Device &GetVulkanDevice() { return m_logicalDevice; }
+    
+
     void BindTexture(u32 slot, TextureHandle handle) override;
-
-    // ─── Info ───────────────────────────────────────────────────
-   
-
-    // ─── Internal Vulkan Access (for backend only) ──────────────
-  
 
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);
@@ -64,11 +61,16 @@ private:
 
 private:
     // Core Vulkan abstractions
+    vk::raii::Device &m_logicalDevice;
+    vk::raii::Queue &m_graphicsQueue;
+    vk::raii::SurfaceKHR &surface; 
+    
     instance_vk          m_Instance;
     PhysicalDevice       m_PhysicalDevice;
     VkLogicalDevice      m_LogicalDevice;
     vk::raii::SurfaceKHR m_Surface = nullptr;
     VulkanSwapChain      m_SwapChain;
+    VmaAllocator         m_Allocator = nullptr;
 
     GLFWwindow*          m_WindowHandle = nullptr;
     u32                  m_WindowWidth;
