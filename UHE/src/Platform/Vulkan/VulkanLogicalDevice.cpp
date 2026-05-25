@@ -8,7 +8,9 @@
 
 
 namespace UHE::RHI {
-  void VkLogicalDevice::initialize(PhysicalDevice& physicalDevice, VkSurfaceKHR surface, instance_vk& instance) 
+void VulkanLogicalDevice::initialize(VulkanPhysicalDevice &physicalDevice,
+                                     VkSurfaceKHR surface,
+                                     VulkanInstance &instance) 
   {
      const auto& phyDevice = physicalDevice.getPhysicalDevice();
      std::vector<vk::QueueFamilyProperties> queueFamilies  =  phyDevice.getQueueFamilyProperties();
@@ -76,7 +78,7 @@ namespace UHE::RHI {
      }
   }
 
-  void VkLogicalDevice::CreateSurface(instance_vk& instance, GLFWwindow* window) 
+  void VulkanLogicalDevice::CreateSurface(instance_vk& instance, GLFWwindow* window) 
   {
     auto const &m_instance = instance.getInstance();
 

@@ -54,6 +54,11 @@ public:
 
     void BindTexture(u32 slot, TextureHandle handle) override;
 
+    VulkanLogicalDevice &getLogicalDevClass() { return m_LogicalDevice; }      
+    VulkanInstance &getInstanceClass() { return m_Instance; }
+    VulkanPhysicalDevice &getPhysicalDevClass() { return m_PhysicalDevice; }
+    VulkanSwapChain &getSwapChainClass() { return m_SwapChain; }
+
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);
     void CleanupVulkan();
@@ -65,9 +70,9 @@ private:
     vk::raii::Queue &m_graphicsQueue;
     vk::raii::SurfaceKHR &surface; 
     
-    instance_vk          m_Instance;
-    PhysicalDevice       m_PhysicalDevice;
-    VkLogicalDevice      m_LogicalDevice;
+    VulkanInstance          m_Instance;
+    VulkanPhysicalDevice       m_PhysicalDevice;
+    VulkanLogicalDevice      m_LogicalDevice;
     vk::raii::SurfaceKHR m_Surface = nullptr;
     VulkanSwapChain      m_SwapChain;
     VmaAllocator         m_Allocator = nullptr;

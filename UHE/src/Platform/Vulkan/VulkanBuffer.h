@@ -16,11 +16,7 @@ public:
   
   VulkanBuffer(const VulkanBuffer &) = delete;
   VulkanBuffer &operator=(const VulkanBuffer &) = delete;
-
-  
-  VulkanBuffer(VulkanBuffer &&other) noexcept;
-  VulkanBuffer &operator=(VulkanBuffer &&other) noexcept;
-
+ 
   void init(VmaAllocator allocator, vk::DeviceSize size,
                vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage);
   void UploadData(const void *data, vk::DeviceSize size);

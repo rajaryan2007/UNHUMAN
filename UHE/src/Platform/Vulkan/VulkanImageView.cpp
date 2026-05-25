@@ -95,7 +95,7 @@ namespace UHE::RHI {
      VmaAllocationCreateInfo allocInfo{};
      allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-     VkImage rawImage;
+    
      if (vmaCreateImage(m_allocator, &rawImageInfo, &allocInfo, &rawImage,
                         &depthImageAllocation,
                         NULL) != VK_SUCCESS) {

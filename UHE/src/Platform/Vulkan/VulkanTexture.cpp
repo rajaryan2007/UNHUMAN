@@ -38,17 +38,19 @@ void VulkanTexture::CreateImage(VulkanLogicalDevice &logDevice, uint32_t width,
   allocInfo.usage = memUsage;
 
   VkImage rawImage;
-  VkImage rawImage;
-  if (vmaCreateImage(&LogDevice.GetAllocator(), &rawImageInfo, &allocInfo,
+  
+  if (vmaCreateImage(logDevice.getAllocator(), &rawImageInfo, &allocInfo,
                      &rawImage, &imageMemory, nullptr) != VK_SUCCESS) {
     throw std::runtime_error("failed to create image via VMA!");
   }
 
-
+  image = vk::raii::Image(logDevice.getLogicalDevice(), rawImage);
 }
 
-void VulkanTexture::CreateTexture(VulkanDevice &device)
+void VulkanTexture::CreateTexture(VulkanDevice& device)
 {
+   const auto& logicaldevice = &device.getLogicalDevClass().getLogicalDevice();
+
 
 }
 

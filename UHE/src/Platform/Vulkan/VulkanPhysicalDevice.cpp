@@ -4,7 +4,7 @@
 
 
 namespace UHE::RHI {
-void VulkanPhysicalDevice::initPhysicalDevice(instance_vk &m_Vkinstance) 
+void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance &m_Vkinstance) 
   {
   auto const &m_instance = m_Vkinstance.getInstance();
      std::vector<vk::raii::PhysicalDevice> devices =   m_instance.enumeratePhysicalDevices();

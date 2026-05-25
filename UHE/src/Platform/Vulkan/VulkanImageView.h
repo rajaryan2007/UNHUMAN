@@ -40,6 +40,7 @@ namespace UHE::RHI {
        vk::raii::Sampler textureSampler;
        vk::raii::ImageView depthImageView;
        vk::Image rawHandle = nullptr; 
+        VkImage rawImage;
        vk::raii::Image depthImage;
        VmaAllocator m_allocator = nullptr;
        VmaAllocation depthImageAllocation;
