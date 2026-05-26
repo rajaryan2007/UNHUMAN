@@ -39,7 +39,6 @@ void VulkanDevice::BindIndexBuffer(BufferHandle handle, u64 offset) {}
 void VulkanDevice::SetViewport(float x, float y, float width, float height) {}
 void VulkanDevice::SetScissor(i32 x, i32 y, u32 width, u32 height) {}
 void VulkanDevice::PushConstants(ShaderStage stage, const void* data, u32 size, u32 offset) {}
-void VulkanDevice::Draw(u32 vertexCount, u32 firstVertex) {}
 void VulkanDevice::DrawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset) {}
 
 
@@ -50,5 +49,36 @@ void VulkanDevice::UpdateBuffer(BufferHandle handle, const void *data, u64 size,
 
 void VulkanDevice::UpdateTexture(TextureHandle handle, const void *data,
                                  u64 size) {}
+
+void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function) {
+    vk::CommandBufferAllocateInfo allocInfo{};
+    allocInfo.commandPool = *m_UploadCommandPool;
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandBufferCount = 1;
+
+    vk::raii::CommandBuffers cmdBuffers(m_logicalDevice, allocInfo);
+    vk::raii::CommandBuffer cmd = std::move(cmdBuffers[0]);
+
+    vk::CommandBufferBeginInfo beginInfo{};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    cmd.begin(beginInfo);
+
+    function(cmd);
+
+    cmd.end();
+
+    vk::SubmitInfo submitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &(*cmd);
+
+    m_graphicsQueue.submit(submitInfo, *m_UploadFence);
+
+    // Wait for the command to finish executing
+    auto waitResult = m_logicalDevice.waitForFences({*m_UploadFence}, VK_TRUE, UINT64_MAX);
+    VG_CORE_ASSERT(waitResult == vk::Result::eSuccess, "Failed to wait for upload fence!");
+    
+    m_logicalDevice.resetFences({*m_UploadFence});
+    m_UploadCommandPool.reset();
+}
 
 } // namespace UHE::RHI

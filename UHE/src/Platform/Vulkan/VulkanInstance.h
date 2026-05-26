@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 	class VulkanInstance {
 	  public:
         VulkanInstance();

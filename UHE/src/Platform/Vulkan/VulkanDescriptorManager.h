@@ -13,7 +13,7 @@ public:
     operator=(const VulkanDescriptorManager &) = delete;
 
     void init(VulkanDevice& device);
-    void RegisterBuffer(vk::raii::Device &device, vk::Buffer buffer,
+    u32 RegisterBuffer(vk::raii::Device &device, vk::Buffer buffer,
                         vk::DeviceSize size);
     void cleanup();
 

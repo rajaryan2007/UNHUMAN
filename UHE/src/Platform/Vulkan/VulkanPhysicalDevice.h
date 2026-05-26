@@ -3,7 +3,7 @@
 #include "VulkanInstance.h"
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 class VulkanPhysicalDevice {
    public:
      VulkanPhysicalDevice() = default;
@@ -11,7 +11,7 @@ class VulkanPhysicalDevice {
      VulkanPhysicalDevice &operator=(const VulkanPhysicalDevice &) = delete;
      
     
-     void initPhysicalDevice(instance_vk &instance);
+     void initPhysicalDevice(VulkanInstance &instance);
      vk::raii::PhysicalDevice &getPhysicalDevice() { return m_physicalDevice; }
      void GetLogicalDeviceInfo(u32 &vendorID, u32 &deviceID) const {
        vendorID = m_physicalDevice.getProperties().vendorID;

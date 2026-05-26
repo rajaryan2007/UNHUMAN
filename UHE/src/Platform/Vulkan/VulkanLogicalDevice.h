@@ -5,7 +5,7 @@
 
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
   class VulkanPhysicalDevice;
   class VulkanInstance;
 

@@ -33,5 +33,7 @@ private:
   vk::raii::DeviceMemory textureImageMemory;
   vk::raii::ImageView textureImageView;
   vk::raii::Sampler textureSampler;
+  VmaAllocator m_allocator = nullptr;
+
 };
 } // namespace UHE::RHI

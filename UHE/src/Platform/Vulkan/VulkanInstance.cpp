@@ -13,7 +13,7 @@ constexpr bool enableValidationLayers = false;
 constexpr bool enableValidationLayers = true;
 #endif
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 
     VulkanInstance::VulkanInstance()
         : m_context(), m_instance(nullptr), m_debugMessenger(nullptr)

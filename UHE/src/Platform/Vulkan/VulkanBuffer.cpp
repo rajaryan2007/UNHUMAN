@@ -1,32 +1,90 @@
 #include "uhepch.h"
 #include "VulkanBuffer.h"
+#include "UHE/Core/Log.h"
 
-namespace UHE::RHI {
- // ---------------------------------- Vulkan Buffer Abstraction -------------------------------
- 
- VulkanBuffer::~VulkanBuffer() {}
+namespace UHE::RHI::VULKAN {
 
- void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size,
-                        vk::BufferUsageFlags usage,
-                        VmaMemoryUsage memoryUsage) 
- {}
+VulkanBuffer::~VulkanBuffer() {
+    if (m_Buffer && m_Allocator) {
+        vmaDestroyBuffer(m_Allocator, static_cast<VkBuffer>(m_Buffer), m_Allocation);
+        m_Buffer = nullptr;
+        m_Allocation = nullptr;
+    }
+}
 
- void VulkanBuffer::UploadData(const void *data, vk::DeviceSize size) 
- {}
+void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+    m_Allocator = allocator;
+    m_Size = size;
 
- void VulkanBuffer::CopyTo(VulkanBuffer &dstBuffer, vk::DeviceSize size,
-                           vk::raii::CommandBuffer &commandBuffer) 
- {}
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = size;
+    bufferInfo.usage = static_cast<VkBufferUsageFlags>(usage);
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
- // ---------------------------------- Vulkan Vertex Buffer Abstraction -------------------------------
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = memoryUsage;
+    
+    if (memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY || memoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU) {
+        allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    }
 
- void VulkanVertexBuffer::Create(VmaAllocator allocator, const void *vertexData,
-                                 uint32_t vertexCount, uint32_t stride) 
- {}
+    VkBuffer vkBuffer;
+    VkResult res = vmaCreateBuffer(m_Allocator, &bufferInfo, &allocInfo, &vkBuffer, &m_Allocation, nullptr);
+    VG_CORE_ASSERT(res == VK_SUCCESS, "Failed to create Vulkan Buffer with VMA!");
+    
+    m_Buffer = vk::Buffer(vkBuffer);
+}
 
-  // ---------------------------------- Vulkan Index Buffer Abstraction ------------------------------- 
+void VulkanBuffer::UploadData(const void *data, vk::DeviceSize size) {
+    VG_CORE_ASSERT(size <= m_Size, "Upload size exceeds buffer size!");
+    
+    void* mappedData;
+    vmaMapMemory(m_Allocator, m_Allocation, &mappedData);
+    memcpy(mappedData, data, size);
+    vmaUnmapMemory(m_Allocator, m_Allocation);
+}
 
- void VulkanIndexBuffer::Create(VmaAllocator allocator,
-                                 const std::vector<uint32_t> &indices) 
- {}
- } // namespace UHE::RHI
+void VulkanBuffer::CopyTo(VulkanBuffer &dstBuffer, vk::DeviceSize size, vk::raii::CommandBuffer &commandBuffer) {
+    vk::BufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = 0;
+    copyRegion.size = size;
+
+    commandBuffer.copyBuffer(m_Buffer, dstBuffer.GetHandle(), copyRegion);
+}
+
+// ---------------------------------- Vertex Buffer -------------------------------
+
+void VulkanVertexBuffer::Create(VmaAllocator allocator, const void *vertexData, uint32_t vertexCount, uint32_t stride) {
+    m_VertexCount = vertexCount;
+    vk::DeviceSize bufferSize = static_cast<vk::DeviceSize>(vertexCount * stride);
+
+   
+    VulkanBuffer stagingBuffer;
+    stagingBuffer.init(allocator, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_ONLY);
+    stagingBuffer.UploadData(vertexData, bufferSize);
+
+    
+    m_Buffer.init(allocator, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
+
+    
+    VG_CORE_WARN("VulkanVertexBuffer staging copy command submission needs to be handled by an immediate context!");
+}
+
+// ---------------------------------- Index Buffer -------------------------------
+
+void VulkanIndexBuffer::Create(VmaAllocator allocator, const std::vector<uint32_t> &indices) {
+    m_IndexCount = static_cast<uint32_t>(indices.size());
+    vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+    VulkanBuffer stagingBuffer;
+    stagingBuffer.init(allocator, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_ONLY);
+    stagingBuffer.UploadData(indices.data(), bufferSize);
+
+    m_Buffer.init(allocator, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
+    
+    VG_CORE_WARN("VulkanIndexBuffer staging copy command submission needs to be handled by an immediate context!");
+}
+
+} // namespace UHE::RHI::VULKAN

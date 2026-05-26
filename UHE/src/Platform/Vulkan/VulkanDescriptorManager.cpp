@@ -90,6 +90,7 @@ u32 VulkanDescriptorManager::RegisterBuffer(vk::raii::Device &device,
   return bindingIndex; 
 }
 
-
-
+void VulkanDescriptorManager::cleanup()
+{
+}
 } // namespace UHE::RHI

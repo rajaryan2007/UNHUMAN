@@ -3,7 +3,7 @@
 
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance &m_Vkinstance) 
   {
   auto const &m_instance = m_Vkinstance.getInstance();

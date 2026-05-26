@@ -4,13 +4,13 @@
 #include <vk_mem_alloc.h>
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 
 // ---------------------------------- Vulkan Buffer Abstraction -------------------------------
 
 class VulkanBuffer {
 public:
-
+  VulkanBuffer() = default;
   ~VulkanBuffer();
 
   
@@ -23,11 +23,11 @@ public:
   void CopyTo(VulkanBuffer &dstBuffer, vk::DeviceSize size,
               vk::raii::CommandBuffer &commandBuffer);
 
-  vk::Buffer GetHandle() const { return *m_Buffer; }
+  vk::Buffer GetHandle() const { return m_Buffer; }
 
 private:
   VmaAllocator m_Allocator = nullptr;
-  vk::raii::Buffer m_Buffer = nullptr;
+  vk::Buffer m_Buffer = nullptr;
   VmaAllocation m_Allocation = nullptr;
   vk::DeviceSize m_Size = 0;
 };

@@ -47,9 +47,13 @@ void VulkanTexture::CreateImage(VulkanLogicalDevice &logDevice, uint32_t width,
   image = vk::raii::Image(logDevice.getLogicalDevice(), rawImage);
 }
 
-void VulkanTexture::CreateTexture(VulkanDevice& device)
-{
+void VulkanTexture::CreateTexture(VulkanDevice &device,
+                                   uint32_t width,
+                                  uint32_t height) {
    const auto& logicaldevice = &device.getLogicalDevClass().getLogicalDevice();
+   m_allocator = device.getLogicalDevClass().getAllocator();
+   LogicalDevice &logicalDev, 
+
 
 
 }

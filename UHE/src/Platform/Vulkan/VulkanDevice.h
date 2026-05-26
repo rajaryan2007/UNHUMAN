@@ -42,7 +42,9 @@ public:
     void SetScissor(i32 x, i32 y, u32 width, u32 height) override;
     void PushConstants(ShaderStage stage, const void* data, u32 size, u32 offset = 0) override;
 
-    void Draw(u32 vertexCount, u32 firstVertex = 0) override;
+    
+    void Draw(u32 vertexCount, u32 firstVertex = 0) override {}
+    
     void DrawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) override;
 
     void GetLogicalDeviceInfo(u32 &vendorID, u32 &deviceID) const {
@@ -63,6 +65,9 @@ private:
     void InitVulkan(const SwapchainDesc& swapDesc);
     void CleanupVulkan();
     void RecreateSwapchain();
+
+    // ─── Immediate Submission (Uploads) ───────────────────────────
+    void ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function);
 
 private:
     // Core Vulkan abstractions
@@ -87,6 +92,11 @@ private:
     u32 m_CurrentFrame = 0;
     u32 m_ImageIndex = 0; // Current swapchain image index
     bool m_FramebufferResized = false;
+
+    // Immediate submit context
+    vk::raii::Fence m_UploadFence = nullptr;
+    vk::raii::CommandPool m_UploadCommandPool = nullptr;
+    vk::raii::CommandBuffer m_UploadCommandBuffer = nullptr;
 
     enum VendorID {
       VENDOR_ID_AMD = 0x1002,

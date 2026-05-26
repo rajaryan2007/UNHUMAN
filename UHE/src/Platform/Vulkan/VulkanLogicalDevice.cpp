@@ -7,7 +7,7 @@
 
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 void VulkanLogicalDevice::initialize(VulkanPhysicalDevice &physicalDevice,
                                      VkSurfaceKHR surface,
                                      VulkanInstance &instance) 
