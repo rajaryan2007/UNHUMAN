@@ -1,7 +1,7 @@
 
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 class VulkanDevice;
 class VulkanCommandBuffer {
 public:

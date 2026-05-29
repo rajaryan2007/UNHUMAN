@@ -3,9 +3,7 @@
 #include "UHE/Core/Log.h"
 #include <GLFW/glfw3.h>
 
-namespace UHE::RHI {
-
-
+namespace UHE::RHI::VULKAN {
 
 void VulkanDevice::RecreateSwapchain() {
     VG_PROFILE_FUNCTION();

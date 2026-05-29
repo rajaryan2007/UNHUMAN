@@ -3,7 +3,7 @@
 
 #include <vector>
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
    class VulkanDevice;
    class VulkanImageView {
    public: 

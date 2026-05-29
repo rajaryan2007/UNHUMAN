@@ -2,7 +2,7 @@
 #include "uhepch.h"
 #include "VulkanFrameContext.h"
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 
 void VulkanFrameContext::Init(const vk::raii::Device& device, u32 queueFamilyIndex) {
     vk::CommandPoolCreateInfo poolInfo{};

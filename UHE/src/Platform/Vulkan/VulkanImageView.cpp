@@ -2,7 +2,7 @@
 #include "VulkanImageView.h"
 #include <vk_mem_alloc.h>
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
    vk::raii::ImageView VulkanImageView::CreateImageView(vk::Image image,
        vk::Format format) 
    {

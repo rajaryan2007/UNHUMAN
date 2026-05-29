@@ -3,7 +3,7 @@
 #include <GLFW/glfw3.h>
 #include "UHE/RHI/RHISwapchain.h"
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
   class VulkanSwapChain : RHISwapChain {
    public:
      VulkanSwapChain() = default;

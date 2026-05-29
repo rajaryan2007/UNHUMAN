@@ -1,6 +1,6 @@
 #include "VulkanCommandBuffer.h"
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 
-} // namespace UHE::RHI
+} // namespace UHE::RHI::VULKAN

@@ -10,7 +10,7 @@
 
 #include <vk_mem_alloc.h>
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 
 class VulkanDevice final : public RHIDevice {
 public:

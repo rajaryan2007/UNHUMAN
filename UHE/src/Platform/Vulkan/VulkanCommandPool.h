@@ -2,7 +2,7 @@
 
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 	class VulkanCommandPool {
 public:  
         VulkanCommandPool() = default;

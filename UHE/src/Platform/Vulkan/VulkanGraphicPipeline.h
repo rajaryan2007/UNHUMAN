@@ -2,8 +2,13 @@
 #include <vulkan/vulkan_raii.hpp>
 
 namespace UHE::RHI {
+class GraphicsPipelineDesc;
+};
+
+namespace UHE::RHI::VULKAN {
 class VulkanLogicalDevice;
 class VulkanDescriptorManager;
+
 
 class VulkanGraphicPipeline {
 public:
@@ -15,10 +20,8 @@ public:
 
 private:
   void createGraphicsPipeline(VulkanLogicalDevice &Device,
-                              vk::Extent2D swapChainExtent,
                               VulkanDescriptorManager &descriptorManager,
-                              vk::SurfaceFormatKHR swapChainSurfaceFormat,
-                              vk::Format depthFormat);
+                              const GraphicsPipelineDesc &desc);
   void createShaderModules();
   void cleanup();
 

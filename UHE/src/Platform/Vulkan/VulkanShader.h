@@ -15,9 +15,10 @@ public:
     vk::ShaderModule GetHandle() const { return *m_Module; }
     ShaderStage GetStage() const { return m_Stage; }
     const char* GetEntryPoint() const { return m_EntryPoint.c_str(); }
+    vk::ShaderModule GetModule() const { return *m_Module; }
 
 private:
-    vk::raii::ShaderModule m_Module = nullptr;
+    vk::raii::ShaderModule m_Module;
     ShaderStage m_Stage = ShaderStage::Vertex;
     std::string m_EntryPoint = "main";
 };

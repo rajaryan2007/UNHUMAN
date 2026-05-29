@@ -2,8 +2,9 @@
 #include "VulkanTexture.h"
 #include "VulkanDevice.h"
 #include "VulkanLogicalDevice.h"
+#include "VulkanCommandPool.h"
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 	
   
 void VulkanTexture::Init(VulkanDevice &device)
@@ -48,7 +49,7 @@ void VulkanTexture::CreateImage(VulkanLogicalDevice &logDevice, uint32_t width,
 }
 
 void VulkanTexture::CreateTexture(VulkanDevice &device,
-                                   uint32_t width,
+                                  VulkanCommandPool &commandPool, uint32_t width,
                                   uint32_t height) {
    const auto& logicaldevice = &device.getLogicalDevClass().getLogicalDevice();
    m_allocator = device.getLogicalDevClass().getAllocator();

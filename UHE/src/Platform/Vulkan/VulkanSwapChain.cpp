@@ -1,7 +1,7 @@
 #include "uhepch.h"
 #include "VulkanSwapChain.h"
 
-namespace UHE::RHI  {
+namespace UHE::RHI::VULKAN {
      void VulkanSwapChain::createSwapChain(vk::raii::Device &device,
                                            vk::raii::PhysicalDevice &physicalDevice,
                                            vk::raii::SurfaceKHR &surface,

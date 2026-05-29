@@ -2,7 +2,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "UHE/RHI/DeletionQueue.h"
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
 
 class VulkanFrameContext {
 public:

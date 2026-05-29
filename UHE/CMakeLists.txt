@@ -49,10 +49,15 @@ target_sources(UHE PRIVATE
     vendor/tracy/public/TracyClient.cpp
 )
 
+if(WIN32)
+    target_compile_definitions(UHE PUBLIC VG_PLATFORM_WINDOWS)
+    target_compile_definitions(UHE PUBLIC VG_DYNAMIC_LINK WINDLL)
+elseif(UNIX)
+    target_compile_definitions(UHE PUBLIC VG_PLATFORM_LINUX)
+    # UNIX doesn't typically need WINDLL or explicit dllexport macros for shared objects if visibility is handled
+endif()
+
 target_compile_definitions(UHE PUBLIC
-    VG_PLATFORM_WINDOWS
-    VG_DYNAMIC_LINK
-    WINDLL
     GLFW_INCLUDE_NONE
     _CRT_SECURE_NO_WARNINGS
 )
@@ -70,14 +75,18 @@ if(MSVC)
 endif()
 
 target_link_libraries(UHE PUBLIC
-glfw Glad Vulkan::Vulkan ImGui ImGuizmo opengl32.lib
+    glfw Glad Vulkan::Vulkan ImGui ImGuizmo
 PRIVATE
-VulkanMemoryAllocator volk
+    VulkanMemoryAllocator volk
     yaml-cpp
     TracyClient
     slang::slang
     box2d
 )
+
+if(WIN32)
+    target_link_libraries(UHE PUBLIC opengl32.lib)
+endif()
 
 # Copy Slang DLLs to output directory
 add_custom_command(TARGET UHE POST_BUILD

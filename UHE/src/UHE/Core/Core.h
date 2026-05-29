@@ -2,19 +2,19 @@
 #include <memory>
 
 #ifdef VG_PLATFORM_WINDOWS
-
-#ifdef VG_DYNAMIC_LINK
-#ifdef VG_BUILD_DLL
-#define UHE_API __declspec(dllexport)
+    #ifdef VG_DYNAMIC_LINK
+        #ifdef VG_BUILD_DLL
+            #define UHE_API __declspec(dllexport)
+        #else
+            #define UHE_API __declspec(dllimport)
+        #endif
+    #else
+        #define UHE_API
+    #endif
+#elif defined(VG_PLATFORM_LINUX)
+    #define UHE_API __attribute__((visibility("default")))
 #else
-#define UHE_API __declspec(dllimport)
-#endif
-#else
-#define UHE_API
-#endif
-
-#else
-#error Vega only supports Windows!
+    #error UHE currently only supports Windows and Linux!
 #endif
 
 
@@ -24,11 +24,16 @@
 
 
 #ifdef VG_ENABLE_ASSERTS
-#define VG_ASSERT(x, ...) { if(!(x)) { VG_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
-#define VG_CORE_ASSERT(x, ...) { if(!(x)) { VG_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
+    #ifdef VG_PLATFORM_WINDOWS
+        #define UHE_DEBUGBREAK() __debugbreak()
+    #else
+        #define UHE_DEBUGBREAK() __builtin_trap()
+    #endif
+    #define VG_ASSERT(x, ...) { if(!(x)) { VG_ERROR("Assertion Failed: {0}", __VA_ARGS__); UHE_DEBUGBREAK(); } }
+    #define VG_CORE_ASSERT(x, ...) { if(!(x)) { VG_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); UHE_DEBUGBREAK(); } }
 #else
-#define VG_ASSERT(x, ...)
-#define VG_CORE_ASSERT(x, ...)
+    #define VG_ASSERT(x, ...)
+    #define VG_CORE_ASSERT(x, ...)
 #endif
 
 #define BIT(x) (1 << x)

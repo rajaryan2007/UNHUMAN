@@ -125,17 +125,17 @@ namespace UHE
 
 	void ImGuiLayer::SetDarkThemeColor() 
 	{
-          auto &style = ImGui::GetStyle();
-          auto &colors = style.Colors;
+        auto &style = ImGui::GetStyle();
+        auto &colors = style.Colors;
 
-          style.WindowPadding = ImVec2(10, 10);
-          style.FramePadding = ImVec2(6, 4);
-          style.CellPadding = ImVec2(4, 3);
-          style.ItemSpacing = ImVec2(8, 5);
-          style.ItemInnerSpacing = ImVec2(6, 4);
-          style.IndentSpacing = 22.0f;
-          style.ScrollbarSize = 13.0f;
-          style.GrabMinSize = 10.0f;
+        style.WindowPadding = ImVec2(10, 10);
+        style.FramePadding = ImVec2(6, 4);
+        style.CellPadding = ImVec2(4, 3);
+        style.ItemSpacing = ImVec2(8, 5);
+        style.ItemInnerSpacing = ImVec2(6, 4);
+        style.IndentSpacing = 22.0f;
+        style.ScrollbarSize = 13.0f;
+        style.GrabMinSize = 10.0f;
 
 		style.WindowRounding    = 0.0f;
 		style.ChildRounding     = 3.0f;

@@ -3,7 +3,8 @@
 #include "VulkanDevice.h"
 
 
-namespace UHE::RHI {
+namespace UHE::RHI::VULKAN {
+
 void VulkanDescriptorManager::init(VulkanDevice &device) 
 {
   const auto &logicaldevice = device.getLogicalDevClass().getLogicalDevice();
