@@ -3,21 +3,24 @@
   <p>A modern, cross-platform C++ game engine powered by Vulkan and Slang.</p>
 </div>
 
+> [!WARNING]
+> **Heavily Under Construction:** This engine is currently undergoing a massive architectural refactor (including a complete rewrite of the Vulkan RHI and cross-platform build systems). The codebase will be in a state of heavy flux for the next 2-3 months. Expect breaking changes and instability!
+
 ---
 
 **Unhuman Engine (UHE)** is a lightweight, highly extensible C++ game engine designed for real-time applications and game development. It utilizes a modern **Vulkan RHI** backend, compiles shaders via **Slang**, and features a fully integrated ImGui editor.
 
-## 🚀 Key Features
+## Key Features
 
 - **Modern Graphics Backend**: Fully abstracted Render Hardware Interface (RHI) running on **Vulkan**.
 - **Slang Shader Compiler**: Next-generation shading language support with dynamic compilation and SPIR-V generation.
 - **UHE Editor**: A robust, dockable ImGui-based editor (`UHE_EDITOR`) for scene inspection, profiling, and asset management.
 - **Entity Component System**: A fast, data-driven scene system (`entt`) supporting native script components and serialization.
-- **2D & 3D Physics**: Integrated physics handling with `Box2D`.
+- **2D & 3D Physics**: Integrated physics handling with `Box2D and jolt(in future)`.
 - **AAA Dependency Management**: No bloated submodules or slow package managers. The engine fetches precompiled binaries (Slang, GLFW) automatically for zero-compile-time dependencies.
 - **Cross-Platform Tooling**: Generates Ninja builds for Linux and Visual Studio 2022 solutions for Windows with a single click.
 
-## 🛠️ Architecture Overview
+## Architecture Overview
 
 The repository is logically split to ensure the core engine remains separate from the application logic:
 
@@ -26,7 +29,7 @@ The repository is logically split to ensure the core engine remains separate fro
 - `sandbox/` — A lightweight testing application for running isolated scenes.
 - `script/Setup.py` — The automated dependency fetcher that pulls heavy OS-specific binaries (like Slang) into `UHE/vendor/bin/`.
 
-## 📦 Getting Started
+## Getting Started
 
 UHE uses a fully automated bootstrap system. You do not need to manually configure CMake or download binaries.
 
@@ -65,7 +68,7 @@ UHE uses a fully automated bootstrap system. You do not need to manually configu
 
 *Note: The built executables (`UHE_EDITOR`, `Sandbox`) will be placed in the `bin/` directory.*
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are always welcome! If you want to contribute to the engine:
 1. Ensure your code complies with the project's `.clang-format` and `.clang-tidy` rules. (If using Neovim/VS Code with `clangd`, this will be automatic).
