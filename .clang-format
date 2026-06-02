@@ -1,0 +1,38 @@
+---
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++20
+
+# Basic formatting
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+
+# Braces & Newlines (Linux/Cross-Platform Standard: attach braces to the line)
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Pointers and References (e.g. VulkanDevice* device)
+PointerAlignment: Left
+
+# Includes sorting
+SortIncludes: true
+IncludeBlocks: Merge
+IncludeCategories:
+  - Regex:           '^"uhepch\.h"'
+    Priority:        -1
+  - Regex:           '^<.*'
+    Priority:        1
+  - Regex:           '.*'
+    Priority:        2
+# Indentation specifics
+AccessModifierOffset: -4
+IndentCaseLabels: true
+NamespaceIndentation: None
+
+# Macros
+MacroBlockBegin: '^\s*#\s*ifdef'
+MacroBlockEnd: '^\s*#\s*endif'

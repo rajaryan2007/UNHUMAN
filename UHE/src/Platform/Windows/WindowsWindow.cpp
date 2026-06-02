@@ -1,13 +1,13 @@
-#include "uhepch.h"
 #include "WindowsWindow.h"
-#include "Glad/glad.h"
+#include "UHE/AssestsManager/VfsSystem.h"
 #include "UHE/Core/Log.h"
 #include "UHE/Events/ApplicationEvent.h"
 #include "UHE/Events/KeyEvent.h"
 #include "UHE/Events/MouseEvent.h"
 #include "backends/imgui_impl_glfw.h"
+#include "glad/glad.h"
 #include "imgui.h"
-#include "UHE/AssestsManager/VfsSystem.h"
+#include "uhepch.h"
 
 #include "Platform/OpenGL/OpenGLContext.h"
 #include <stb_image.h>
@@ -44,26 +44,27 @@ void WindowsWindow::Init(const WindowProps &props) {
     s_GLFWInitialized = true;
   }
 
-  // glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Breaks mouse dragging/events without custom Win32 event hooks!
+  // glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Breaks mouse dragging/events
+  // without custom Win32 event hooks!
   m_Window = glfwCreateWindow((int)props.Width, (int)props.Height,
                               m_Data.Title.c_str(), nullptr, nullptr);
   GLFWimage images[1];
   const std::string path = UHE::FileSystem::Get().Resolve("icon\\ace.jpg");
 
-  images[0].pixels = stbi_load(path.c_str(), &images[0].width, &images[0].height, 0, 4);
+  images[0].pixels =
+      stbi_load(path.c_str(), &images[0].width, &images[0].height, 0, 4);
   if (images[0].pixels) {
-	  glfwSetWindowIcon(m_Window, 1, images);
-	  stbi_image_free(images[0].pixels);
-  }
-  else {
-	  images[0].pixels = stbi_load(path.c_str(), &images[0].width, &images[0].height, 0, 4);
-	  if (images[0].pixels) {
-		  glfwSetWindowIcon(m_Window, 1, images);
-		  stbi_image_free(images[0].pixels);
-	  }
-	  else {
-		  VG_CORE_WARN("Could not load window icon.");
-	  }
+    glfwSetWindowIcon(m_Window, 1, images);
+    stbi_image_free(images[0].pixels);
+  } else {
+    images[0].pixels =
+        stbi_load(path.c_str(), &images[0].width, &images[0].height, 0, 4);
+    if (images[0].pixels) {
+      glfwSetWindowIcon(m_Window, 1, images);
+      stbi_image_free(images[0].pixels);
+    } else {
+      VG_CORE_WARN("Could not load window icon.");
+    }
   }
 
   m_Context = new OpenGLContext(m_Window);

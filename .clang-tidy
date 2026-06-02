@@ -1,0 +1,40 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  cppcoreguidelines-*,
+  misc-*,
+  -modernize-use-trailing-return-type,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-owning-memory,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -modernize-use-nodiscard,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-pro-type-vararg,
+  -misc-no-recursion
+
+WarningsAsErrors: ""
+HeaderFilterRegex: "src/.*"
+AnalyzeTemporaryDtors: false
+FormatStyle: file
+
+CheckOptions:
+  - key:             readability-identifier-naming.ClassCase
+    value:           PascalCase
+  - key:             readability-identifier-naming.StructCase
+    value:           PascalCase
+  - key:             readability-identifier-naming.FunctionCase
+    value:           PascalCase
+  - key:             readability-identifier-naming.VariableCase
+    value:           camelBack
+  - key:             readability-identifier-naming.PrivateMemberPrefix
+    value:           m_
+  - key:             readability-identifier-naming.GlobalConstantPrefix
+    value:           s_

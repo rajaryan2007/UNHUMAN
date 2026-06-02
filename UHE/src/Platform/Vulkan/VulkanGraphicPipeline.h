@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
+#include "UHE/RHI/RHITypes.h"
 
 namespace UHE::RHI {
 class GraphicsPipelineDesc;
@@ -9,25 +10,24 @@ namespace UHE::RHI::VULKAN {
 class VulkanLogicalDevice;
 class VulkanDescriptorManager;
 
-
 class VulkanGraphicPipeline {
 public:
-  VulkanGraphicPipeline();
-  ~VulkanGraphicPipeline();
+    VulkanGraphicPipeline();
+    ~VulkanGraphicPipeline();
 
-  void Init();
-  void Bind();
+    void Init();
+    void Bind();
 
 private:
-  void createGraphicsPipeline(VulkanLogicalDevice &Device,
-                              VulkanDescriptorManager &descriptorManager,
-                              const GraphicsPipelineDesc &desc);
-  void createShaderModules();
-  void cleanup();
+    void createGraphicsPipeline(VulkanLogicalDevice& Device, VulkanDescriptorManager& descriptorManager,
+                                const GraphicsPipelineDesc& desc);
+    vk::PipelineVertexInputStateCreateInfo CreateVertexInputState(const BufferLayout& layer);
+    void createShaderModules();
+    void cleanup();
 
-  vk::raii::Device *m_Device;
-  vk::raii::Pipeline *m_GraphicsPipeline;
-  vk::raii::PipelineLayout *m_PipelineLayout;
-  std::vector<vk::raii::ShaderModule> m_ShaderModules;
+    vk::raii::Device m_Device;
+    vk::raii::Pipeline m_GraphicsPipeline;
+    vk::raii::PipelineLayout m_PipelineLayout;
+    std::vector<vk::raii::ShaderModule> m_ShaderModules;
 };
-}
+} // namespace UHE::RHI::VULKAN

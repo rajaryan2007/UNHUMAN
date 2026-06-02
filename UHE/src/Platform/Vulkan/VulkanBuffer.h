@@ -1,68 +1,61 @@
-#pragma once 
-#include <vulkan/vulkan_raii.hpp>
-
+#pragma once
 #include <vk_mem_alloc.h>
-
+#include <vulkan/vulkan_raii.hpp>
 
 namespace UHE::RHI::VULKAN {
 
-// ---------------------------------- Vulkan Buffer Abstraction -------------------------------
+// ---------------- Vulkan Buffer Abstraction -----------------
 
 class VulkanBuffer {
 public:
-  VulkanBuffer() = default;
-  ~VulkanBuffer();
+    VulkanBuffer() = default;
+    ~VulkanBuffer();
 
-  
-  VulkanBuffer(const VulkanBuffer &) = delete;
-  VulkanBuffer &operator=(const VulkanBuffer &) = delete;
- 
-  void init(VmaAllocator allocator, vk::DeviceSize size,
-               vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage);
-  void UploadData(const void *data, vk::DeviceSize size);
-  void CopyTo(VulkanBuffer &dstBuffer, vk::DeviceSize size,
-              vk::raii::CommandBuffer &commandBuffer);
+    VulkanBuffer(const VulkanBuffer&) = delete;
+    VulkanBuffer& operator=(const VulkanBuffer&) = delete;
 
-  vk::Buffer GetHandle() const { return m_Buffer; }
+    void init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+    void UploadData(const void* data, vk::DeviceSize size);
+    void CopyTo(VulkanBuffer& dstBuffer, vk::DeviceSize size, vk::raii::CommandBuffer& commandBuffer);
+
+    vk::Buffer GetHandle() const { return m_Buffer; }
 
 private:
-  VmaAllocator m_Allocator = nullptr;
-  vk::Buffer m_Buffer = nullptr;
-  VmaAllocation m_Allocation = nullptr;
-  vk::DeviceSize m_Size = 0;
+    VmaAllocator m_Allocator = nullptr;
+    vk::Buffer m_Buffer = nullptr;
+    VmaAllocation m_Allocation = nullptr;
+    vk::DeviceSize m_Size = 0;
 };
 
-// ---------------------------------- Vulkan Vertex Buffer Abstraction ------------------------------- 
+// ----------- Vulkan Vertex Buffer Abstraction ---------------
 
 class VulkanVertexBuffer {
 public:
-  VulkanVertexBuffer(const VulkanVertexBuffer &) = delete;
-  VulkanVertexBuffer &operator=(const VulkanVertexBuffer &) = delete;
-  
-  void Create(VmaAllocator allocator, const void *vertexData,
-              uint32_t vertexCount, uint32_t stride);
-  vk::Buffer GetHandle() const { return m_Buffer.GetHandle(); }
-  uint32_t GetVertexCount() const { return m_VertexCount; }
+    VulkanVertexBuffer(const VulkanVertexBuffer&) = delete;
+    VulkanVertexBuffer& operator=(const VulkanVertexBuffer&) = delete;
+
+    void Create(VmaAllocator allocator, const void* vertexData, uint32_t vertexCount, uint32_t stride);
+    vk::Buffer GetHandle() const { return m_Buffer.GetHandle(); }
+    u32 GetVertexCount() const { return m_VertexCount; }
 
 private:
-  VulkanBuffer m_Buffer;
-  uint32_t m_VertexCount = 0;
+    VulkanBuffer m_Buffer;
+    u32 m_VertexCount = 0;
 };
 
-// ---------------------------------- Vulkan Index Buffer Abstraction ------------------------------- 
-
+// ------------ Vulkan Index Buffer Abstraction --------------
 class VulkanIndexBuffer {
 public:
-  VulkanIndexBuffer(const VulkanIndexBuffer &) = delete;
-  VulkanIndexBuffer &operator=(const VulkanIndexBuffer &) = delete;  
+    VulkanIndexBuffer(const VulkanIndexBuffer&) = delete;
+    VulkanIndexBuffer& operator=(const VulkanIndexBuffer&) = delete;
 
-  void Create(VmaAllocator allocator, const std::vector<uint32_t> &indices);
-  vk::Buffer GetHandle() const { return m_Buffer.GetHandle(); }
-  uint32_t GetIndexCount() const { return m_IndexCount; }
+    void Create(VmaAllocator allocator, const std::vector<uint32_t>& indices);
+    vk::Buffer GetHandle() const { return m_Buffer.GetHandle(); }
+    u32 GetIndexCount() const { return m_IndexCount; }
 
 private:
-  VulkanBuffer m_Buffer;
-  uint32_t m_IndexCount = 0;
+    VulkanBuffer m_Buffer;
+    u32 m_IndexCount = 0;
 };
 
-} // namespace UHE::RHI
+} // namespace UHE::RHI::VULKAN

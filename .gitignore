@@ -414,5 +414,6 @@ FodyWeavers.xsd
 # Exceptions for VEGA
 !VEGA/src/VEGA/Debug/
 !VEGA/src/VEGA/Debug/**/*
-!VEGA/vendor/slang/
-!VEGA/vendor/slang/**/*
+
+# Ignore heavy precompiled binaries fetched by python setup script
+UHE/vendor/bin/

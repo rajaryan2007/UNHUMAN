@@ -10,8 +10,13 @@ file(GLOB_RECURSE UHE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.cpp"
 )
 
-find_package(VULKAN REQUIRED)
-find_package(slang REQUIRED CONFIG PATHS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/slang" NO_DEFAULT_PATH)
+find_package(Vulkan REQUIRED)
+if(WIN32)
+    set(SLANG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/bin/windows/slang")
+else()
+    set(SLANG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/bin/linux/slang")
+endif()
+find_package(slang REQUIRED CONFIG PATHS "${SLANG_DIR}" NO_DEFAULT_PATH)
 
 file(GLOB_RECURSE GLM_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm/glm/*.hpp"
@@ -70,9 +75,11 @@ if(VG_PROFILE)
 endif()
 
 if(MSVC)
-    target_precompile_headers(UHE PRIVATE src/uhepch.h)
     target_compile_options(UHE PRIVATE /utf-8)
 endif()
+
+# Enable precompiled headers for ALL compilers (MSVC, GCC, Clang)
+target_precompile_headers(UHE PRIVATE src/uhepch.h)
 
 target_link_libraries(UHE PUBLIC
     glfw Glad Vulkan::Vulkan ImGui ImGuizmo
@@ -91,7 +98,7 @@ endif()
 # Copy Slang DLLs to output directory
 add_custom_command(TARGET UHE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/slang/bin"
+    "${SLANG_DIR}/bin"
     "$<TARGET_FILE_DIR:UHE>"
 )
 set_target_properties(UHE PROPERTIES DEBUG_POSTFIX d)
