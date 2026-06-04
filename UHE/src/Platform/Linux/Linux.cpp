@@ -1,4 +1,6 @@
-#include "Linux.h"
 #include "uhepch.h"
+#include "Linux.h"
 
-namespace UHE {}
+namespace UHE::Platform::Linux
+{
+}

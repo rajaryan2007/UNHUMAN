@@ -1,49 +1,46 @@
 #pragma once
+#include <vector>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan_raii.hpp>
 
-#include <vector>
+namespace UHE::RHI::VULKAN
+{
+class VulkanDevice;
+class VulkanImageView
+{
+public:
+    VulkanImageView() = default;
+    VulkanImageView(const VulkanImageView&) = delete;
+    VulkanImageView& operator=(const VulkanImageView&) = delete;
 
-namespace UHE::RHI::VULKAN {
-   class VulkanDevice;
-   class VulkanImageView {
-   public: 
-	   VulkanImageView() = default;
-       VulkanImageView(const VulkanImageView &) = delete;
-       VulkanImageView &operator=(const VulkanImageView &) = delete;
+    ~VulkanImageView();
 
-       ~VulkanImageView();
+    vk::raii::ImageView CreateImageView(vk::Image image, vk::Format format);
 
-       vk::raii::ImageView CreateImageView(vk::Image image, vk::Format format);
-       
-       void setPyhsicalDevice(vk::raii::PhysicalDevice &physicalDevice) {
-         this->physicaldevice = &physicalDevice;
-       }
-       void LogicalDevice(vk::raii::Device &logicalDevice) {
-         this->logicaldevice = &logicalDevice;
-       }
-       void setSwapChainSurfaceFormat(vk::SurfaceFormatKHR &swapChainSurfaceFormat) {
-         this->swapChainSurfaceFormat = &swapChainSurfaceFormat;
-       }
+    void setPyhsicalDevice(vk::raii::PhysicalDevice& physicalDevice) { this->physicaldevice = &physicalDevice; }
+    void LogicalDevice(vk::raii::Device& logicalDevice) { this->logicaldevice = &logicalDevice; }
+    void setSwapChainSurfaceFormat(vk::SurfaceFormatKHR& swapChainSurfaceFormat)
+    {
+        this->swapChainSurfaceFormat = &swapChainSurfaceFormat;
+    }
 
-       void CreateImageViews();
-       void CreateTextureImageView();
-       void CreateTextureSampler();
-       void CreateDepthImageView(vk::Format depthFormat = vk::Format::eD32Sfloat,
-           vk::Extent2D swapChainExtent);
+    void CreateImageViews();
+    void CreateTextureImageView();
+    void CreateTextureSampler();
+    void CreateDepthImageView(vk::Format depthFormat = vk::Format::eD32Sfloat, vk::Extent2D swapChainExtent);
 
-   private:
-       vk::raii::PhysicalDevice* physicaldevice = nullptr;
-       vk::raii::Device* logicaldevice = nullptr;
-       vk::SurfaceFormatKHR* swapChainSurfaceFormat = nullptr;
-       std::vector<vk::raii::ImageView> swapChainImageViews;
-       std::vector<vk::Image> swapChainImages; 
-       vk::raii::Sampler textureSampler;
-       vk::raii::ImageView depthImageView;
-       vk::Image rawHandle = nullptr; 
-        VkImage rawImage;
-       vk::raii::Image depthImage;
-       VmaAllocator m_allocator = nullptr;
-       VmaAllocation depthImageAllocation;
-
-   };
-}
+private:
+    vk::raii::PhysicalDevice* physicaldevice = nullptr;
+    vk::raii::Device* logicaldevice = nullptr;
+    vk::SurfaceFormatKHR* swapChainSurfaceFormat = nullptr;
+    std::vector<vk::raii::ImageView> swapChainImageViews;
+    std::vector<vk::Image> swapChainImages;
+    vk::raii::Sampler textureSampler;
+    vk::raii::ImageView depthImageView;
+    vk::Image rawHandle = nullptr;
+    VkImage rawImage;
+    vk::raii::Image depthImage;
+    VmaAllocator m_allocator = nullptr;
+    VmaAllocation depthImageAllocation;
+};
+} // namespace UHE::RHI::VULKAN

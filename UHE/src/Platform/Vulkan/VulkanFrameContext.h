@@ -2,27 +2,27 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "UHE/RHI/DeletionQueue.h"
 
-namespace UHE::RHI::VULKAN {
+namespace UHE::RHI::VULKAN
+{
 
-class VulkanFrameContext {
+class VulkanFrameContext
+{
 public:
     VulkanFrameContext() = default;
-    
-    
+
     void Init(const vk::raii::Device& device, u32 queueFamilyIndex);
-    
-    
+
     void Cleanup();
 
-   private:
-    vk::raii::CommandPool   commandPool = nullptr;
+private:
+    vk::raii::CommandPool commandPool = nullptr;
     vk::raii::CommandBuffer commandBuffer = nullptr;
-    vk::raii::Semaphore     imageAvailableSemaphore = nullptr;
-    vk::raii::Semaphore     renderFinishedSemaphore = nullptr;
-    vk::raii::Fence         inFlightFence = nullptr;
-    
+    vk::raii::Semaphore imageAvailableSemaphore = nullptr;
+    vk::raii::Semaphore renderFinishedSemaphore = nullptr;
+    vk::raii::Fence inFlightFence = nullptr;
+
     // Deferred resource destruction queue per-frame
-    DeletionQueue           deletionQueue;
+    DeletionQueue deletionQueue;
 };
 
-} // namespace UHE::RHI
+} // namespace UHE::RHI::VULKAN

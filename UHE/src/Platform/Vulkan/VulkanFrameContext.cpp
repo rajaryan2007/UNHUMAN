@@ -2,9 +2,11 @@
 #include "uhepch.h"
 #include "VulkanFrameContext.h"
 
-namespace UHE::RHI::VULKAN {
+namespace UHE::RHI::VULKAN
+{
 
-void VulkanFrameContext::Init(const vk::raii::Device& device, u32 queueFamilyIndex) {
+void VulkanFrameContext::Init(const vk::raii::Device& device, u32 queueFamilyIndex)
+{
     vk::CommandPoolCreateInfo poolInfo{};
     poolInfo.queueFamilyIndex = queueFamilyIndex;
     poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
@@ -28,7 +30,8 @@ void VulkanFrameContext::Init(const vk::raii::Device& device, u32 queueFamilyInd
     inFlightFence = vk::raii::Fence(device, fenceInfo);
 }
 
-void VulkanFrameContext::Cleanup() {
+void VulkanFrameContext::Cleanup()
+{
     deletionQueue.Flush();
     inFlightFence.clear();
     imageAvailableSemaphore.clear();
@@ -37,4 +40,4 @@ void VulkanFrameContext::Cleanup() {
     commandPool.clear();
 }
 
-} // namespace UHE::RHI
+} // namespace UHE::RHI::VULKAN

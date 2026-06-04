@@ -6,6 +6,7 @@
 #include "VulkanLogicalDevice.h"
 #include "VulkanShader.h"
 #include "VulkanTypes.h"
+#include "vulkan/vulkan.hpp"
 
 namespace UHE::RHI::VULKAN
 {
@@ -34,10 +35,10 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     vk::PipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.depthClampEnable = vk::False;
     rasterizer.rasterizerDiscardEnable = vk::False;
-    rasterizer.polygonMode = vk::PolygonMode::eFill; // Can add Wireframe configuration if supported by
+    rasterizer.polygonMode = vk::PolygonMode::eFill; // can add Wireframe configuration if supported by
                                                      // desc
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = vk::CullModeFlagBits::eBack; // Default configuration fallback
+    rasterizer.cullMode = vk::CullModeFlagBits::eBack;
     rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
     rasterizer.depthBiasEnable = vk::False;
 
@@ -140,10 +141,60 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     m_GraphicsPipeline = vk::raii::Pipeline(Device.getLogicalDevice(), nullptr, pipelineInfo);
 }
 
-vk::PipelineVertexInputStateCreateInfo VulkanGraphicPipeline::CreateVertexInputState(const BufferLayout& layer)
+vk::PipelineVertexInputStateCreateInfo VulkanGraphicPipeline::CreateVertexInputState(const BufferLayout& layout)
 {
-    m_BindingDescriptor.clear();
-    m_attributeDescriptor.clear();
+    m_BindingDescription.clear();
+    m_AttributeDescription.clear();
+
+    if (layout.GetElements().empty())
+    {
+        return vk::PipelineVertexInputStateCreateInfo({}, 0, nullptr, 0, nullptr);
+    }
+
+    vk::VertexInputBindingDescription bindingDesc{};
+    bindingDesc.binding = 0;
+    bindingDesc.stride = layout.GetStride();
+    bindingDesc.inputRate = vk::VertexInputRate::eVertex;
+    m_BindingDescription.push_back(bindingDesc);
+
+    u32 location = 0;
+
+    for (const auto& elements : layout.GetElements())
+    {
+        u32 slotcount = 1;
+        u32 slotsize = 0;
+
+        if (elements.Type == ShaderDataType::Mat3)
+        {
+            slotcount = 3;
+            slotsize = 4 * 3;
+        }
+        if (elements.Type == ShaderDataType::Mat4)
+        {
+            slotcount = 4;
+            slotcount = 4 * 4;
+        }
+
+        for (u32 i = 0; i < slotcount; i++)
+        {
+            vk::VertexInputAttributeDescription attributeDsec{};
+            attributeDsec.binding = 0;
+            attributeDsec.location = location;
+            attributeDsec.format = ShaderDataTypeToVulkanFormat(elements.Type);
+
+            attributeDsec.offset = elements.Offset + (i * slotsize);
+            m_AttributeDescription.push_back(attributeDsec);
+            location++;
+        }
+    }
+
+    vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.vertexBindingDescriptionCount = static_cast<u32>(m_BindingDescription.size());
+    vertexInputInfo.pVertexBindingDescriptions = m_BindingDescription.data();
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(m_AttributeDescription.size());
+    vertexInputInfo.pVertexAttributeDescriptions = m_AttributeDescription.data();
+
+    return vertexInputInfo;
 };
 
 } // namespace UHE::RHI::VULKAN
