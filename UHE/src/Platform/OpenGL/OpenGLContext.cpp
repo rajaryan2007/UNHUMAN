@@ -10,13 +10,13 @@ namespace UHE {
 	OpenGLContext::OpenGLContext(GLFWwindow* windowHandle)
 		:m_WindowHandle(windowHandle)
 	{   
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		VG_CORE_ASSERT(windowHandle, "Window handle is null!");
 
 	}
 	void OpenGLContext::Init()
 	{ 
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glfwMakeContextCurrent(m_WindowHandle);
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		VG_CORE_ASSERT(status, "Failed to initialize Glad!");
@@ -33,7 +33,7 @@ namespace UHE {
 	}
 	void OpenGLContext::SwapBuffers()
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glfwSwapBuffers(m_WindowHandle);
 		VG_GPU_COLLECT;
 	}

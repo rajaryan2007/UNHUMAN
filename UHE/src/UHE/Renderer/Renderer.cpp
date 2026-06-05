@@ -11,7 +11,7 @@ namespace UHE {
 	Renderer::SceneData* Renderer::s_SceneData = new Renderer::SceneData;
 
 	void Renderer::Init() {
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		RenderCommand::Init();
 		Renderer2D::Init();
 	}

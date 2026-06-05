@@ -1,14 +1,17 @@
 #pragma once
-#include "UHE/RHI/RHITypes.h"
-#include <vulkan/vulkan_raii.hpp>
 #include <vector>
+#include <vulkan/vulkan_raii.hpp>
+#include "UHE/RHI/RHITypes.h"
 
-namespace UHE::RHI::VULKAN {
+namespace UHE::RHI::VULKAN
+{
 
-class VulkanShader {
+class VulkanShader
+{
 public:
     VulkanShader() = default;
-    
+    VulkanShader(const VulkanShader&) = delete;
+    VulkanShader operator=(const VulkanShader&) = delete;
     // Create the shader module
     void Create(const vk::raii::Device& device, const ShaderDesc& desc);
 
@@ -18,7 +21,7 @@ public:
     vk::ShaderModule GetModule() const { return *m_Module; }
 
 private:
-    vk::raii::ShaderModule m_Module;
+    vk::raii::ShaderModule m_Module{nullptr};
     ShaderStage m_Stage = ShaderStage::Vertex;
     std::string m_EntryPoint = "main";
 };

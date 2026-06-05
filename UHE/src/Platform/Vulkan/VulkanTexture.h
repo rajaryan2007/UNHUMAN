@@ -13,8 +13,8 @@ class VulkanTexture : public RHITexture
 {
 public:
     VulkanTexture() = default;
-    VulkanTexture(const VulkanTexture&) = delete;
-    VulkanTexture& operator=(const VulkanTexture&) = delete;
+    // VulkanTexture(const VulkanTexture&) = delete;
+    // VulkanTexture& operator=(const VulkanTexture&) = delete;
 
     virtual const TextureDesc& GetDesc() const override;
 
@@ -27,10 +27,10 @@ public:
                             uint32_t height);
 
 private:
-    vk::raii::Image textureImage;
-    vk::raii::DeviceMemory textureImageMemory;
-    vk::raii::ImageView textureImageView;
-    vk::raii::Sampler textureSampler;
+    vk::raii::Image textureImage{nullptr};
+    vk::raii::DeviceMemory textureImageMemory{nullptr};
+    vk::raii::ImageView textureImageView{nullptr};
+    vk::raii::Sampler textureSamplermi{nullptr};
     VmaAllocator m_allocator = nullptr;
 };
 } // namespace UHE::RHI::VULKAN

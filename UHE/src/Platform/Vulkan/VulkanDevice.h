@@ -1,5 +1,6 @@
 #pragma once
 #include <vk_mem_alloc.h>
+#include "Platform/Vulkan/VulkanDescriptorManager.h"
 #include "Platform/Vulkan/VulkanFrameContext.h"
 #include "Platform/Vulkan/VulkanInstance.h"
 #include "Platform/Vulkan/VulkanLogicalDevice.h"
@@ -17,6 +18,8 @@ public:
     ~VulkanDevice() override;
 
     // ─── Resource Creation ──────────────────────────────────────
+    void Begin() override;
+    void End() override;
     BufferHandle CreateBuffer(const BufferDesc& desc) override;
     TextureHandle CreateTexture(const TextureDesc& desc) override;
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
@@ -50,7 +53,7 @@ public:
         return m_PhysicalDevice.GetLogicalDeviceInfo(vendorID, deviceID);
     };
 
-    vk::raii::Device& GetVulkanDevice() { return m_logicalDevice; }
+    vk::raii::Device& GetVulkanDevice() { return m_LogDevice; }
 
     void BindTexture(u32 slot, TextureHandle handle) override;
 
@@ -69,7 +72,7 @@ private:
 
 private:
     // Core Vulkan abstractions
-    vk::raii::Device& m_logicalDevice;
+    vk::raii::Device& m_LogDevice;
     vk::raii::Queue& m_graphicsQueue;
     vk::raii::SurfaceKHR& surface;
 
@@ -79,6 +82,7 @@ private:
     vk::raii::SurfaceKHR m_Surface = nullptr;
     VulkanSwapChain m_SwapChain;
     VmaAllocator m_Allocator = nullptr;
+    VulkanDescriptorManager m_DescriptorManager;
 
     GLFWwindow* m_WindowHandle = nullptr;
     u32 m_WindowWidth;
@@ -95,6 +99,8 @@ private:
     vk::raii::Fence m_UploadFence = nullptr;
     vk::raii::CommandPool m_UploadCommandPool = nullptr;
     vk::raii::CommandBuffer m_UploadCommandBuffer = nullptr;
+
+    class VulkanGraphicPipeline* m_CurrentPipeline = nullptr;
 
     enum VendorID
     {

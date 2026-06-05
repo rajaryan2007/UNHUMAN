@@ -417,3 +417,7 @@ FodyWeavers.xsd
 
 # Ignore heavy precompiled binaries fetched by python setup script
 UHE/vendor/bin/
+
+# Exceptions for UHE
+!UHE/src/UHE/Debug/
+!UHE/src/UHE/Debug/**/*

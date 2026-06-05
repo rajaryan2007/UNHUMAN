@@ -28,7 +28,7 @@ namespace UHE::RHI::VULKAN {
 
     void VulkanInstance::initialize()
     {
-        VG_PROFILE_FUNCTION();
+        UHE_PROFILE_FUNCTION();
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Unhuman Engine";
@@ -138,7 +138,7 @@ namespace UHE::RHI::VULKAN {
 
     void VulkanInstance::cleanup() 
     {
-	  VG_PROFILE_FUNCTION();
+	  UHE_PROFILE_FUNCTION();
 	
     }
   } // namespace UHE

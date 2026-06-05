@@ -21,7 +21,7 @@ namespace UHE{
 	Application::Application( const std::string& name)
 		
 	{   
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		VG_CORE_ASSERT(!s_instance, "Application already exists!");
 		
 		s_instance = this;
@@ -99,9 +99,9 @@ namespace UHE{
 
 	while (m_Running)
 	{   
-		VG_PROFILE_SCOPE("Frame");
+		UHE_PROFILE_SCOPE("Frame");
 		{
-			VG_PROFILE_SCOPE("application");
+			UHE_PROFILE_SCOPE("application");
 			float time = (float)glfwGetTime();
 
 			Timestep timestep = time - m_LastFrameTime;
@@ -123,7 +123,7 @@ namespace UHE{
 
 			m_Window->OnUpdate();
 		}
-		VG_PROFILE_FRAMEMARK;
+		UHE_PROFILE_FRAMEMARK;
 	}
 
 	};

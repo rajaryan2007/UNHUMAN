@@ -1,14 +1,25 @@
 #include "uhepch.h"
 #include "VulkanDevice.h"
 #include <GLFW/glfw3.h>
+#include <atomic>
+#include <common/TracyQueue.hpp>
+#include <cstdint>
+#include <unistd.h>
+#include <vulkan/vulkan_raii.hpp>
+#include "Platform/Vulkan/VulkanBuffer.h"
+#include "Platform/Vulkan/VulkanGraphicPipeline.h"
+#include "Platform/Vulkan/VulkanShader.h"
+#include "Platform/Vulkan/VulkanTexture.h"
 #include "UHE/Core/Log.h"
+#include "UHE/RHI/RHITypes.h"
+#include "vulkan/vulkan.hpp"
 
 namespace UHE::RHI::VULKAN
 {
 
 void VulkanDevice::RecreateSwapchain()
 {
-    VG_PROFILE_FUNCTION();
+    UHE_PROFILE_FUNCTION();
 
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_WindowHandle, &width, &height);
@@ -20,26 +31,123 @@ void VulkanDevice::RecreateSwapchain()
 
     WaitIdle();
     m_SwapChain.cleanupSwapChain();
-    m_SwapChain.createSwapChain(*m_LogicalDevice.getLogicalDevice(), m_PhysicalDevice, m_Surface, m_WindowHandle);
+    m_SwapChain.createSwapChain(m_LogDevice, m_PhysicalDevice.getPhysicalDevice(), m_Surface, m_WindowHandle);
 }
 
 // ─── Resource Management Stubs  ───
 
 BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc)
 {
-    return nullptr;
+    VulkanBuffer* buffer = new VulkanBuffer();
+
+    vk::BufferUsageFlags usage{};
+    if (desc.usage == BufferUsage::Vertex)
+    {
+        usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+    }
+    else if (desc.usage == BufferUsage::Index)
+    {
+        usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+    }
+    else if (desc.usage == BufferUsage::Uniform)
+    {
+        usage = vk::BufferUsageFlagBits::eUniformBuffer;
+    }
+    else if (desc.usage == BufferUsage::Storage)
+    {
+        usage = vk::BufferUsageFlagBits::eStorageBuffer;
+    }
+    else if (desc.usage == BufferUsage::Staging)
+    {
+        usage = vk::BufferUsageFlagBits::eTransferDst;
+    }
+
+    VmaMemoryUsage memUsage = desc.hostVisible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY;
+    buffer->init(m_Allocator, desc.size, usage, memUsage);
+    return reinterpret_cast<BufferHandle>(buffer);
 }
 TextureHandle VulkanDevice::CreateTexture(const TextureDesc& desc)
 {
-    return nullptr;
+    VulkanTexture* texture = new VulkanTexture();
+    texture->Init(*this);
+    return reinterpret_cast<TextureHandle>(texture);
 }
 ShaderHandle VulkanDevice::CreateShader(const ShaderDesc& desc)
 {
-    return nullptr;
+    VulkanShader* shader = new VulkanShader();
+    shader->Create(m_LogicalDevice.getLogicalDevice(), desc);
+    return reinterpret_cast<ShaderHandle>(shader);
 }
 PipelineHandle VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
 {
-    return nullptr;
+    VulkanGraphicPipeline* pipeline = new VulkanGraphicPipeline();
+    pipeline->createGraphicsPipeline(m_LogicalDevice, m_DescriptorManager, desc);
+    return reinterpret_cast<PipelineHandle>(pipeline);
+}
+
+void VulkanDevice::Begin()
+{
+    auto waitResult = m_LogDevice.waitForFences({*m_Frames[m_CurrentFrame].GetInFlightFence()}, VK_TRUE, UINT64_MAX);
+
+    m_LogDevice.resetFences({*m_Frames[m_CurrentFrame].GetInFlightFence()});
+
+    auto acquireResult = m_SwapChain.GetSwapchain().acquireNextImage(
+        UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), nullptr);
+
+    if (acquireResult.first == vk::Result::eErrorOutOfDateKHR || acquireResult.first == vk::Result::eSuboptimalKHR)
+    {
+        RecreateSwapchain();
+        return;
+    }
+
+    m_ImageIndex = acquireResult.second;
+
+    m_Frames[m_CurrentFrame].GetDeletionQueue().Flush();
+    m_Frames[m_CurrentFrame].GetCommandBuffer().Reset();
+
+    m_Frames[m_CurrentFrame].GetCommandBuffer().BeginCommandBuffer(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+}
+
+void VulkanDevice::End()
+{
+    vk::raii::CommandBuffer& cmd = m_Frames[m_CurrentFrame].GetCommandBuffer().GetHandle();
+    cmd.end();
+
+    vk::SubmitInfo submitInfo{};
+    vk::PipelineStageFlags waitResult[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &(*m_Frames[m_CurrentFrame].GetimageAvailableSemaphore());
+    submitInfo.pWaitDstStageMask = waitResult;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &(*cmd);
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &(*m_Frames[m_CurrentFrame].GetrenderFinishedSemaphore());
+
+    m_graphicsQueue.submit(submitInfo, *m_Frames[m_CurrentFrame].GetInFlightFence());
+
+    vk::PresentInfoKHR presentInfo{};
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &(*m_Frames[m_CurrentFrame].GetrenderFinishedSemaphore());
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &(*m_SwapChain.GetSwapchain());
+    presentInfo.pImageIndices = &m_ImageIndex;
+
+    try
+    {
+        auto presentResult = m_graphicsQueue.presentKHR(presentInfo);
+        if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR ||
+            m_FramebufferResized)
+        {
+            m_FramebufferResized = false;
+            RecreateSwapchain();
+        }
+    }
+    catch (vk::OutOfDateKHRError&)
+    {
+        m_FramebufferResized = false;
+        RecreateSwapchain();
+    }
+    m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void VulkanDevice::BeginRenderPass(const RenderPassDesc& desc) {}

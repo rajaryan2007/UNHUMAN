@@ -36,3 +36,4 @@ NamespaceIndentation: None
 # Macros
 MacroBlockBegin: '^\s*#\s*ifdef'
 MacroBlockEnd: '^\s*#\s*endif'
+IndentPPDirectives: BeforeHash

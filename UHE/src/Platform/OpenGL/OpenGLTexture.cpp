@@ -10,12 +10,12 @@ namespace UHE {
 	OpenGLTexture2D::OpenGLTexture2D(const std::string& path)
 		: m_Path(path)
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		int width, height, channels;
 		unsigned char* data = nullptr;
 		stbi_set_flip_vertically_on_load(1);
 		{
-			VG_PROFILE_SCOPE("OpenGL Texture::OpenGL");
+			UHE_PROFILE_SCOPE("OpenGL Texture::OpenGL");
 			data = stbi_load(path.c_str(), &width, &height, &channels, 0);
 		}
 		VG_CORE_ASSERT(data, "Failed to load image!");
@@ -69,7 +69,7 @@ namespace UHE {
 	OpenGLTexture2D::OpenGLTexture2D(u32 width, u32 hight)
 		: m_Width(width),m_Height(hight)
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		
 		m_InternalFormat = GL_RGBA8, m_DataFormat = GL_RGBA;
 		
@@ -92,7 +92,7 @@ namespace UHE {
 
 	void OpenGLTexture2D::SetData(void* data, u32 size)
 	{   
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		u32 bpp = m_DataFormat == GL_RGBA ? 4 : 3;
 		VG_CORE_ASSERT(size == m_Width * m_Height * bpp,"Data must be entire texture");
 
@@ -101,12 +101,12 @@ namespace UHE {
 
 	OpenGLTexture2D::~OpenGLTexture2D()
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glDeleteTextures(1, &m_RendererID);
 	}
 	void OpenGLTexture2D::Bind(u32 slot) const
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glBindTextureUnit(slot, m_RendererID);
 	}
 }

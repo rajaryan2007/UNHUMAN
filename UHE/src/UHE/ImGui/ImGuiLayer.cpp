@@ -4,13 +4,8 @@
 #include "imgui.h"
 
 #include "UHE/Events/Event.h"
-#define IMGUI_IMPL_API
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"	
 #include "UHE/Core/Application.h"
 #include "UHE/AssestsManager/VfsSystem.h"
-//#include "backends/imgui_impl_glfw.h"
-//#include "backends/imgui_impl_opengl3.h"
 
 
 
@@ -30,7 +25,7 @@ namespace UHE
 	}
 	void ImGuiLayer::OnAttach()
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		//ImGui::StyleColorsDark();
@@ -55,19 +50,12 @@ namespace UHE
 		}
 
 		SetDarkThemeColor();
-
-		Application& app = Application::Get();
-		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-
-		ImGui_ImplOpenGL3_Init("#version 410");
 	}
 
 	void ImGuiLayer::OnDetach()
 	{
-		VG_PROFILE_FUNCTION();
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
+		UHE_PROFILE_FUNCTION();
+		// Derived class handles backend shutdown
 		ImGui::DestroyContext();
 	}
 
@@ -88,39 +76,10 @@ namespace UHE
 		ImGui::ShowDemoWindow(&show);
 	}*/
 
-	void ImGuiLayer::Begin()
+	ImGuiLayer* ImGuiLayer::Create()
 	{
-		VG_PROFILE_FUNCTION();
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-		ImGuizmo::BeginFrame();
-
-
-        ImGuiIO& io = ImGui::GetIO();
-        Application& app = Application::Get();
-        io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
-        float time = (float)glfwGetTime();
-        io.DeltaTime = m_Time > 0.0f ? (time - m_Time) : (1.0f / 60.0f);
-        m_Time = time;
-	}
-
-	void ImGuiLayer::End()
-	{
-		VG_PROFILE_FUNCTION();
-		ImGuiIO& io = ImGui::GetIO();
-		Application& app = Application::Get();
-		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
-		//rendering
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		}
+		// TODO: Switch based on RendererAPI
+		return nullptr;
 	}
 
 	void ImGuiLayer::SetDarkThemeColor() 

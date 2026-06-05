@@ -49,7 +49,7 @@ void VulkanTexture::CreateImage(VulkanLogicalDevice& logDevice, uint32_t width, 
 
 void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u32 height, u32 width, size_t dataSize)
 {
-    const auto& logicaldevice = &device.getLogicalDevClass().getLogicalDevice();
+    const auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
     m_allocator = device.getLogicalDevClass().getAllocator();
 
     VkBuffer stagingBuffer;

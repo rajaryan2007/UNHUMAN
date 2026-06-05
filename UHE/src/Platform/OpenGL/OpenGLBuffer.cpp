@@ -7,7 +7,7 @@
 namespace UHE {
 	OpenGLVertexBuffer::OpenGLVertexBuffer(f32* vertices, u32 size)
 	{ 
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
 		glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_DYNAMIC_DRAW);
@@ -15,7 +15,7 @@ namespace UHE {
 
 	OpenGLVertexBuffer::OpenGLVertexBuffer(u32 size)
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
 		glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
@@ -27,7 +27,7 @@ namespace UHE {
 	}
 	void OpenGLVertexBuffer::Bind() const
 	{   
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
 	}
 	void OpenGLVertexBuffer::Unbind() const
@@ -48,7 +48,7 @@ namespace UHE {
 	OpenGLIndexBuffer::OpenGLIndexBuffer(u32* indices, u32 count)
 		:m_Count{count}
 	{
-		VG_PROFILE_FUNCTION();
+		UHE_PROFILE_FUNCTION();
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count*sizeof(u32), indices, GL_STATIC_DRAW);

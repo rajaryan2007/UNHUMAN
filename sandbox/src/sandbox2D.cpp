@@ -97,7 +97,7 @@ void Sandbox2D::OnDetach()
 void Sandbox2D::OnUpdate(UHE::Timestep ts)
 {
     
-        VG_PROFILE_FUNCTION();
+        UHE_PROFILE_FUNCTION();
 
         {
            // PROFILE_SCOPE("Camera contorller")
@@ -201,7 +201,7 @@ void Sandbox2D::OnEvent(UHE::Event& event)
 
 void Sandbox2D::OnImGuiRender()
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 
 	
 

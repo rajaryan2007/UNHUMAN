@@ -62,7 +62,7 @@ void Renderer2D::FlushAndReset() {
 }
 
 void Renderer2D::Init() {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   s_Data.VertexArray = VertexArray::Create();
 
@@ -129,7 +129,7 @@ void Renderer2D::Init() {
 }
 
 void Renderer2D::Shutdown() {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   delete[] s_Data.QuadVertexBufferBase;
   s_Data.QuadVertexBufferBase = nullptr;
@@ -137,7 +137,7 @@ void Renderer2D::Shutdown() {
 }
 
 void Renderer2D::BeginScene(const OrthographicCamera &camera) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   s_Data.TextureShader->Bind();
   s_Data.TextureShader->SetMat4("u_ViewProjection",
@@ -172,7 +172,7 @@ void Renderer2D::BeginScene(const Camera &camera, const glm::mat4 &transform) {
 
 void Renderer2D::BeginScene(const EditorCamera& camera)
 {
-    VG_PROFILE_FUNCTION();
+    UHE_PROFILE_FUNCTION();
 
 	glm::mat4 viewproj = camera.GetViewProjection();
 
@@ -202,7 +202,7 @@ void Renderer2D::flush() {
 }
 
 void Renderer2D::EndScene() {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   if (s_Data.QuadIndexCount == 0)
     return;
@@ -215,14 +215,14 @@ void Renderer2D::EndScene() {
 
 void Renderer2D::DrawQuad(const glm::vec2 &position, const glm::vec2 &size,
                           const glm::vec4 &color) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   DrawQuad({position.x, position.y, 0.0f}, size, color);
 }
 
 void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size,const glm::vec4 &color)
 {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices) {
     FlushAndReset();
@@ -278,7 +278,7 @@ void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size,
                           const Ref<Texture2D> &texture, f32 tiling_factor,
                           const glm::vec4 &tintColor) {
 
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices) {
     FlushAndReset();
@@ -351,7 +351,7 @@ void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size,
 void Renderer2D::DrawQuad(const glm::vec2 &position, const glm::vec2 &size,
                           const Ref<Texture2D> &texture, f32 tiling_factor,
                           const glm::vec4 &tintColor) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   DrawQuad({position.x, position.y, 0}, size, texture, tiling_factor,
            tintColor);
 }
@@ -365,7 +365,7 @@ void Renderer2D::DrawQuad(const glm::vec2 &position, const glm::vec2 &size,
 }
 
 void Renderer2D::DrawQuad(const glm::vec3 &position, const glm::vec2 &size, const Ref<SubTexture2D> &Subtexture,f32 tiling_factor /*= 1.0f*/,const glm::vec4 &tintColor /*= glm::vec4(1.0f)*/) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   constexpr size_t quadVertexCount = 4;
   constexpr glm::vec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -424,7 +424,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform,
                           const glm::vec2* texCoords,
                           f32 tiling_factor,
   const glm::vec4 &tintColor) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
     FlushAndReset();
@@ -486,7 +486,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform,
                           const Ref<SubTexture2D> &texture,
                           f32 tiling_factor /*= 1.0f*/,
                           const glm::vec4 &tintColor /*= glm::vec4(1.0f)*/) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
  
 
   if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices) {
@@ -561,7 +561,7 @@ void Renderer2D::DrawQuad(const glm::mat4 &transform,
 
 void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, f32 tiling_factor, const glm::vec4& color, i32 entity)
 {
-    VG_PROFILE_FUNCTION();
+    UHE_PROFILE_FUNCTION();
 	constexpr size_t quadVertexCount = 4;
 	constexpr glm::vec2 textureCoords[] = { {0.0f,0.0f},{1.0f,0.0f},{1.0f,1.0f },{0.0f,1.0f} };
 
@@ -602,7 +602,7 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& text
 
 void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, i32 entity)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	constexpr size_t quadVertexCount = 4;
 	const f32 textureIndex = 0.0f; // white texture
 	constexpr glm::vec2 textureCoords[] = { {0.0f,0.0f},{1.0f,0.0f},{1.0f,1.0f },{0.0f,1.0f} };
@@ -635,13 +635,13 @@ void Renderer2D::DrawSprite(const glm::mat4& transform,SpriteRendererComponent& 
 
 void Renderer2D::DrawRotatedQuad(const glm::vec2 &position,const glm::vec2 &size, f32 rotation, const glm::vec4 &color) 
 {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   DrawRotatedQuad({position.x, position.y, 0.0f}, size, rotation, color);
 }
 
 void Renderer2D::DrawRotatedQuad(const glm::vec3 &position,const glm::vec2 &size, f32 rotation,const glm::vec4 &color)
 {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices) {
     FlushAndReset();
 }
@@ -707,7 +707,7 @@ void Renderer2D::DrawRotatedQuad(const glm::vec3 &position,
                                  const glm::vec2 &size, f32 rotation,
                                  Ref<Texture2D> &texture, f32 tiling_factor,
                                  const glm::vec4 &tintColor) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices) {
     FlushAndReset();
@@ -782,7 +782,7 @@ void Renderer2D::DrawRotatedQuad(const glm::vec3 &position,
 
 void Renderer2D::DrawRotatedQuad(const glm::vec2 &position,const glm::vec2 &size, f32 rotation,Ref<Texture2D> &texture, f32 tiling_factor, const glm::vec4 &tintColor) 
 {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   DrawRotatedQuad({position.x, position.y, 0}, size, rotation, texture,tiling_factor, tintColor);
 }
 

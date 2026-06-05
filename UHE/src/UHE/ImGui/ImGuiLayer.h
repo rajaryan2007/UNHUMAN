@@ -17,8 +17,10 @@ namespace UHE
 //		virtual void OnImGuiRender() ;
 		virtual void OnEvent(Event& e) override;
 
-		void Begin();
-		void End();
+		virtual void Begin() = 0;
+		virtual void End() = 0;
+
+		static ImGuiLayer* Create();
 
 		void SetBlockEvent(bool block) { m_BlockEvents = block; }
 	

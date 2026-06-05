@@ -174,7 +174,7 @@ void Editor::OnDetach() {}
 
 void Editor::OnUpdate(UHE::Timestep ts) {
 
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   // PROFILE_SCOPE("Camera contorller")
   m_CameraController.OnUpdate(ts);
@@ -397,7 +397,7 @@ void Editor::SaveSceneAs() {
 }
 
 void Editor::OnImGuiRender() {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
 
   static bool dockspaceOpen = true;
   static bool opt_fullscreen = true;

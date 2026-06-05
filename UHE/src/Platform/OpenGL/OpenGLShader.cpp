@@ -22,7 +22,7 @@ namespace UHE {
 
 void UHE::OpenGLShader::Compile(const std::unordered_map<GLenum, std::string>& shaderSources)
 {   
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	GLuint program = glCreateProgram();
 	std::array<GLuint,2> shaderIDs;
 	int GLShaderIndex = 0;	
@@ -89,7 +89,7 @@ void UHE::OpenGLShader::Compile(const std::unordered_map<GLenum, std::string>& s
 UHE::OpenGLShader::OpenGLShader(const std::string& filepath)
 {   
 	
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	// If it's a .slang file, compile it to GLSL memory blobs
 	if (filepath.size() >= 6 && filepath.substr(filepath.size() - 6) == ".slang")
 	{
@@ -114,7 +114,7 @@ UHE::OpenGLShader::OpenGLShader(const std::string& filepath)
 UHE::OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSrc, const std::string& fragmentSrc) 
 	: m_Name(name)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	std::unordered_map<GLenum, std::string> sources;
 	sources[GL_VERTEX_SHADER] = vertexSrc;
 	sources[GL_FRAGMENT_SHADER] = fragmentSrc;
@@ -125,26 +125,26 @@ UHE::OpenGLShader::OpenGLShader(const std::string& name, const std::string& vert
 
 UHE::OpenGLShader::~OpenGLShader()
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	glDeleteProgram(m_RendererID);
 }
 
 void UHE::OpenGLShader::Bind() const
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	glUseProgram(m_RendererID);
 
 }
 
 void UHE::OpenGLShader::Unbind() const
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	glUseProgram(0);
 }
 
 void UHE::OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& value)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	GLuint location = glGetUniformLocation(m_RendererID, name.c_str());
 	glUniform3f(location, value.x, value.y, value.z);
 }
@@ -156,20 +156,20 @@ void UHE::OpenGLShader::SetIntArray(const std::string& name, int* values, u32 co
 
 void UHE::OpenGLShader::SetFloat4(const std::string& name, const glm::vec4& value)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	GLuint location = glGetUniformLocation(m_RendererID, name.c_str());
 	glUniform4f(location, value.x, value.y, value.z, value.w);
 }
 
 void UHE::OpenGLShader::SetFloat(const std::string& name, const float value) {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	GLuint location = glGetUniformLocation(m_RendererID, name.c_str());
 	glUniform1f(location, value);
 }
 
 void UHE::OpenGLShader::SetMat4(const std::string& name, const glm::mat4& value)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	GLuint location = glGetUniformLocation(m_RendererID, name.c_str());
 	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 }
@@ -179,13 +179,13 @@ void UHE::OpenGLShader::SetMat4(const std::string& name, const glm::mat4& value)
 
 void UHE::OpenGLShader::SetInt(const std::string& name, const int value)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	SetUniformInt(name, value);
 }
 
 std::string UHE::OpenGLShader::ReadFile(const std::string& filepath)
 {
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	std::string result;
 	std::ifstream in(filepath, std::ios::in | std::ios::binary);
 	if (in)
@@ -206,7 +206,7 @@ std::string UHE::OpenGLShader::ReadFile(const std::string& filepath)
 
 std::unordered_map<GLenum, std::string> UHE::OpenGLShader::preProcess(const std::string& source)
 {   
-	VG_PROFILE_FUNCTION();
+	UHE_PROFILE_FUNCTION();
 	std::unordered_map<GLenum, std::string> shaderSource;
 
 	const char* typeToken = "#type";

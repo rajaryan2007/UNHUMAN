@@ -7,7 +7,7 @@ namespace UHE {
 	{
 	public:
 		inline static void Init() {
-			VG_PROFILE_FUNCTION();
+			UHE_PROFILE_FUNCTION();
 			// Initialize the RendererAPI
 			s_RendererAPI->Init();
 		}	

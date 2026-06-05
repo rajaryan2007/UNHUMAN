@@ -20,11 +20,11 @@ static void GLFWErrorCallback(int error, const char *descrioption) {
 }
 
 Window *Window::Create(const WindowProps &props) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   return new WindowsWindow(props);
 }
 WindowsWindow::WindowsWindow(const WindowProps &props) {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   Init(props);
 }
 WindowsWindow::~WindowsWindow() { Shutdown(); }
@@ -159,7 +159,7 @@ void WindowsWindow::Init(const WindowProps &props) {
 }
 
 void WindowsWindow::Shutdown() {
-  VG_PROFILE_FUNCTION();
+  UHE_PROFILE_FUNCTION();
   glfwDestroyWindow(m_Window);
   /*--s_GLFWindowCount;
   if(s_GLFWindowCount == 0) {
