@@ -12,7 +12,6 @@
 #include "Platform/Vulkan/VulkanTexture.h"
 #include "UHE/Core/Log.h"
 #include "UHE/RHI/RHITypes.h"
-#include "vulkan/vulkan.hpp"
 
 namespace UHE::RHI::VULKAN
 {
@@ -94,13 +93,13 @@ void VulkanDevice::Begin()
     auto acquireResult = m_SwapChain.GetSwapchain().acquireNextImage(
         UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), nullptr);
 
-    if (acquireResult.first == vk::Result::eErrorOutOfDateKHR || acquireResult.first == vk::Result::eSuboptimalKHR)
+    if (acquireResult.result == vk::Result::eErrorOutOfDateKHR || acquireResult.result == vk::Result::eSuboptimalKHR)
     {
         RecreateSwapchain();
         return;
     }
 
-    m_ImageIndex = acquireResult.second;
+    m_ImageIndex = acquireResult.value;
 
     m_Frames[m_CurrentFrame].GetDeletionQueue().Flush();
     m_Frames[m_CurrentFrame].GetCommandBuffer().Reset();
@@ -150,21 +149,10 @@ void VulkanDevice::End()
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void VulkanDevice::BeginRenderPass(const RenderPassDesc& desc) {}
-void VulkanDevice::EndRenderPass() {}
-void VulkanDevice::BindPipeline(PipelineHandle handle) {}
-void VulkanDevice::BindVertexBuffer(BufferHandle handle, u64 offset) {}
-void VulkanDevice::BindIndexBuffer(BufferHandle handle, u64 offset) {}
-void VulkanDevice::SetViewport(float x, float y, float width, float height) {}
-void VulkanDevice::SetScissor(i32 x, i32 y, u32 width, u32 height) {}
-void VulkanDevice::PushConstants(ShaderStage stage, const void* data, u32 size, u32 offset) {}
-void VulkanDevice::DrawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset) {}
-
-void VulkanDevice::BindTexture(u32 slot, TextureHandle handle) {}
-
-void VulkanDevice::UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset /*= 0*/) {}
-
-void VulkanDevice::UpdateTexture(TextureHandle handle, const void* data, u64 size) {}
+RHICommandBuffer& VulkanDevice::GetCurrentCommandBuffer()
+{
+    return m_Frames[m_CurrentFrame].GetCommandBuffer();
+}
 
 void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function)
 {
@@ -173,7 +161,7 @@ void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& c
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandBufferCount = 1;
 
-    vk::raii::CommandBuffers cmdBuffers(m_logicalDevice, allocInfo);
+    vk::raii::CommandBuffers cmdBuffers(m_LogDevice, allocInfo);
     vk::raii::CommandBuffer cmd = std::move(cmdBuffers[0]);
 
     vk::CommandBufferBeginInfo beginInfo{};
@@ -191,10 +179,10 @@ void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& c
     m_graphicsQueue.submit(submitInfo, *m_UploadFence);
 
     // Wait for the command to finish executing
-    auto waitResult = m_logicalDevice.waitForFences({*m_UploadFence}, VK_TRUE, UINT64_MAX);
+    auto waitResult = m_LogDevice.waitForFences({*m_UploadFence}, VK_TRUE, UINT64_MAX);
     VG_CORE_ASSERT(waitResult == vk::Result::eSuccess, "Failed to wait for upload fence!");
 
-    m_logicalDevice.resetFences({*m_UploadFence});
+    m_LogDevice.resetFences({*m_UploadFence});
     m_UploadCommandPool.reset();
 }
 

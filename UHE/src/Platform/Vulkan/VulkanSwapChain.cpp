@@ -3,7 +3,7 @@
 
 namespace UHE::RHI::VULKAN
 {
-void VulkanSwapChain::createSwapChain(vk::raii::Device& device, vk::raii::PhysicalDevice& physicalDevice,
+void VulkanSwapChain::createSwapChain(vk::Device& device, vk::raii::PhysicalDevice& physicalDevice,
                                       vk::raii::SurfaceKHR& surface, GLFWwindow* window)
 {
     auto SurfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(*surface);

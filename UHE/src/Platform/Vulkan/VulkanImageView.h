@@ -27,7 +27,11 @@ public:
     void CreateImageViews();
     void CreateTextureImageView();
     void CreateTextureSampler();
-    void CreateDepthImageView(vk::Format depthFormat = vk::Format::eD32Sfloat, vk::Extent2D swapChainExtent);
+    void CreateDepthImageView(vk::Extent2D swapChainExtent, vk::Format depthFormat = vk::Format::eD32Sfloat);
+
+    vk::ImageView GetImageView() { return *textureImageView; }
+    vk::ImageView GetDepthImageView() { return *depthImageView; }
+    vk::Sampler GetTextureSampler() { return *textureSampler; }
 
 private:
     vk::raii::PhysicalDevice* physicaldevice = nullptr;
@@ -35,6 +39,7 @@ private:
     vk::SurfaceFormatKHR* swapChainSurfaceFormat = nullptr;
     std::vector<vk::raii::ImageView> swapChainImageViews;
     std::vector<vk::Image> swapChainImages;
+    vk::raii::ImageView textureImageView;
     vk::raii::Sampler textureSampler;
     vk::raii::ImageView depthImageView;
     vk::Image rawHandle = nullptr;

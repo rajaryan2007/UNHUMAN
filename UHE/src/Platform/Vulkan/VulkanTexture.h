@@ -26,6 +26,8 @@ public:
     void ExecuteCopyCommand(const vk::raii::Device& device, VkBuffer srcBuffer, vk::Image dstImage, uint32_t width,
                             uint32_t height);
 
+    vk::raii::ImageView& GetImageView() { return textureImageView; }
+
 private:
     vk::raii::Image textureImage{nullptr};
     vk::raii::DeviceMemory textureImageMemory{nullptr};

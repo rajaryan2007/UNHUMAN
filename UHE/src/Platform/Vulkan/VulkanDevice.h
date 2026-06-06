@@ -1,5 +1,6 @@
 #pragma once
 #include <vk_mem_alloc.h>
+#include <vulkan/vulkan_raii.hpp>
 #include "Platform/Vulkan/VulkanDescriptorManager.h"
 #include "Platform/Vulkan/VulkanFrameContext.h"
 #include "Platform/Vulkan/VulkanInstance.h"
@@ -17,50 +18,34 @@ public:
     VulkanDevice(GLFWwindow* windowHandle, const SwapchainDesc& swapDesc);
     ~VulkanDevice() override;
 
-    // ─── Resource Creation ──────────────────────────────────────
+    // ─── Frame Lifecycle ────────────────────────────────────────
     void Begin() override;
     void End() override;
+
+    // ─── Resource Creation ──────────────────────────────────────
     BufferHandle CreateBuffer(const BufferDesc& desc) override;
     TextureHandle CreateTexture(const TextureDesc& desc) override;
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
 
+    // ─── Command Buffer Access ──────────────────────────────────
+    RHICommandBuffer& GetCurrentCommandBuffer() override;
+
     // ─── Window Management ────────────────────────────────────────
     GLFWwindow* GetWindowHandle() const { return m_WindowHandle; }
-
-    // ─── Data Upload ────────────────────────────────────────────
-    void UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset = 0) override;
-    void UpdateTexture(TextureHandle handle, const void* data, u64 size) override;
-
-    // ─── Command Recording ──────────────────────────────────────
-    void BeginRenderPass(const RenderPassDesc& desc) override;
-    void EndRenderPass() override;
-
-    void BindPipeline(PipelineHandle handle) override;
-    void BindVertexBuffer(BufferHandle handle, u64 offset = 0) override;
-    void BindIndexBuffer(BufferHandle handle, u64 offset = 0) override;
-
-    void SetViewport(float x, float y, float width, float height) override;
-    void SetScissor(i32 x, i32 y, u32 width, u32 height) override;
-    void PushConstants(ShaderStage stage, const void* data, u32 size, u32 offset = 0) override;
-
-    void Draw(u32 vertexCount, u32 firstVertex = 0) override {}
-
-    void DrawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) override;
 
     void GetLogicalDeviceInfo(u32& vendorID, u32& deviceID) const
     {
         return m_PhysicalDevice.GetLogicalDeviceInfo(vendorID, deviceID);
     };
 
-    vk::raii::Device& GetVulkanDevice() { return m_LogDevice; }
-
-    void BindTexture(u32 slot, TextureHandle handle) override;
-
+    vk::Device& GetVulkanDevice() { return m_LogDevice; }
+    void SetLogicalDevice(vk::raii::Device& LogicalDevice) { m_LogDevice = *LogicalDevice; }
     VulkanLogicalDevice& getLogicalDevClass() { return m_LogicalDevice; }
     VulkanInstance& getInstanceClass() { return m_Instance; }
     VulkanPhysicalDevice& getPhysicalDevClass() { return m_PhysicalDevice; }
     VulkanSwapChain& getSwapChainClass() { return m_SwapChain; }
+    const u32& ImageIndex() { return m_ImageIndex; }
 
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);
@@ -72,7 +57,7 @@ private:
 
 private:
     // Core Vulkan abstractions
-    vk::raii::Device& m_LogDevice;
+    vk::Device& m_LogDevice;
     vk::raii::Queue& m_graphicsQueue;
     vk::raii::SurfaceKHR& surface;
 

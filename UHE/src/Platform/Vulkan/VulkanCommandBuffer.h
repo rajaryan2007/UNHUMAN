@@ -1,16 +1,19 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
+#include "Platform/Vulkan/VulkanSwapChain.h"
+#include "UHE/RHI/RHICommadBuffer.h"
 // #include "VulkanCommandPool.h"
 
 namespace UHE::RHI::VULKAN
 {
 class VulkanDevice;
 class VulkanCommandPool;
-class VulkanCommandBuffer
+
+class VulkanCommandBuffer : public RHICommandBuffer
 {
 public:
     VulkanCommandBuffer() = default;
-    ~VulkanCommandBuffer() = default;
+    ~VulkanCommandBuffer() override = default;
 
     VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
     VulkanCommandBuffer& operator=(const VulkanCommandBuffer&) = delete;
@@ -18,6 +21,7 @@ public:
     VulkanCommandBuffer(VulkanCommandBuffer&&) = default;
     VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) = default;
 
+    // ─── Internal Vulkan-specific methods ───────────────────────
     void Allocate(vk::raii::Device& device, VulkanCommandPool& pool, bool isPrimary = true);
     void Free();
     void BeginCommandBuffer(vk::CommandBufferUsageFlags flags = {});
@@ -27,7 +31,39 @@ public:
     inline const vk::raii::CommandBuffer& GetHandle() const { return m_CommandBuffer; }
     inline vk::raii::CommandBuffer& GetHandle() { return m_CommandBuffer; }
 
+    inline void setSwapChian(vk::raii::SwapchainKHR& Swapchain) { m_swapChain = *Swapchain; }
+    // ─── RHICommandBuffer overrides ─────────────────────────────
+    virtual void Begin() override;
+    virtual void End() override;
+
+    // ─── Render Pass ───
+    virtual void BeginRenderPass(const RenderPassDesc& desc) override;
+    virtual void EndRenderPass() override;
+
+    // ─── Pipeline & State Bindings ───
+    virtual void BindPipeline(PipelineHandle handle) override;
+    virtual void BindVertexBuffer(BufferHandle handle, u64 offset = 0) override;
+    virtual void BindIndexBuffer(BufferHandle handle, u64 offset = 0) override;
+    virtual void BindTexture(u32 slot, TextureHandle handle) override;
+
+    // ─── Dynamic States ───
+    virtual void SetViewport(float x, float y, float width, float height) override;
+    virtual void SetScissor(i32 x, i32 y, u32 width, u32 height) override;
+
+    // ─── Inline Data Paths ───
+    virtual void PushConstants(ShaderStage stage, const void* data, u32 size, u32 offset = 0) override;
+    virtual void UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset = 0) override;
+    virtual void UpdateTexture(TextureHandle handle, const void* data, u64 size) override;
+
+    // ─── Action Commands ───
+    virtual void Draw(u32 vertexCount, u32 firstVertex = 0) override;
+    virtual void DrawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) override;
+
 private:
+    VulkanSwapChain& m_swapChainClass;
+    vk::SwapchainKHR& m_swapChain;
+    u32& m_imageIndex;
+    u32& m_CurrentFrame;
     vk::raii::CommandBuffer m_CommandBuffer{nullptr};
 };
 } // namespace UHE::RHI::VULKAN
