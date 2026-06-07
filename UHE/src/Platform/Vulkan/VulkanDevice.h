@@ -46,6 +46,7 @@ public:
     VulkanPhysicalDevice& getPhysicalDevClass() { return m_PhysicalDevice; }
     VulkanSwapChain& getSwapChainClass() { return m_SwapChain; }
     const u32& ImageIndex() { return m_ImageIndex; }
+    void ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function);
 
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);
@@ -53,7 +54,6 @@ private:
     void RecreateSwapchain();
 
     // ─── Immediate Submission (Uploads) ───────────────────────────
-    void ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function);
 
 private:
     // Core Vulkan abstractions

@@ -8,6 +8,7 @@ namespace UHE::RHI::VULKAN
 {
 class VulkanDevice;
 class VulkanCommandPool;
+class VulkanDescriptorManager;
 
 class VulkanCommandBuffer : public RHICommandBuffer
 {
@@ -31,7 +32,6 @@ public:
     inline const vk::raii::CommandBuffer& GetHandle() const { return m_CommandBuffer; }
     inline vk::raii::CommandBuffer& GetHandle() { return m_CommandBuffer; }
 
-    inline void setSwapChian(vk::raii::SwapchainKHR& Swapchain) { m_swapChain = *Swapchain; }
     // ─── RHICommandBuffer overrides ─────────────────────────────
     virtual void Begin() override;
     virtual void End() override;
@@ -59,11 +59,17 @@ public:
     virtual void Draw(u32 vertexCount, u32 firstVertex = 0) override;
     virtual void DrawIndexed(u32 indexCount, u32 firstIndex = 0, i32 vertexOffset = 0) override;
 
+    void SetContext(vk::raii::Device* device, VulkanDescriptorManager* descriptorManager)
+    {
+        m_LogDevice = device;
+        m_DescriptorManager = descriptorManager;
+    }
+
 private:
-    VulkanSwapChain& m_swapChainClass;
-    vk::SwapchainKHR& m_swapChain;
-    u32& m_imageIndex;
-    u32& m_CurrentFrame;
+    vk::raii::Device* m_LogDevice = nullptr;
+    VulkanDescriptorManager* m_DescriptorManager = nullptr;
+    vk::PipelineLayout m_CurrentPipelineLayout = nullptr;
+    TextureHandle m_CurrentRenderTarget = nullptr;
     vk::raii::CommandBuffer m_CommandBuffer{nullptr};
 };
 } // namespace UHE::RHI::VULKAN

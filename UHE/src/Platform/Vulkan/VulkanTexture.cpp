@@ -47,8 +47,12 @@ void VulkanTexture::CreateImage(VulkanLogicalDevice& logDevice, uint32_t width, 
     image = vk::raii::Image(logDevice.getLogicalDevice(), rawImage);
 }
 
-void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u32 height, u32 width, size_t dataSize)
+void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u32 width, u32 height, size_t dataSize)
 {
+    m_Device = &device;
+    m_Width = width;
+    m_Height = height;
+
     const auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
     m_allocator = device.getLogicalDevClass().getAllocator();
 
@@ -71,13 +75,56 @@ void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u
     memcpy(mapped, pixelData, dataSize);
     vmaUnmapMemory(m_allocator, stagingAlloc);
 
-    ExecuteCopyCommand(logicaldevice, stagingBuffer, *textureImage, width, height);
+    ExecuteCopyCommand(device, stagingBuffer, *textureImage, width, height);
     vmaDestroyBuffer(m_allocator, stagingBuffer, stagingAlloc);
 }
 
-void VulkanTexture::ExecuteCopyCommand(const vk::raii::Device& device, VkBuffer srcBuffer, vk::Image dstImage,
+void VulkanTexture::ExecuteCopyCommand(VulkanDevice& device, VkBuffer srcBuffer, vk::Image dstImage,
                                        uint32_t width, uint32_t height)
 {
+    device.ImmediateSubmit([&](vk::raii::CommandBuffer& cmd) {
+        VkBufferImageCopy region{};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent = {width, height, 1};
+
+        vkCmdCopyBufferToImage(*cmd, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    });
+}
+
+void VulkanTexture::UpdateTexture(const void* data, size_t size)
+{
+    if (!m_Device) return;
+
+    const auto& logicaldevice = m_Device->getLogicalDevClass().getLogicalDevice();
+    m_allocator = m_Device->getLogicalDevClass().getAllocator();
+
+    VkBuffer stagingBuffer;
+    VmaAllocation stagingAlloc;
+
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = size;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    vmaCreateBuffer(m_allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAlloc, nullptr);
+
+    void* mapped;
+    vmaMapMemory(m_allocator, stagingAlloc, &mapped);
+    memcpy(mapped, data, size);
+    vmaUnmapMemory(m_allocator, stagingAlloc);
+
+    ExecuteCopyCommand(*m_Device, stagingBuffer, *textureImage, m_Width, m_Height);
+    vmaDestroyBuffer(m_allocator, stagingBuffer, stagingAlloc);
 }
 
 } // namespace UHE::RHI::VULKAN

@@ -23,16 +23,21 @@ public:
                      vk::ImageUsageFlags usage, VmaMemoryUsage memUsage, vk::ImageTiling tiling, vk::raii::Image& image,
                      VmaAllocation& imageMemory);
     void CreateTexture(VulkanDevice& device, const void* pixelData, u32 width, u32 height, size_t dataSize);
-    void ExecuteCopyCommand(const vk::raii::Device& device, VkBuffer srcBuffer, vk::Image dstImage, uint32_t width,
+    void ExecuteCopyCommand(VulkanDevice& device, VkBuffer srcBuffer, vk::Image dstImage, uint32_t width,
                             uint32_t height);
-
+    void UpdateTexture(const void* data, size_t size);
+    vk::raii::Image& GetImage() { return textureImage; }
     vk::raii::ImageView& GetImageView() { return textureImageView; }
+    vk::raii::Sampler& GetSampler() { return textureSampler; }
 
 private:
     vk::raii::Image textureImage{nullptr};
     vk::raii::DeviceMemory textureImageMemory{nullptr};
     vk::raii::ImageView textureImageView{nullptr};
-    vk::raii::Sampler textureSamplermi{nullptr};
+    vk::raii::Sampler textureSampler{nullptr};
     VmaAllocator m_allocator = nullptr;
+    VulkanDevice* m_Device = nullptr;
+    u32 m_Width = 0;
+    u32 m_Height = 0;
 };
 } // namespace UHE::RHI::VULKAN
