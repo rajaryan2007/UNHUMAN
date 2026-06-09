@@ -3,9 +3,6 @@
   <p>A modern, cross-platform C++ game engine powered by Vulkan and Slang.</p>
 </div>
 
-> [!WARNING]
-> **Heavily Under Construction:** This engine is currently undergoing a massive architectural refactor (including a complete rewrite of the Vulkan RHI and cross-platform build systems). The codebase will be in a state of heavy flux for the next 2-3 months. Expect breaking changes and instability!
-
 ---
 
 ## Showcase
@@ -54,6 +51,9 @@ The repository is logically split to ensure the core engine remains separate fro
 - `script/Setup.py` — The automated dependency fetcher that pulls heavy OS-specific binaries (like Slang) into `UHE/vendor/bin/`.
 
 ## Getting Started
+
+> [!NOTE]
+> **Hardware Compatibility:** Because the engine relies on a custom Vulkan RHI, it may not compile or run on all machines (especially older hardware or unsupported drivers). If you are unable to compile the project, please check out the **video preview** in the Showcase section above and stay tuned for future precompiled releases and updates!
 
 UHE uses a fully automated bootstrap system. You do not need to manually configure CMake or download binaries.
 
