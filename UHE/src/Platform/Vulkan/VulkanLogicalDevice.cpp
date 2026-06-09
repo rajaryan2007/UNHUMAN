@@ -40,6 +40,7 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
     auto& descriptorIndexing = featureChain.get<vk::PhysicalDeviceDescriptorIndexingFeatures>();
 
     features2.features.samplerAnisotropy = VK_TRUE;
+    features2.features.independentBlend = VK_TRUE;
 
     vulkan13Features.dynamicRendering = VK_TRUE;
     vulkan13Features.synchronization2 = VK_TRUE;
@@ -49,6 +50,7 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
     descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
     descriptorIndexing.descriptorBindingPartiallyBound = VK_TRUE;
     descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    descriptorIndexing.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
     float queuePriority = 1.0f;
     vk::DeviceQueueCreateInfo deviceQueueCreateInfo{};

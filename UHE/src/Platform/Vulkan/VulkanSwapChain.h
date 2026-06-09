@@ -11,8 +11,8 @@ public:
     VulkanSwapChain() = default;
     VulkanSwapChain(const VulkanSwapChain&) = delete;
     VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
-    void createSwapChain(vk::raii::Device& device, vk::raii::PhysicalDevice& physicalDevice, vk::raii::SurfaceKHR& surface,
-                         GLFWwindow* window);
+    void createSwapChain(vk::raii::Device& device, vk::raii::PhysicalDevice& physicalDevice,
+                         vk::raii::SurfaceKHR& surface, GLFWwindow* window);
 
     void cleanupSwapChain();
 

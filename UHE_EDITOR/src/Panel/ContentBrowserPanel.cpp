@@ -7,10 +7,11 @@ namespace UHE {
 ContentBrowserPanel::ContentBrowserPanel() {
   m_BaseDirectory = FileSystem::Get().GetRootPath() / "assets";
   m_CurrentDirectory = m_BaseDirectory;
-  m_DirectoryIcon = nullptr;
-  m_FileIcon = nullptr;
-  m_PngIcon = nullptr;
-  m_modelPng = nullptr;
+  auto rootPath = FileSystem::Get().GetRootPath();
+  m_DirectoryIcon = Texture2D::Create((rootPath / "assets/icon/folder.png").string());
+  m_FileIcon = Texture2D::Create((rootPath / "assets/icon/file.png").string());
+  m_PngIcon = Texture2D::Create((rootPath / "assets/icon/png.png").string());
+  m_modelPng = Texture2D::Create((rootPath / "assets/icon/3dmodel.png").string());
 }
 void ContentBrowserPanel::DrawDirectoryTree(
     const std::filesystem::path &directoryPath) {
@@ -93,7 +94,7 @@ void ContentBrowserPanel::OnImGuiRender() {
       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
       if (directoryEntry.is_directory()) {
         ImTextureID dirTexID =
-            (ImTextureID)(intptr_t)m_DirectoryIcon;
+            (ImTextureID)(intptr_t)m_DirectoryIcon->GetImGuiTextureID();
         if (ImGui::ImageButton(filenameString.c_str(), dirTexID,{thumbnailSize, thumbnailSize}, {0, 1},
 {1, 0})) {
           m_CurrentDirectory /= path.filename();
@@ -104,21 +105,21 @@ void ContentBrowserPanel::OnImGuiRender() {
           std::string absolutePath = path.string();
           
           if (m_TextureCache.find(absolutePath) == m_TextureCache.end()) {
-              m_TextureCache[absolutePath] = nullptr;
+              m_TextureCache[absolutePath] = Texture2D::Create(absolutePath);
           }
          
           if (m_TextureCache[absolutePath]) {
-              fileTexID = (ImTextureID)(intptr_t)m_TextureCache[absolutePath];
+              fileTexID = (ImTextureID)(intptr_t)m_TextureCache[absolutePath]->GetImGuiTextureID();
           } else {
-              fileTexID = (ImTextureID)(intptr_t)m_PngIcon;
+              fileTexID = (ImTextureID)(intptr_t)m_PngIcon->GetImGuiTextureID();
           }
         } 
         else if (path.extension() == ".glb" || path.extension() == ".fbx" || path.extension() == ".gltf" || path.extension() == ".obj")
         {
-            fileTexID = (ImTextureID)(intptr_t)m_modelPng;
+            fileTexID = (ImTextureID)(intptr_t)m_modelPng->GetImGuiTextureID();
         }
         else {
-          fileTexID = (ImTextureID)(intptr_t)m_FileIcon;
+          fileTexID = (ImTextureID)(intptr_t)m_FileIcon->GetImGuiTextureID();
         }
         ImGui::ImageButton(filenameString.c_str(), fileTexID,
                            {thumbnailSize, thumbnailSize}, {0, 1},

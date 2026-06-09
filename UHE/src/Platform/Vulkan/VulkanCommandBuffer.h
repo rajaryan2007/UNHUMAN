@@ -69,7 +69,7 @@ private:
     vk::raii::Device* m_LogDevice = nullptr;
     VulkanDescriptorManager* m_DescriptorManager = nullptr;
     vk::PipelineLayout m_CurrentPipelineLayout = nullptr;
-    TextureHandle m_CurrentRenderTarget = nullptr;
+    RenderPassDesc m_CurrentRenderPassDesc;
     vk::raii::CommandBuffer m_CommandBuffer{nullptr};
 };
 } // namespace UHE::RHI::VULKAN

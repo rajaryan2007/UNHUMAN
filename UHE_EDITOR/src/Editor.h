@@ -4,6 +4,7 @@
 #include "Panel/SceneHierachyPanel.h"
 #include "UHE/Renderer/EditorCamera.h"
 #include "Panel/ContentBrowserPanel.h"
+#include "UHE/Renderer/Framebuffer.h"
 
 namespace UHE
 {
@@ -61,6 +62,7 @@ namespace UHE
 
 		SceneHierarchyPanel m_SceneHireacyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
+		Ref<Framebuffer> m_Framebuffer;
 	    
 		enum class SceneState
 		{

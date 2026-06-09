@@ -33,24 +33,16 @@ void VulkanDevice::InitVulkan(const SwapchainDesc& swapDesc)
 {
     UHE_PROFILE_FUNCTION();
 
-    // 1. Create Vulkan instance
     m_Instance.initialize();
-
-    // 2. Create window surface
     m_LogicalDevice.CreateSurface(m_Instance, m_WindowHandle);
-
-    // 3. Pick physical device
     m_PhysicalDevice.initPhysicalDevice(m_Instance);
 
-    // 4. Create logical device + VMA allocator
     m_LogicalDevice.initialize(m_PhysicalDevice, *m_LogicalDevice.getSurface(), m_Instance);
     m_Allocator = m_LogicalDevice.getAllocator();
 
-    // 5. Create swapchain
     m_SwapChain.createSwapChain(m_LogicalDevice.getLogicalDevice(), m_PhysicalDevice.getPhysicalDevice(),
                                 m_LogicalDevice.getSurface(), m_WindowHandle);
 
-    // 6. Init per-frame contexts (command pools, semaphores, fences)
     for (auto& frame : m_Frames)
     {
         frame.Init(m_LogicalDevice.getLogicalDevice(), m_LogicalDevice.getGraphicsQueueFamilyIndex());
@@ -63,7 +55,6 @@ void VulkanDevice::InitVulkan(const SwapchainDesc& swapDesc)
         m_RenderFinishedSemaphores.emplace_back(m_LogicalDevice.getLogicalDevice(), semaphoreInfo);
     }
 
-    // 7. Create upload context for immediate submissions
     vk::CommandPoolCreateInfo uploadPoolInfo{};
     uploadPoolInfo.queueFamilyIndex = m_LogicalDevice.getGraphicsQueueFamilyIndex();
     m_UploadCommandPool = vk::raii::CommandPool(m_LogicalDevice.getLogicalDevice(), uploadPoolInfo);
@@ -71,8 +62,12 @@ void VulkanDevice::InitVulkan(const SwapchainDesc& swapDesc)
     vk::FenceCreateInfo fenceInfo{};
     m_UploadFence = vk::raii::Fence(m_LogicalDevice.getLogicalDevice(), fenceInfo);
 
-    // 8. Init descriptor manager
     m_DescriptorManager.init(*this);
+
+    for (auto& frame : m_Frames)
+    {
+        frame.GetCommandBuffer().SetContext(&m_LogicalDevice.getLogicalDevice(), &m_DescriptorManager);
+    }
 
     UHE_CORE_INFO("Vulkan device initialized successfully");
 }
@@ -156,7 +151,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc)
 TextureHandle VulkanDevice::CreateTexture(const TextureDesc& desc)
 {
     VulkanTexture* texture = new VulkanTexture();
-    texture->Init(*this);
+    texture->Init(*this, desc);
     return reinterpret_cast<TextureHandle>(texture);
 }
 ShaderHandle VulkanDevice::CreateShader(const ShaderDesc& desc)
@@ -174,7 +169,8 @@ PipelineHandle VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& 
 
 void VulkanDevice::DestroyBuffer(BufferHandle handle)
 {
-    if (handle) {
+    if (handle)
+    {
         auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
         delete buffer;
     }
@@ -182,7 +178,8 @@ void VulkanDevice::DestroyBuffer(BufferHandle handle)
 
 void VulkanDevice::DestroyTexture(TextureHandle handle)
 {
-    if (handle) {
+    if (handle)
+    {
         auto* texture = reinterpret_cast<VulkanTexture*>(handle);
         delete texture;
     }
@@ -190,7 +187,8 @@ void VulkanDevice::DestroyTexture(TextureHandle handle)
 
 void VulkanDevice::DestroyShader(ShaderHandle handle)
 {
-    if (handle) {
+    if (handle)
+    {
         auto* shader = reinterpret_cast<VulkanShader*>(handle);
         delete shader;
     }
@@ -198,7 +196,8 @@ void VulkanDevice::DestroyShader(ShaderHandle handle)
 
 void VulkanDevice::DestroyGraphicsPipeline(PipelineHandle handle)
 {
-    if (handle) {
+    if (handle)
+    {
         auto* pipeline = reinterpret_cast<VulkanGraphicPipeline*>(handle);
         delete pipeline;
     }

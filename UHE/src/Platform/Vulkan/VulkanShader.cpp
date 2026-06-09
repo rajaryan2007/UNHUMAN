@@ -21,6 +21,11 @@ void VulkanShader::Create(const vk::raii::Device& device, const ShaderDesc& desc
     catch (const std::exception& e)
     {
         UHE_CORE_ERROR("Failed to create Vulkan Shader Module! Error: {0}", e.what());
+        UHE_CORE_ASSERT(false, "Shader module creation failed!");
+    }
+    
+    if (!*m_Module) {
+        UHE_CORE_ASSERT(false, "Shader module is null after creation!");
     }
 }
 

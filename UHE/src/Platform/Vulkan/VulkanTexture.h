@@ -13,12 +13,13 @@ class VulkanTexture : public RHITexture
 {
 public:
     VulkanTexture() = default;
-    // VulkanTexture(const VulkanTexture&) = delete;
-    // VulkanTexture& operator=(const VulkanTexture&) = delete;
+    virtual ~VulkanTexture() override;
 
     virtual const TextureDesc& GetDesc() const override { return m_Desc; }
+    virtual void* GetImGuiTextureID() override;
 
-    void Init(VulkanDevice& device);
+
+    void Init(VulkanDevice& device, const TextureDesc& desc);
     void CreateImage(VulkanLogicalDevice& device, uint32_t width, uint32_t height, vk::Format format,
                      vk::ImageUsageFlags usage, VmaMemoryUsage memUsage, vk::ImageTiling tiling, vk::raii::Image& image,
                      VmaAllocation& imageMemory);
@@ -32,7 +33,7 @@ public:
 
 private:
     vk::raii::Image textureImage{nullptr};
-    vk::raii::DeviceMemory textureImageMemory{nullptr};
+    VmaAllocation textureImageMemory = nullptr;
     vk::raii::ImageView textureImageView{nullptr};
     vk::raii::Sampler textureSampler{nullptr};
     VmaAllocator m_allocator = nullptr;
@@ -40,5 +41,6 @@ private:
     u32 m_Width = 0;
     u32 m_Height = 0;
     TextureDesc m_Desc;
+    VkDescriptorSet m_ImGuiDescriptorSet = VK_NULL_HANDLE;
 };
 } // namespace UHE::RHI::VULKAN

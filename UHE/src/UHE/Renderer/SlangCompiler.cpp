@@ -228,4 +228,83 @@ SlangCompiler::CompileToGLSL(const std::string &filepath) {
   return result;
 }
 
+std::unordered_map<RHI::ShaderStage, std::vector<uint8_t>> SlangCompiler::CompileToSPIRV(const std::string& filepath) {
+    std::unordered_map<RHI::ShaderStage, std::vector<uint8_t>> result;
+
+    Slang::ComPtr<slang::IGlobalSession> slangGlobalSession;
+    slang::createGlobalSession(slangGlobalSession.writeRef());
+
+    slang::SessionDesc sessionDesc = {};
+    slang::TargetDesc targetDesc = {};
+    targetDesc.format = SLANG_SPIRV;
+    targetDesc.profile = slangGlobalSession->findProfile("glsl_450");
+    
+    sessionDesc.targets = &targetDesc;
+    sessionDesc.targetCount = 1;
+    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
+
+    Slang::ComPtr<slang::ISession> session;
+    slangGlobalSession->createSession(sessionDesc, session.writeRef());
+
+    Slang::ComPtr<slang::IBlob> diagnosticBlob;
+    slang::IModule* module = session->loadModule(filepath.c_str(), diagnosticBlob.writeRef());
+
+    if (diagnosticBlob) {
+        const char* msg = (const char*)diagnosticBlob->getBufferPointer();
+        if (msg && msg[0])
+            UHE_CORE_WARN("Slang compiler diagnostics:\n{0}", msg);
+    }
+
+    if (!module) {
+        UHE_CORE_ERROR("Failed to load slang module: {0}", filepath);
+        return result;
+    }
+
+    struct EntryPointInfo {
+        const char* name;
+        RHI::ShaderStage stage;
+    };
+
+    EntryPointInfo entryPoints[] = {
+        { "vertexMain", RHI::ShaderStage::Vertex },
+        { "fragmentMain", RHI::ShaderStage::Fragment }
+    };
+
+    for (const auto& ep : entryPoints) {
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        module->findEntryPointByName(ep.name, entryPoint.writeRef());
+        
+        if (!entryPoint) continue;
+
+        slang::IComponentType* components[] = { module, entryPoint };
+        Slang::ComPtr<slang::IComponentType> program;
+        
+        session->createCompositeComponentType(components, 2, program.writeRef(), diagnosticBlob.writeRef());
+        
+        Slang::ComPtr<slang::IComponentType> linkedProgram;
+        program->link(linkedProgram.writeRef(), diagnosticBlob.writeRef());
+        
+        if (diagnosticBlob) {
+            const char* msg = (const char*)diagnosticBlob->getBufferPointer();
+            if (msg && msg[0]) UHE_CORE_WARN("Slang link diagnostics:\n{0}", msg);
+        }
+
+        Slang::ComPtr<slang::IBlob> spirvBlob;
+        linkedProgram->getTargetCode(0, spirvBlob.writeRef(), diagnosticBlob.writeRef());
+        
+        if (spirvBlob) {
+            const uint8_t* ptr = (const uint8_t*)spirvBlob->getBufferPointer();
+            size_t size = spirvBlob->getBufferSize();
+            result[ep.stage] = std::vector<uint8_t>(ptr, ptr + size);
+        } else {
+            UHE_CORE_ERROR("Failed to generate SPIR-V code for entry point: {0}", ep.name);
+            if (diagnosticBlob) {
+                UHE_CORE_ERROR("Error: {0}", (const char*)diagnosticBlob->getBufferPointer());
+            }
+        }
+    }
+
+    return result;
+}
+
 } // namespace UHE

@@ -41,7 +41,7 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     rasterizer.polygonMode = vk::PolygonMode::eFill; // can add Wireframe configuration if supported by
                                                      // desc
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+    rasterizer.cullMode = vk::CullModeFlagBits::eNone;
     rasterizer.frontFace = vk::FrontFace::eClockwise;
     rasterizer.depthBiasEnable = vk::False;
 
@@ -66,12 +66,15 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     multisampling.sampleShadingEnable = vk::False;
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                          vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR |
+                                          vk::ColorComponentFlagBits::eG |
+                                          vk::ColorComponentFlagBits::eB |
+                                          vk::ColorComponentFlagBits::eA;
+    colorBlendAttachment.blendEnable = VK_FALSE;
 
     if (desc.blendMode == BlendMode::Alpha)
     {
-        colorBlendAttachment.blendEnable = vk::True;
+        colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
         colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
         colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
@@ -81,7 +84,7 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     }
     else if (desc.blendMode == BlendMode::Additive)
     {
-        colorBlendAttachment.blendEnable = vk::True;
+        colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eOne;
         colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOne;
         colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
@@ -89,15 +92,19 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
         colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
         colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
     }
-    else
-    {
-        colorBlendAttachment.blendEnable = vk::False;
+
+    std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments(desc.colorAttachmentCount, colorBlendAttachment);
+    for (u32 i = 0; i < desc.colorAttachmentCount; i++) {
+        if (desc.colorFormats[i] == TextureFormat::R32_SINT) {
+            colorBlendAttachments[i].blendEnable = VK_FALSE;
+        }
     }
 
     vk::PipelineColorBlendStateCreateInfo colorBlending{};
-    colorBlending.logicOpEnable = vk::False;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = vk::LogicOp::eCopy;
+    colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+    colorBlending.pAttachments = colorBlendAttachments.data();
 
     vk::PipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.depthTestEnable = desc.depthTest ? vk::True : vk::False;
@@ -115,15 +122,19 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     viewportState.viewportCount = 1;
     viewportState.scissorCount = 1;
 
-    vk::Format colorFormat = MapTextureFormat(desc.colorFormat);
+    std::vector<vk::Format> colorFormats;
+    for (u32 i = 0; i < desc.colorAttachmentCount; i++) {
+        colorFormats.push_back(MapTextureFormat(desc.colorFormats[i]));
+    }
     vk::Format depthFormat = MapTextureFormat(desc.depthFormat);
 
     vk::PipelineRenderingCreateInfo pipelineRenderCreateInfo;
-    pipelineRenderCreateInfo.colorAttachmentCount = 1;
-    pipelineRenderCreateInfo.pColorAttachmentFormats = &colorFormat;
+    pipelineRenderCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorFormats.size());
+    pipelineRenderCreateInfo.pColorAttachmentFormats = colorFormats.data();
     if (desc.depthTest || desc.depthWrite)
     {
         pipelineRenderCreateInfo.depthAttachmentFormat = depthFormat;
+        pipelineRenderCreateInfo.stencilAttachmentFormat = depthFormat; // Need this to match rendering info
     }
 
     vk::GraphicsPipelineCreateInfo pipelineInfo{};

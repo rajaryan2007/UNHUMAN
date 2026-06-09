@@ -40,6 +40,7 @@ public:
   Entity GetPrimaryCameraEntity();
 
   static Ref<Scene> Copy(Ref<Scene> other);
+  entt::registry& GetRegistry() { return m_registry; }
 public:
   template <typename T> void OnComponentAdded(Entity entity, T &components);
 

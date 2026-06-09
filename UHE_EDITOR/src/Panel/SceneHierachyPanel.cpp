@@ -404,11 +404,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         ImGui::PushItemWidth(inputWidth > 10.0f ? inputWidth : 10.0f);
         if (ImGui::InputText("##TextureInput", texBuf, sizeof(texBuf))) {
           src.TexturePath = std::string(texBuf);
-          if (!src.TexturePath.empty()) {
-          // src.Texture = Texture2D::Create(src.TexturePath);
-          } else {
-            src.Texture = nullptr;
-          }
+          src.Texture = nullptr;
         }
         ImGui::PopItemWidth();
         ImGui::SameLine();
@@ -417,9 +413,39 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
               FileDialogs::OpenFile("Image (*.png;*.jpg)\0*.png;*.jpg\0");
           if (!path.empty()) {
             src.TexturePath = path;
-            // src.Texture = Texture2D::Create(path);
+            src.Texture = Texture2D::Create(path);
           }
         }
+        
+        ImGui::Spacing();
+        if (src.Texture) {
+          ImGui::Image(
+              (ImTextureID)(intptr_t)src.Texture->GetImGuiTextureID(),
+              ImVec2(100.0f, 100.0f), ImVec2(0, 1), ImVec2(1, 0));
+        } else {
+          ImGui::Button("Drop Texture Here", ImVec2(100.0f, 100.0f));
+        }
+        
+        if (ImGui::BeginDragDropTarget()) {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Content_Browser_item")) {
+            const char* path = (const char*)payload->Data;
+            std::filesystem::path itemPath(path);
+            UHE_CORE_INFO("Accepted DragDropPayload: {0}", path);
+            if (itemPath.extension() == ".png" || itemPath.extension() == ".jpg") {
+              src.TexturePath = path;
+              src.Texture = Texture2D::Create(path);
+              if (src.Texture) {
+                  UHE_CORE_INFO("Successfully loaded texture from payload!");
+              } else {
+                  UHE_CORE_ERROR("Failed to load texture from payload!");
+              }
+            } else {
+                UHE_CORE_WARN("Payload extension not supported: {0}", itemPath.extension().string());
+            }
+          }
+          ImGui::EndDragDropTarget();
+        }
+
         ImGui::SameLine();
         ImGui::Text("Texture");
         ImGui::DragFloat("Tiling", &src.TilingFactor, 0.1f, 0.0f, 100.0f);
@@ -446,14 +472,14 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
                 ((src.SubTextureCoords.y + src.SubTextureSpriteSize.y) *
                  src.SubTextureCellSize.y) /
                     texHeight};
-            ImGui::Image((ImTextureID)(uint64_t)0,
+            ImGui::Image((ImTextureID)src.Texture->GetImGuiTextureID(),
                          ImVec2(64, 64), ImVec2(min.x, max.y),
                          ImVec2(max.x, min.y));
             ImGui::SameLine();
             ImGui::Text("SubTexture Preview");
           }
         } else if (src.Texture) {
-          ImGui::Image((ImTextureID)(uint64_t)0,
+          ImGui::Image((ImTextureID)src.Texture->GetImGuiTextureID(),
                        ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
           ImGui::SameLine();
           ImGui::Text("Texture Preview");
@@ -468,13 +494,9 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         if (ImGui::InputText("##SpritesheetInput", sheetBuf,
                              sizeof(sheetBuf))) {
           animComp.SpriteSheetPath = std::string(sheetBuf);
-          if (!animComp.SpriteSheetPath.empty()) {
-            // animComp.Animation.SpriteSheet =
-            //    Texture2D::Create(animComp.SpriteSheetPath);
-          } else {
-            animComp.Animation.SpriteSheet = nullptr;
-          }
+          animComp.Animation.SpriteSheet = nullptr;
         }
+
         ImGui::PopItemWidth();
         ImGui::SameLine();
         if (ImGui::Button("Browse##Anim", ImVec2(60, 0))) {
@@ -482,15 +504,32 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
               FileDialogs::OpenFile("Image (*.png;*.jpg)\0*.png;*.jpg\0");
           if (!path.empty()) {
             animComp.SpriteSheetPath = path;
-            // animComp.Animation.SpriteSheet = Texture2D::Create(path);
+            animComp.Animation.SpriteSheet = Texture2D::Create(path);
           }
         }
+        
+        ImGui::Spacing();
         // Spritesheet preview
         if (animComp.Animation.SpriteSheet) {
-          ImGui::Image((ImTextureID)(uint64_t)0,
+          ImGui::Image((ImTextureID)(intptr_t)animComp.Animation.SpriteSheet->GetImGuiTextureID(),
                        ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
           ImGui::SameLine();
           ImGui::Text("Atlas Preview");
+        } else {
+          ImGui::Button("Drop Texture Here##Anim", ImVec2(100.0f, 100.0f));
+        }
+        
+        if (ImGui::BeginDragDropTarget()) {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Content_Browser_item")) {
+            const char* path = (const char*)payload->Data;
+            std::filesystem::path itemPath(path);
+            UHE_CORE_INFO("Accepted DragDropPayload (Anim): {0}", path);
+            if (itemPath.extension() == ".png" || itemPath.extension() == ".jpg") {
+              animComp.SpriteSheetPath = path;
+              animComp.Animation.SpriteSheet = Texture2D::Create(path);
+            }
+          }
+          ImGui::EndDragDropTarget();
         }
         ImGui::DragFloat2("Frame Size",
                           glm::value_ptr(animComp.Animation.FrameSize), 1.0f,

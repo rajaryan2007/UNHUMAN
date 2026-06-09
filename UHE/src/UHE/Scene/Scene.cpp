@@ -5,7 +5,7 @@
 #include "Components.h"
 #include "Entity.h"
 #include "ScriptableEntity.h"
-#include "UHE/Renderer2D/Renderer2D.h"
+#include "UHE/Renderer/Renderer2D.h"
 #include "UHE/Renderer2D/SubTexture2D.h"
 #include "UHE/Core/UIID.h"
 
@@ -172,9 +172,9 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera &camera) {
     nsc.Instance->OnUpdate(ts);
   });
 
-  // Renderer2D::BeginScene(camera);
-  // RenderSprites(ts);
-  // Renderer2D::EndScene();
+  Renderer2D::BeginScene(camera);
+  RenderSprites(ts);
+  Renderer2D::EndScene();
 }
 
 void Scene::RenderSprites(Timestep ts) {
@@ -190,7 +190,7 @@ void Scene::RenderSprites(Timestep ts) {
     auto [transform, sprite] =
         spriteView.get<TransformComponent, SpriteRendererComponent>(entityID);
 
-    // Renderer2D::DrawSprite(transform.GetTransform(), sprite, (i32)entityID);
+    Renderer2D::DrawSprite(transform.GetTransform(), sprite, (i32)entityID);
   }
 
   auto animOnlyView =
@@ -204,10 +204,10 @@ void Scene::RenderSprites(Timestep ts) {
             entityID);
 
     Ref<SubTexture2D> overrideSubTex = comp.Animation.GetCurrentFrame();
-    // if (overrideSubTex) {
-    //   Renderer2D::DrawQuad(transform.GetTransform(), overrideSubTex, 1.0f,
-    //                        comp.Color);
-    // }
+    if (overrideSubTex) {
+      Renderer2D::DrawQuad(transform.GetTransform(), overrideSubTex, 1.0f,
+                           comp.Color);
+    }
   }
 }
 
@@ -264,9 +264,9 @@ void Scene::OnUpdateRuntime(Timestep ts) {
   }
 
   if (mainCamera) {
-    // Renderer2D::BeginScene(*mainCamera, cameraTransform);
-    // RenderSprites(ts);
-    // Renderer2D::EndScene();
+    Renderer2D::BeginScene(*mainCamera, cameraTransform);
+    RenderSprites(ts);
+    Renderer2D::EndScene();
   }
 }
 

@@ -225,7 +225,7 @@ namespace UHE {
 				{
 					src.TexturePath = spriteNode["TexturePath"].as<std::string>();
 					if (!src.TexturePath.empty()) {
-						// src.Texture = Texture2D::Create(src.TexturePath);
+						src.Texture = Texture2D::Create(src.TexturePath);
 					}
 				}
 
@@ -248,7 +248,7 @@ namespace UHE {
 				animComp.SpriteSheetPath = animNode["SpriteSheetPath"].as<std::string>();
 				auto& anim = animComp.Animation;
 				if (!animComp.SpriteSheetPath.empty()) {
-					// anim.SpriteSheet = Texture2D::Create(animComp.SpriteSheetPath);
+					anim.SpriteSheet = Texture2D::Create(animComp.SpriteSheetPath);
 				}
 
 				anim.FrameSize.x = animNode["FrameSizeX"].as<float>();

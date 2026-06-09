@@ -37,10 +37,7 @@ namespace UHE{
 	Application::~Application()
 	{
 		Renderer::GetDevice().WaitIdle();
-		for (Layer* layer : m_LayerStack)
-		{
-			layer->OnDetach();
-		}
+		m_LayerStack.Clear();
 		Renderer::Shutdown();
 	}
 
@@ -113,15 +110,18 @@ namespace UHE{
 				timestep = 0.25f;
 
 			if (!m_Minimized) {
+				Renderer::GetDevice().Begin();
+
 				for (Layer* layer : m_LayerStack)
 					layer->OnUpdate(timestep);
 
-			}
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_LayerStack)
-				layer->OnImGuiRender();
-			m_ImGuiLayer->End();
+				m_ImGuiLayer->Begin();
+				for (Layer* layer : m_LayerStack)
+					layer->OnImGuiRender();
+				m_ImGuiLayer->End();
 
+				Renderer::GetDevice().End();
+			}
 
 			m_Window->OnUpdate();
 		}

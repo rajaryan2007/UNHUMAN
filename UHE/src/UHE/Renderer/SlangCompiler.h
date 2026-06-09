@@ -1,7 +1,9 @@
 #pragma once
 #include "UHE/Core/Core.h"
+#include "UHE/RHI/RHITypes.h"
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 typedef unsigned int GLenum;
 
@@ -9,5 +11,6 @@ namespace UHE {
 	class UHE_API SlangCompiler {
 	public:
 		static std::unordered_map<GLenum, std::string> CompileToGLSL(const std::string& filepath);
+        static std::unordered_map<RHI::ShaderStage, std::vector<uint8_t>> CompileToSPIRV(const std::string& filepath);
 	};
 }

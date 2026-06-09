@@ -9,6 +9,7 @@
 // clang-format on
 #include "Platform/Vulkan/VulkanDevice.h"
 #include "Platform/Vulkan/VulkanLogicalDevice.h"
+#include "Platform/Vulkan/VulkanCommandBuffer.h"
 #include "UHE/Core/Application.h"
 
 namespace UHE::RHI::VULKAN
@@ -35,14 +36,9 @@ void VulkanImGuiLayer::OnAttach()
                                          {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
                                          {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
-    VkDescriptorPoolCreateInfo pool_info = {};
-    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
-    pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
-    pool_info.pPoolSizes = pool_sizes;
-
-    vkCreateDescriptorPool(*m_Device->getLogicalDevClass().getLogicalDevice(), &pool_info, nullptr, &m_DescriptorPool);
+    vk::DescriptorPoolCreateInfo poolInfo({}, 1000 * IM_ARRAYSIZE(pool_sizes), IM_ARRAYSIZE(pool_sizes), reinterpret_cast<vk::DescriptorPoolSize*>(pool_sizes));
+    poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+    m_DescriptorPool = std::make_unique<vk::raii::DescriptorPool>(m_Device->getLogicalDevClass().getLogicalDevice(), poolInfo);
 
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = *m_Device->getInstanceClass().getInstance();
@@ -50,7 +46,7 @@ void VulkanImGuiLayer::OnAttach()
     init_info.Device = *m_Device->getLogicalDevClass().getLogicalDevice();
     init_info.QueueFamily = m_Device->getPhysicalDevClass().getQueueFamilyIndices().graphicsFamily.value();
     init_info.Queue = *m_Device->GetGraphicsQueue();
-    init_info.DescriptorPool = m_DescriptorPool;
+    init_info.DescriptorPool = **m_DescriptorPool;
     init_info.MinImageCount = 3; // Typically 3 for triple buffering
     init_info.ImageCount = 3;
     init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -59,7 +55,7 @@ void VulkanImGuiLayer::OnAttach()
 
     VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo = {};
     pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-    static VkFormat colorFormat = VK_FORMAT_B8G8R8A8_UNORM; // Static so pointer remains valid
+    static VkFormat colorFormat = static_cast<VkFormat>(m_Device->getSwapChainClass().GetSurfaceFormat().format); 
     pipelineRenderingCreateInfo.colorAttachmentCount = 1;
     pipelineRenderingCreateInfo.pColorAttachmentFormats = &colorFormat;
 
@@ -70,10 +66,10 @@ void VulkanImGuiLayer::OnAttach()
 
 void VulkanImGuiLayer::OnDetach()
 {
-    vkDeviceWaitIdle(*m_Device->getLogicalDevClass().getLogicalDevice());
+    m_Device->WaitIdle();
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    vkDestroyDescriptorPool(*m_Device->getLogicalDevClass().getLogicalDevice(), m_DescriptorPool, nullptr);
+    m_DescriptorPool.reset();
 
     // Base class destroys ImGui Context
     ImGuiLayer::OnDetach();
@@ -91,8 +87,64 @@ void VulkanImGuiLayer::End()
 {
     ImGui::Render();
 
-    // NOTE: The actual drawing ( ImGui_ImplVulkan_RenderDrawData ) will happen
-    // inside your main render loop when you record your command buffers!
+    ImDrawData* draw_data = ImGui::GetDrawData();
+
+    auto* rhiCmd = static_cast<VulkanCommandBuffer*>(&m_Device->GetCurrentCommandBuffer());
+    vk::raii::CommandBuffer& cmd = rhiCmd->GetHandle();
+
+    auto& swapchain = m_Device->getSwapChainClass();
+    u32 imageIndex = m_Device->ImageIndex();
+    vk::Image swapchainImage = swapchain.GetImages()[imageIndex];
+    vk::raii::ImageView& swapchainImageView = swapchain.GetImageView(imageIndex);
+    vk::Extent2D extent = swapchain.GetExtent();
+
+    // 1. Transition swapchain image to COLOR_ATTACHMENT_OPTIMAL
+    vk::ImageMemoryBarrier barrier{};
+    barrier.oldLayout = vk::ImageLayout::eUndefined;
+    barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = swapchainImage;
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.srcAccessMask = {};
+    barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, nullptr, nullptr, barrier);
+
+    // 2. Begin rendering pass
+    vk::RenderingAttachmentInfo colorAttachment{};
+    colorAttachment.imageView = *swapchainImageView;
+    colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+    colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+    colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
+    colorAttachment.clearValue.color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+
+    vk::RenderingInfo renderingInfo{};
+    renderingInfo.renderArea.offset = vk::Offset2D{0, 0};
+    renderingInfo.renderArea.extent = extent;
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colorAttachment;
+
+    cmd.beginRendering(renderingInfo);
+
+    // 3. Render ImGui
+    ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
+
+    // 4. End rendering pass
+    cmd.endRendering();
+
+    // 5. Transition to PRESENT_SRC_KHR
+    barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
+    barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
+    barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+    barrier.dstAccessMask = {};
+
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe, {}, nullptr, nullptr, barrier);
 
     ImGuiIO& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

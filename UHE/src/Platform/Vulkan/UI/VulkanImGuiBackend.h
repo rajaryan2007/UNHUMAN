@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
+#include <memory>
 #include "UHE/ImGui/ImGuiLayer.h"
 namespace UHE::RHI::VULKAN
 {
@@ -18,6 +19,6 @@ public:
 
 private:
     VulkanDevice* m_Device;
-    VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+    std::unique_ptr<vk::raii::DescriptorPool> m_DescriptorPool;
 };
 } // namespace UHE::RHI::VULKAN

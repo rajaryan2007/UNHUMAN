@@ -8,6 +8,24 @@
 
 ---
 
+## Showcase
+
+<div align="center">
+  <!-- Place an image in the demo/ folder named 'editor_showcase.png' -->
+  <img src="demo/image.png" alt="Unhuman Engine Editor" width="80%">
+  <br>
+  <em>Unhuman Engine Editor Interface</em>
+  <br><br>
+  <!-- YouTube Demo Video -->
+  <a href="https://youtu.be/CHDIU61auYo">
+    <img src="https://img.youtube.com/vi/CHDIU61auYo/maxresdefault.jpg" alt="Engine Gameplay Demo" width="80%">
+  </a>
+  <br>
+  <em>Real-time Rendering & Physics Demo</em>
+</div>
+
+---
+
 **Unhuman Engine (UHE)** is a lightweight, highly extensible C++ game engine designed for real-time applications and game development. It utilizes a modern **Vulkan RHI** backend, compiles shaders via **Slang**, and features a fully integrated ImGui editor.
 
 ## Key Features
@@ -19,6 +37,12 @@
 - **2D & 3D Physics**: Integrated physics handling with `Box2D and jolt(in future)`.
 - **AAA Dependency Management**: No bloated submodules or slow package managers. The engine fetches precompiled binaries (Slang, GLFW) automatically for zero-compile-time dependencies.
 - **Cross-Platform Tooling**: Generates Ninja builds for Linux and Visual Studio 2022 solutions for Windows with a single click.
+
+## Recent Updates
+
+- **Vulkan Refactor & AMD Stability**: Resolved texture dynamic indexing validation issues on AMD/RADV drivers by manually binding texture slots in Slang.
+- **Color Accuracy & Aesthetics**: Restored pure black ImGui docking themes and fixed sRGB gamma-correction bugs that were washing out linear textures.
+- **Improved UI Workflows**: Added full Drag-and-Drop payload support for textures directly into the 3D Viewport and Scene Hierarchy component inspectors.
 
 ## Architecture Overview
 

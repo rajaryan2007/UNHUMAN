@@ -7,6 +7,7 @@
 
 #include "ImGuizmo.h"
 #include "UHE/Math/Math.h"
+#include "UHE/RHI/RHICommadBuffer.h"
 
 ImVec2 m_ViewportPos;
 ImVec2 m_ViewportSize;
@@ -16,8 +17,13 @@ namespace UHE {
 Editor::Editor()
     : Layer("Editor"), m_CameraController(1280.0f / 720.0f),
       m_Transform(0.0f, 0.0f, 0.0f), m_SceneHireacyPanel(m_ActiveScene) ,m_ContentBrowserPanel(){}
-
 void Editor::OnAttach() {
+  FramebufferSpecification fbSpec;
+  fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::Depth };
+  fbSpec.Width = 1280;
+  fbSpec.Height = 720;
+  m_Framebuffer = Framebuffer::Create(fbSpec);
+  
   m_ActiveScene = CreateRef<Scene>();
   m_EditorCamera = EditorCamera(45.0f, 1.766f, 0.1f, 1000.0f);
   m_SceneHireacyPanel.SetContext(m_ActiveScene);
@@ -28,6 +34,41 @@ void Editor::OnDetach() {}
 void Editor::OnUpdate(UHE::Timestep ts) {
   UHE_PROFILE_FUNCTION();
   m_CameraController.OnUpdate(ts);
+
+  if (FramebufferSpecification spec = m_Framebuffer->GetSpecification();
+      m_ViewPortSize.x > 0.0f && m_ViewPortSize.y > 0.0f && // zero sized framebuffer is invalid
+      (spec.Width != m_ViewPortSize.x || spec.Height != m_ViewPortSize.y))
+  {
+      m_Framebuffer->Resize((uint32_t)m_ViewPortSize.x, (uint32_t)m_ViewPortSize.y);
+      m_CameraController.OnResize(m_ViewPortSize.x, m_ViewPortSize.y);
+      m_ActiveScene->OnViewportResize((uint32_t)m_ViewPortSize.x, (uint32_t)m_ViewPortSize.y);
+  }
+
+  auto& device = Renderer::GetDevice();
+
+  RHI::RenderPassDesc passDesc{};
+  passDesc.renderWidth = m_Framebuffer->GetSpecification().Width;
+  passDesc.renderHeight = m_Framebuffer->GetSpecification().Height;
+
+  RHI::ColorAttachment colorAttachment{};
+  colorAttachment.texture = m_Framebuffer->GetColorAttachments()[0];
+  colorAttachment.clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+  passDesc.colorAttachments[0] = colorAttachment;
+  
+  RHI::ColorAttachment entityAttachment{};
+  entityAttachment.texture = m_Framebuffer->GetColorAttachments()[1];
+  entityAttachment.clearColor = {-1.0f, -1.0f, -1.0f, -1.0f}; // Clear to -1
+  passDesc.colorAttachments[1] = entityAttachment;
+  
+  passDesc.colorAttachmentCount = 2;
+
+  passDesc.hasDepth = true;
+  passDesc.depthAttachment.texture = m_Framebuffer->GetDepthAttachment();
+
+  auto& cmd = device.GetCurrentCommandBuffer();
+  cmd.BeginRenderPass(passDesc);
+  cmd.SetViewport(0.0f, 0.0f, (float)passDesc.renderWidth, (float)passDesc.renderHeight);
+  cmd.SetScissor(0, 0, passDesc.renderWidth, passDesc.renderHeight);
 
   switch (m_SceneState)
   {
@@ -47,6 +88,8 @@ void Editor::OnUpdate(UHE::Timestep ts) {
           break;
       }
   }
+
+  cmd.EndRenderPass();
 }
 
 void Editor::OnEvent(UHE::Event &e) {
@@ -292,27 +335,34 @@ void Editor::OnImGuiRender() {
 
 
   m_ViewPortSize = {viewPortSize.x, viewPortSize.y};
-  u32 textureId = 0;
+  void* textureId = m_Framebuffer->GetColorAttachmentRendererID(0);
 
-  ImGui::Image((void *)textureId, ImVec2{m_ViewPortSize.x, m_ViewPortSize.y},
+  ImGui::Image(textureId, ImVec2{m_ViewPortSize.x, m_ViewPortSize.y},
                ImVec2{0, 1}, ImVec2{1, 0});
 
   if (ImGui::BeginDragDropTarget())
   {   
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Content_Browser_item"))
       {
-		  const wchar_t* path = (const wchar_t*)payload->Data;
+		  const char* path = (const char*)payload->Data;
           std::filesystem::path itemPath(path);
           std::string extension = itemPath.extension().string();
 
           if (extension == ".unhuman") {
 		      OpenScene(path);
           } else if (extension == ".png" || extension == ".jpg") {
+              UHE_CORE_INFO("Accepted Viewport DragDropPayload: {0}", path);
               // Create a new entity with the texture
               std::string filename = itemPath.stem().string();
               Entity spriteEntity = m_ActiveScene->CreateEntity(filename);
               auto& src = spriteEntity.AddComponent<SpriteRendererComponent>();
               src.TexturePath = itemPath.string();
+              src.Texture = Texture2D::Create(itemPath.string());
+              if (src.Texture) {
+                  UHE_CORE_INFO("Successfully loaded texture into viewport!");
+              } else {
+                  UHE_CORE_ERROR("Failed to load texture into viewport from payload!");
+              }
           }
       }
       

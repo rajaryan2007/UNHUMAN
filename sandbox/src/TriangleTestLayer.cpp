@@ -55,10 +55,11 @@ void TriangleTestLayer::OnAttach()
         { RHI::ShaderDataType::Float3, "inColor" }
     };
     pipeDesc.topology = RHI::PrimitiveTopology::TriangleList;
-    pipeDesc.colorFormat = RHI::TextureFormat::BGRA8_UNORM;
+    // pipeDesc.colorFormat was here
     // Swapchain format is usually BGRA8_SRGB or BGRA8_UNORM. Let's assume BGRA8_UNORM or SRGB works.
     auto& swapChain = static_cast<RHI::VULKAN::VulkanDevice&>(device).getSwapChainClass();
-    pipeDesc.colorFormat = swapChain.GetSwapchainFormat();
+    pipeDesc.colorAttachmentCount = 1;
+    pipeDesc.colorFormats[0] = swapChain.GetSwapchainFormat();
     
     // Disable depth for simple triangle
     pipeDesc.depthTest = false;

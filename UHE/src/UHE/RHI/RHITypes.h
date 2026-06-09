@@ -63,7 +63,8 @@ inline bool operator&(TextureUsage a, TextureUsage b) {
 enum class ShaderStage : u8 {
     Vertex,
     Fragment,
-    Compute
+    Compute,
+    AllGraphics
 };
 
 enum class LoadOp : u8  { Load, Clear, DontCare };
@@ -198,7 +199,8 @@ struct GraphicsPipelineDesc {
     ShaderHandle      fragmentShader = nullptr;
     BufferLayout      vertexLayout;           // reuse existing engine type
     PrimitiveTopology topology       = PrimitiveTopology::TriangleList;
-    TextureFormat     colorFormat    = TextureFormat::BGRA8_SRGB;
+    TextureFormat     colorFormats[8] = {TextureFormat::BGRA8_SRGB};
+    u32               colorAttachmentCount = 1;
     TextureFormat     depthFormat    = TextureFormat::D24_UNORM_S8;
     BlendMode         blendMode      = BlendMode::None;
     bool              depthTest      = true;

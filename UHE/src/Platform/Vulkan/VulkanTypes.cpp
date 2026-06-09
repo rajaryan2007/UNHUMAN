@@ -18,9 +18,11 @@ vk::Format MapTextureFormat(TextureFormat format)
         case TextureFormat::BGRA8_SRGB:
             return vk::Format::eB8G8R8A8Srgb;
         case TextureFormat::D24_UNORM_S8:
-            return vk::Format::eD24UnormS8Uint;
+            return vk::Format::eD32SfloatS8Uint;
         case TextureFormat::D32_FLOAT:
             return vk::Format::eD32Sfloat;
+        case TextureFormat::R32_SINT:
+            return vk::Format::eR32Sint;
         default:
             return vk::Format::eUndefined;
     }

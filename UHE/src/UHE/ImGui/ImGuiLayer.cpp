@@ -6,6 +6,9 @@
 #include "UHE/Events/Event.h"
 #include "UHE/Core/Application.h"
 #include "UHE/AssestsManager/VfsSystem.h"
+#include "UHE/Renderer/Renderer.h"
+#include "Platform/Vulkan/UI/VulkanImGuiBackend.h"
+#include "Platform/Vulkan/VulkanDevice.h"
 
 
 
@@ -34,7 +37,7 @@ namespace UHE
 
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 		// 
 		io.FontDefault = io.Fonts->AddFontFromFileTTF(FileSystem::Get().Resolve("Inter/static/Inter_18pt-Regular.ttf").c_str(), 16.0f);
@@ -85,6 +88,9 @@ namespace UHE
 
 	ImGuiLayer* ImGuiLayer::Create()
 	{
+		auto* device = dynamic_cast<RHI::VULKAN::VulkanDevice*>(&Renderer::GetDevice());
+		if (device)
+			return new RHI::VULKAN::VulkanImGuiLayer(device);
 		return new StubImGuiLayer();
 	}
 
@@ -125,12 +131,12 @@ namespace UHE
 		colors[ImGuiCol_TextDisabled]          = ImVec4{ 0.42f, 0.42f, 0.42f, 1.00f };
 
 		// Backgrounds
-		colors[ImGuiCol_WindowBg]              = ImVec4{ 0.06f, 0.06f, 0.06f, 1.00f };  // #0F0F0F
-		colors[ImGuiCol_ChildBg]               = ImVec4{ 0.05f, 0.05f, 0.05f, 1.00f };  // #0D0D0D
-		colors[ImGuiCol_PopupBg]               = ImVec4{ 0.09f, 0.09f, 0.09f, 0.98f };  // #171717
+		colors[ImGuiCol_WindowBg]              = ImVec4{ 0.00f, 0.00f, 0.00f, 1.00f };  // Pure Black
+		colors[ImGuiCol_ChildBg]               = ImVec4{ 0.00f, 0.00f, 0.00f, 1.00f };  // Pure Black
+		colors[ImGuiCol_PopupBg]               = ImVec4{ 0.02f, 0.02f, 0.02f, 0.98f };  // Almost Black
 
 		// Borders
-		colors[ImGuiCol_Border]                = ImVec4{ 0.14f, 0.14f, 0.14f, 0.80f };
+		colors[ImGuiCol_Border]                = ImVec4{ 0.10f, 0.10f, 0.10f, 0.80f };
 		colors[ImGuiCol_BorderShadow]          = ImVec4{ 0.00f, 0.00f, 0.00f, 0.00f };
 
 		// Frame BG (inputs, checkboxes, sliders)
@@ -139,12 +145,12 @@ namespace UHE
 		colors[ImGuiCol_FrameBgActive]         = ImVec4{ 0.20f, 0.20f, 0.20f, 1.00f };
 
 		// Title bar
-		colors[ImGuiCol_TitleBg]               = ImVec4{ 0.04f, 0.04f, 0.04f, 1.00f };
-		colors[ImGuiCol_TitleBgActive]         = ImVec4{ 0.07f, 0.07f, 0.07f, 1.00f };
-		colors[ImGuiCol_TitleBgCollapsed]      = ImVec4{ 0.04f, 0.04f, 0.04f, 0.75f };
+		colors[ImGuiCol_TitleBg]               = ImVec4{ 0.02f, 0.02f, 0.02f, 1.00f };
+		colors[ImGuiCol_TitleBgActive]         = ImVec4{ 0.04f, 0.04f, 0.04f, 1.00f };
+		colors[ImGuiCol_TitleBgCollapsed]      = ImVec4{ 0.00f, 0.00f, 0.00f, 0.75f };
 
 		// Menu bar
-		colors[ImGuiCol_MenuBarBg]             = ImVec4{ 0.07f, 0.07f, 0.07f, 1.00f };
+		colors[ImGuiCol_MenuBarBg]             = ImVec4{ 0.02f, 0.02f, 0.02f, 1.00f };
 
 		// Scrollbar
 		colors[ImGuiCol_ScrollbarBg]           = ImVec4{ 0.05f, 0.05f, 0.05f, 0.60f };
