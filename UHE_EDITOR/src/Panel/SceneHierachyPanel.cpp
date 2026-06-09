@@ -1,7 +1,7 @@
 #include "SceneHierachyPanel.h"
 #include "glm/trigonometric.hpp"
 #include "imgui/imgui_internal.h"
-#include <ImGui/imgui.h>
+#include <imgui/imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -255,7 +255,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
     auto &tag = entity.GetComponent<TagComponent>().Tag;
     char buffer[256];
     memset(buffer, 0, sizeof(buffer));
-    strncpy_s(buffer, tag.c_str(), sizeof(buffer));
+    strncpy(buffer, tag.c_str(), sizeof(buffer) - 1); buffer[sizeof(buffer) - 1] = '\0';
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8, 5));
     if (ImGui::InputText("##Tag", buffer, sizeof(buffer))) {
@@ -398,16 +398,17 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         ImGui::ColorEdit4("Color", glm::value_ptr(src.Color));
         char texBuf[256];
         memset(texBuf, 0, sizeof(texBuf));
-        strncpy_s(texBuf, src.TexturePath.c_str(), sizeof(texBuf));
+        strncpy(texBuf, src.TexturePath.c_str(), sizeof(texBuf) - 1); texBuf[sizeof(texBuf) - 1] = '\0';
         float inputWidth = ImGui::GetContentRegionAvail().x - 70.0f -
                            ImGui::CalcTextSize("Texture").x - 10.0f;
         ImGui::PushItemWidth(inputWidth > 10.0f ? inputWidth : 10.0f);
         if (ImGui::InputText("##TextureInput", texBuf, sizeof(texBuf))) {
           src.TexturePath = std::string(texBuf);
-          if (!src.TexturePath.empty())
-            src.Texture = Texture2D::Create(src.TexturePath);
-          else
+          if (!src.TexturePath.empty()) {
+          // src.Texture = Texture2D::Create(src.TexturePath);
+          } else {
             src.Texture = nullptr;
+          }
         }
         ImGui::PopItemWidth();
         ImGui::SameLine();
@@ -416,7 +417,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
               FileDialogs::OpenFile("Image (*.png;*.jpg)\0*.png;*.jpg\0");
           if (!path.empty()) {
             src.TexturePath = path;
-            src.Texture = Texture2D::Create(path);
+            // src.Texture = Texture2D::Create(path);
           }
         }
         ImGui::SameLine();
@@ -445,14 +446,14 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
                 ((src.SubTextureCoords.y + src.SubTextureSpriteSize.y) *
                  src.SubTextureCellSize.y) /
                     texHeight};
-            ImGui::Image((ImTextureID)(uint64_t)src.Texture->GetRendererID(),
+            ImGui::Image((ImTextureID)(uint64_t)0,
                          ImVec2(64, 64), ImVec2(min.x, max.y),
                          ImVec2(max.x, min.y));
             ImGui::SameLine();
             ImGui::Text("SubTexture Preview");
           }
         } else if (src.Texture) {
-          ImGui::Image((ImTextureID)(uint64_t)src.Texture->GetRendererID(),
+          ImGui::Image((ImTextureID)(uint64_t)0,
                        ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
           ImGui::SameLine();
           ImGui::Text("Texture Preview");
@@ -462,16 +463,17 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
       "Sprite Animation", entity, [](SpriteAnimationComponent &animComp) {
         char sheetBuf[256];
         memset(sheetBuf, 0, sizeof(sheetBuf));
-        strncpy_s(sheetBuf, animComp.SpriteSheetPath.c_str(), sizeof(sheetBuf));
+        strncpy(sheetBuf, animComp.SpriteSheetPath.c_str(), sizeof(sheetBuf) - 1); sheetBuf[sizeof(sheetBuf) - 1] = '\0';
         ImGui::Text("SpriteSheet");
         if (ImGui::InputText("##SpritesheetInput", sheetBuf,
                              sizeof(sheetBuf))) {
           animComp.SpriteSheetPath = std::string(sheetBuf);
-          if (!animComp.SpriteSheetPath.empty())
-            animComp.Animation.SpriteSheet =
-                Texture2D::Create(animComp.SpriteSheetPath);
-          else
+          if (!animComp.SpriteSheetPath.empty()) {
+            // animComp.Animation.SpriteSheet =
+            //    Texture2D::Create(animComp.SpriteSheetPath);
+          } else {
             animComp.Animation.SpriteSheet = nullptr;
+          }
         }
         ImGui::PopItemWidth();
         ImGui::SameLine();
@@ -480,13 +482,12 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
               FileDialogs::OpenFile("Image (*.png;*.jpg)\0*.png;*.jpg\0");
           if (!path.empty()) {
             animComp.SpriteSheetPath = path;
-            animComp.Animation.SpriteSheet = Texture2D::Create(path);
+            // animComp.Animation.SpriteSheet = Texture2D::Create(path);
           }
         }
         // Spritesheet preview
         if (animComp.Animation.SpriteSheet) {
-          ImGui::Image((ImTextureID)(uint64_t)
-                           animComp.Animation.SpriteSheet->GetRendererID(),
+          ImGui::Image((ImTextureID)(uint64_t)0,
                        ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
           ImGui::SameLine();
           ImGui::Text("Atlas Preview");

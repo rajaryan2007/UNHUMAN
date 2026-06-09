@@ -63,11 +63,11 @@ void EditorCamera::OnUpdate(Timestep ts) {
     glm::vec2 delta = (mouse - m_InitialMousePosition) * 0.003f;
     m_InitialMousePosition = mouse;
 
-    if (Input::IsMouseButtonPressed(VG_MOUSE_BUTTON_MIDDLE))
+    if (Input::IsMouseButtonPressed(UHE_MOUSE_BUTTON_MIDDLE))
       MousePan(delta);
-    else if (Input::IsMouseButtonPressed(VG_MOUSE_BUTTON_LEFT))
+    else if (Input::IsMouseButtonPressed(UHE_MOUSE_BUTTON_LEFT))
       MouseRotate(delta);
-    else if (Input::IsMouseButtonPressed(VG_MOUSE_BUTTON_RIGHT))
+    else if (Input::IsMouseButtonPressed(UHE_MOUSE_BUTTON_RIGHT))
       MouseZoom(delta.y);
   }
 
@@ -77,7 +77,7 @@ void EditorCamera::OnUpdate(Timestep ts) {
 void EditorCamera::OnEvent(Event &e) {
   EventDispatcher dispatcher(e);
   dispatcher.Dispatch<MouseScrolledEvent>(
-      VG_BIND_EVENT_FN(EditorCamera::OnMouseScroll));
+      UHE_BIND_EVENT_FN(EditorCamera::OnMouseScroll));
 }
 
 bool EditorCamera::OnMouseScroll(MouseScrolledEvent &e) {

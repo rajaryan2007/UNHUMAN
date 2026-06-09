@@ -14,12 +14,12 @@ namespace UHE
 		switch (Renderer::GetAPI())
 		{
 		case RendererAPI::API::None:
-			VG_CORE_ASSERT(false, "RendererAPI::NONE is currently not supported!");
+			UHE_CORE_ASSERT(false, "RendererAPI::NONE is currently not supported!");
 			return nullptr;
 		case RendererAPI::API::OpenGL:
 			return std::make_shared<OpenGLShader>(filepath);
 		}
-		VG_CORE_ASSERT(false, "Unknown RendererAPI!");
+		UHE_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;
 	}
 
@@ -28,28 +28,28 @@ namespace UHE
 		switch (Renderer::GetAPI())
 		{
 		case RendererAPI::API::None:
-			VG_CORE_ASSERT(false, "RendererAPI::NONE is currently not supported!");
+			UHE_CORE_ASSERT(false, "RendererAPI::NONE is currently not supported!");
 			return nullptr;
 		case RendererAPI::API::OpenGL:
 			return std::make_shared<OpenGLShader>(name, vertexSrc, fragmentSrc);
 		
 		}
 
-		VG_CORE_ASSERT(false, "Unknown RendererAPI!");
+		UHE_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;
 	}
 
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
 		auto& name = shader->GetName();
-		VG_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end(), "Shader already exists!");
+		UHE_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end(), "Shader already exists!");
 		m_Shaders[name] = shader;
 
 	}
 
 	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& shader)
 	{
-		VG_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end(), "Shader already exists!");
+		UHE_CORE_ASSERT(m_Shaders.find(name) == m_Shaders.end(), "Shader already exists!");
 		m_Shaders[name] = shader;
 	}
 
@@ -76,7 +76,7 @@ namespace UHE
 	
 	UHE::Ref<UHE::Shader> ShaderLibrary::Get(const std::string& name)
 	{
-		VG_CORE_ASSERT(m_Shaders.find(name) != m_Shaders.end(), "Shader not found!");
+		UHE_CORE_ASSERT(m_Shaders.find(name) != m_Shaders.end(), "Shader not found!");
 		return m_Shaders[name];
 	}
 

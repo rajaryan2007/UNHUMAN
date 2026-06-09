@@ -63,7 +63,7 @@ SlangCompiler::CompileToGLSL(const std::string &filepath) {
     in.read(&sourceStr[0], sourceStr.size());
     in.close();
   } else {
-    VG_CORE_ERROR("Could not open file: {0}", filepath);
+    UHE_CORE_ERROR("Could not open file: {0}", filepath);
     return result;
   }
 
@@ -73,12 +73,12 @@ SlangCompiler::CompileToGLSL(const std::string &filepath) {
       diagnosticBlob.writeRef());
 
   if (diagnosticBlob) {
-    VG_CORE_WARN("Slang diagnostics for {0}:\n{1}", filepath,
+    UHE_CORE_WARN("Slang diagnostics for {0}:\n{1}", filepath,
                  (const char *)diagnosticBlob->getBufferPointer());
   }
 
   if (!module) {
-    VG_CORE_ERROR("Failed to load Slang module from: {0}", filepath);
+    UHE_CORE_ERROR("Failed to load Slang module from: {0}", filepath);
     return result;
   }
 
@@ -97,7 +97,7 @@ SlangCompiler::CompileToGLSL(const std::string &filepath) {
     module->findEntryPointByName(ep.name, entryPoint.writeRef());
 
     if (!entryPoint) {
-      VG_CORE_ERROR("Could not find Slang entry point '{0}' in {1}", ep.name,
+      UHE_CORE_ERROR("Could not find Slang entry point '{0}' in {1}", ep.name,
                     filepath);
       continue;
     }
@@ -114,7 +114,7 @@ SlangCompiler::CompileToGLSL(const std::string &filepath) {
     if (diagnosticBlob) {
       const char *msg = (const char *)diagnosticBlob->getBufferPointer();
       if (msg && msg[0])
-        VG_CORE_WARN("Slang link diagnostics:\n{0}", msg);
+        UHE_CORE_WARN("Slang link diagnostics:\n{0}", msg);
     }
 
     // 1. SPIR-V Target (Index 0)
@@ -144,10 +144,10 @@ SlangCompiler::CompileToGLSL(const std::string &filepath) {
                        glslBlob->getBufferSize());
       result[ep.type] = code;
     } else {
-      VG_CORE_ERROR("Failed to generate GLSL target code for entry point: {0}",
+      UHE_CORE_ERROR("Failed to generate GLSL target code for entry point: {0}",
                     ep.name);
       if (diagnosticBlob) {
-        VG_CORE_ERROR("Error: {0}",
+        UHE_CORE_ERROR("Error: {0}",
                       (const char *)diagnosticBlob->getBufferPointer());
       }
     }

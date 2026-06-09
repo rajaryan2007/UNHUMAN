@@ -3,7 +3,6 @@
 #include "Application.h"
 
 #include "UHE/Renderer/Renderer.h"
-#include "UHE/Debug/MemoryProfile.h"
 
 #include "UHE/Core/Log.h"
 #include "input.h"
@@ -22,7 +21,7 @@ namespace UHE{
 		
 	{   
 		UHE_PROFILE_FUNCTION();
-		VG_CORE_ASSERT(!s_instance, "Application already exists!");
+		UHE_CORE_ASSERT(!s_instance, "Application already exists!");
 		
 		s_instance = this;
 		m_Window = std::unique_ptr<Window>(Window::Create(WindowProps(name)));
@@ -30,16 +29,19 @@ namespace UHE{
 		m_Window->SetVSync(false);
 		
 		Renderer::Init();
-		Debug::RunMemoryProfilingSmokeTest();
-		Debug::RunGpuProfilingSmokeTest();
 
-		m_ImGuiLayer = new ImGuiLayer();
+		m_ImGuiLayer = ImGuiLayer::Create();
 		PushOverlay(m_ImGuiLayer);		
 	}
 	 
 	Application::~Application()
 	{
-
+		Renderer::GetDevice().WaitIdle();
+		for (Layer* layer : m_LayerStack)
+		{
+			layer->OnDetach();
+		}
+		Renderer::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -63,7 +65,7 @@ namespace UHE{
 	//{
 	//	// Update the OpenGL viewport immediately
 	//	glViewport(0, 0, (int)e.GetWidth(), (int)e.GetHeight());
-	//	VG_CORE_INFO("Window resized: {0}, {1}", e.GetWidth(), e.GetHeight());
+	//	UHE_CORE_INFO("Window resized: {0}, {1}", e.GetWidth(), e.GetHeight());
 	//	// return false so other layers may also handle the event if needed
 	//	return false;
 	//}
@@ -74,7 +76,7 @@ namespace UHE{
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize)); // <-- add dispatch
 
-		//VG_CORE_TRACE("{0}", e.ToString());
+		//UHE_CORE_TRACE("{0}", e.ToString());
 
 		
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)

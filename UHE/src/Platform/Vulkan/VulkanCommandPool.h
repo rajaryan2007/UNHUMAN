@@ -14,8 +14,8 @@ public:
     void Init(vk::raii::Device& device, u32 queueFamilyIndex, vk::CommandPoolCreateFlags flags = {});
     void CleanUp();
     void Reset(vk::CommandPoolResetFlags flags = {});
-    inline const vk::raii::CommandPool& GetHandle() const { return m_CommandPool; }
-    inline vk::raii::CommandPool& GetHandle() { return m_CommandPool; }
+    [[nodiscard]] inline const vk::raii::CommandPool& GetHandle() const { return m_CommandPool; }
+    [[nodiscard]] inline vk::raii::CommandPool& GetHandle() { return m_CommandPool; }
 
 private:
     vk::raii::CommandPool m_CommandPool{nullptr};

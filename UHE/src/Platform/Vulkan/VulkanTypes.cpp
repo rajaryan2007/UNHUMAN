@@ -5,7 +5,7 @@
 
 namespace UHE::RHI::VULKAN
 {
-static vk::Format MapTextureFormat(TextureFormat format)
+vk::Format MapTextureFormat(TextureFormat format)
 {
     switch (format)
     {
@@ -26,7 +26,7 @@ static vk::Format MapTextureFormat(TextureFormat format)
     }
 }
 
-static vk::PrimitiveTopology MapTopology(PrimitiveTopology topology)
+vk::PrimitiveTopology MapTopology(PrimitiveTopology topology)
 {
     switch (topology)
     {
@@ -42,7 +42,7 @@ static vk::PrimitiveTopology MapTopology(PrimitiveTopology topology)
     return vk::PrimitiveTopology::eTriangleList;
 }
 
-static vk::Format ShaderDataTypeToVulkanFormat(ShaderDataType type)
+vk::Format ShaderDataTypeToVulkanFormat(ShaderDataType type)
 {
     switch (type)
     {
@@ -71,5 +71,6 @@ static vk::Format ShaderDataTypeToVulkanFormat(ShaderDataType type)
         case ShaderDataType::None:
             return vk::Format::eUndefined;
     }
+    return vk::Format::eUndefined;
 }
 } // namespace UHE::RHI::VULKAN

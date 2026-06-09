@@ -1,2 +1,12 @@
 CompileFlags:
   CompilationDatabase: build
+  Add:
+    - "-Wno-everything" # Don't spend CPU on warnings we don't care about
+
+---
+If:
+  PathMatch: .*/(vendor|build|bin|\.git)/.*
+Index:
+  Background: Skip
+Diagnostics:
+  Suppress: '*'

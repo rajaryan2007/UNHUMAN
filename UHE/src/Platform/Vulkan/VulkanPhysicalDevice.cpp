@@ -1,4 +1,4 @@
-﻿#include "uhepch.h"
+#include "uhepch.h"
 #include "VulkanPhysicalDevice.h"
 
 
@@ -18,8 +18,14 @@ void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance &m_Vkinstance)
         {
              bool supportsVulkan1_3 =device.getProperties().apiVersion >= VK_API_VERSION_1_3;
              auto queueFamilies = device.getQueueFamilyProperties();
-             bool supportsGraphics = std::ranges::any_of(
-                 queueFamilies, [](auto const &qfp) {return !!(qfp.queueFlags &vk::QueueFlagBits::eGraphics); });
+             bool supportsGraphics = false;
+             int i = 0;
+             for (const auto& qfp : queueFamilies) {
+                 if (qfp.queueFlags & vk::QueueFlagBits::eGraphics) {
+                     supportsGraphics = true;
+                 }
+                 i++;
+             }
 
              auto availableExtensions = device.enumerateDeviceExtensionProperties();
              bool supportsAllRequiredExtensions =
@@ -43,6 +49,17 @@ void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance &m_Vkinstance)
      if (deviter != devices.end()) 
      {
        m_physicalDevice = *deviter;
+       
+       // Populate m_queueFamilyIndices for the chosen device
+       auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
+       int i = 0;
+       for (const auto& qfp : queueFamilies) {
+           if (qfp.queueFlags & vk::QueueFlagBits::eGraphics) {
+               m_queueFamilyIndices.graphicsFamily = i;
+               break; // Found a graphics family
+           }
+           i++;
+       }
      }
      else
      {

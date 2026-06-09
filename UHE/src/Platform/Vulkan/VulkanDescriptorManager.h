@@ -16,8 +16,8 @@ public:
     void BindTexture(vk::raii::Device& device, u32 slot, vk::ImageView, vk::Sampler sampler);
     void cleanup();
 
-    vk::DescriptorSetLayout GetLayoutHandle() const { return *m_DescriptorSetLayout; }
-    vk::DescriptorSet GetSetHandle() const { return *m_GlobalDescriptorSet; }
+    [[nodiscard]] vk::DescriptorSetLayout GetLayoutHandle() const { return *m_DescriptorSetLayout; }
+    [[nodiscard]] vk::DescriptorSet GetSetHandle() const { return *m_GlobalDescriptorSet; }
 
 private:
     vk::raii::DescriptorPool m_DescriptorPool = nullptr;

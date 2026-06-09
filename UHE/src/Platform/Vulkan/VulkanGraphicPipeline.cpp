@@ -11,6 +11,9 @@
 namespace UHE::RHI::VULKAN
 {
 
+VulkanGraphicPipeline::VulkanGraphicPipeline() = default;
+VulkanGraphicPipeline::~VulkanGraphicPipeline() = default;
+
 void VulkanGraphicPipeline::Init() {}
 
 void VulkanGraphicPipeline::Bind() {}
@@ -39,7 +42,7 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
                                                      // desc
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-    rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
+    rasterizer.frontFace = vk::FrontFace::eClockwise;
     rasterizer.depthBiasEnable = vk::False;
 
     auto globalLayout = descriptorManager.GetLayoutHandle();

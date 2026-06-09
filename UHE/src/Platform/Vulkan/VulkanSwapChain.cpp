@@ -3,7 +3,7 @@
 
 namespace UHE::RHI::VULKAN
 {
-void VulkanSwapChain::createSwapChain(vk::Device& device, vk::raii::PhysicalDevice& physicalDevice,
+void VulkanSwapChain::createSwapChain(vk::raii::Device& device, vk::raii::PhysicalDevice& physicalDevice,
                                       vk::raii::SurfaceKHR& surface, GLFWwindow* window)
 {
     auto SurfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(*surface);
@@ -27,6 +27,26 @@ void VulkanSwapChain::createSwapChain(vk::Device& device, vk::raii::PhysicalDevi
 
     swapChain = vk::raii::SwapchainKHR(device, swapChainCreateInfo);
     swapChainImages = swapChain.getImages();
+
+    swapChainImageViews.clear();
+    swapChainImageViews.reserve(swapChainImages.size());
+    for (auto image : swapChainImages)
+    {
+        vk::ImageViewCreateInfo createInfo{};
+        createInfo.image = image;
+        createInfo.viewType = vk::ImageViewType::e2D;
+        createInfo.format = swapChainSurfaceFormat.format;
+        createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+        createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+        createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+        createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+        swapChainImageViews.emplace_back(device, createInfo);
+    }
 }
 
 vk::Extent2D VulkanSwapChain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
@@ -80,6 +100,7 @@ vk::SurfaceFormatKHR VulkanSwapChain::chooseSwapSurfaceFormat(const std::vector<
 
 void VulkanSwapChain::cleanupSwapChain()
 {
+    swapChainImageViews.clear();
     if (swapChain != nullptr)
     {
         swapChain = nullptr;
@@ -92,7 +113,7 @@ void VulkanSwapChain::Present() {}
 
 void VulkanSwapChain::ResizeSwapchain(u32 width, u32 height) {}
 
-TextureHandle VulkanSwapChain::GetSwapchainImage() {}
+TextureHandle VulkanSwapChain::GetSwapchainImage() { return nullptr; }
 
-TextureFormat VulkanSwapChain::GetSwapchainFormat() {}
+TextureFormat VulkanSwapChain::GetSwapchainFormat() { return TextureFormat::BGRA8_SRGB; }
 } // namespace UHE::RHI::VULKAN

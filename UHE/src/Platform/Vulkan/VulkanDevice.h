@@ -15,7 +15,7 @@ namespace UHE::RHI::VULKAN
 class VulkanDevice final : public RHIDevice
 {
 public:
-    VulkanDevice(GLFWwindow* windowHandle, const SwapchainDesc& swapDesc);
+    VulkanDevice(const SwapchainDesc& swapDesc);
     ~VulkanDevice() override;
 
     // ─── Frame Lifecycle ────────────────────────────────────────
@@ -28,25 +28,30 @@ public:
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
 
+    void DestroyBuffer(BufferHandle handle) override;
+    void DestroyTexture(TextureHandle handle) override;
+    void DestroyShader(ShaderHandle handle) override;
+    void DestroyGraphicsPipeline(PipelineHandle handle) override;
+
     // ─── Command Buffer Access ──────────────────────────────────
     RHICommandBuffer& GetCurrentCommandBuffer() override;
 
     // ─── Window Management ────────────────────────────────────────
-    GLFWwindow* GetWindowHandle() const { return m_WindowHandle; }
+    [[nodiscard]] GLFWwindow* GetWindowHandle() const { return m_WindowHandle; }
 
     void GetLogicalDeviceInfo(u32& vendorID, u32& deviceID) const
     {
         return m_PhysicalDevice.GetLogicalDeviceInfo(vendorID, deviceID);
     };
 
-    vk::Device& GetVulkanDevice() { return m_LogDevice; }
-    void SetLogicalDevice(vk::raii::Device& LogicalDevice) { m_LogDevice = *LogicalDevice; }
-    VulkanLogicalDevice& getLogicalDevClass() { return m_LogicalDevice; }
-    VulkanInstance& getInstanceClass() { return m_Instance; }
-    VulkanPhysicalDevice& getPhysicalDevClass() { return m_PhysicalDevice; }
-    VulkanSwapChain& getSwapChainClass() { return m_SwapChain; }
-    const u32& ImageIndex() { return m_ImageIndex; }
+    [[nodiscard]] vk::raii::Queue& GetGraphicsQueue() { return m_LogicalDevice.getGraphicsQueue(); }
+    [[nodiscard]] VulkanLogicalDevice& getLogicalDevClass() { return m_LogicalDevice; }
+    [[nodiscard]] VulkanInstance& getInstanceClass() { return m_Instance; }
+    [[nodiscard]] VulkanPhysicalDevice& getPhysicalDevClass() { return m_PhysicalDevice; }
+    [[nodiscard]] VulkanSwapChain& getSwapChainClass() { return m_SwapChain; }
+    [[nodiscard]] const u32& ImageIndex() { return m_ImageIndex; }
     void ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function);
+    void WaitIdle() override;
 
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);
@@ -57,14 +62,9 @@ private:
 
 private:
     // Core Vulkan abstractions
-    vk::Device& m_LogDevice;
-    vk::raii::Queue& m_graphicsQueue;
-    vk::raii::SurfaceKHR& surface;
-
     VulkanInstance m_Instance;
     VulkanPhysicalDevice m_PhysicalDevice;
     VulkanLogicalDevice m_LogicalDevice;
-    vk::raii::SurfaceKHR m_Surface = nullptr;
     VulkanSwapChain m_SwapChain;
     VmaAllocator m_Allocator = nullptr;
     VulkanDescriptorManager m_DescriptorManager;
@@ -76,6 +76,7 @@ private:
     // Frame-in-flight sync
     static constexpr u32 MAX_FRAMES_IN_FLIGHT = 2;
     std::array<VulkanFrameContext, MAX_FRAMES_IN_FLIGHT> m_Frames;
+    std::vector<vk::raii::Semaphore> m_RenderFinishedSemaphores;
     u32 m_CurrentFrame = 0;
     u32 m_ImageIndex = 0; // Current swapchain image index
     bool m_FramebufferResized = false;

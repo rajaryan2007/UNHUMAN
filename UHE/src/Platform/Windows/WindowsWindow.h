@@ -1,10 +1,8 @@
 #pragma once
 
 #include "UHE/Core/Window.h"
-#include "UHE/Renderer/GraphicsContext.h"
 
 #include <GLFW/glfw3.h>
-
 
 namespace UHE {
 	class WindowsWindow :public Window
@@ -30,7 +28,6 @@ namespace UHE {
 		virtual void Shutdown();	
 	private:
 		GLFWwindow* m_Window;
-		GraphicsContext* m_Context;
 		struct WindowData
 		{
 			std::string Title;

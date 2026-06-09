@@ -33,26 +33,6 @@ namespace UHE
 		void SaveSceneAs();
 		void OpenScene(const std::filesystem::path& path);
 	private:
-		ShaderLibrary m_ShaderLibrary;
-
-
-		Ref<Shader> m_Shader, textureShader;
-		Ref<VertexArray> m_VertexArray;
-		Ref<FrameBuffer> m_FrameBuffer;
-
-		Ref<VertexArray > m_SqaureVA;
-		Ref<Texture2D> m_TextureLOGO;
-		Ref<Texture2D> m_TestTexture;
-		Ref<Texture2D> m_TestSprite;
-
-		Ref<Texture2D> m_IconPlay,m_IconStop;
-		
-		Ref<SubTexture2D > m_Test;
-		Ref<SubTexture2D> m_TestSubSprite;
-		Ref<SubTexture2D> grass;
-		Ref<SubTexture2D> water;
-		Ref<SubTexture2D> dirt;
-
 		Entity m_Square;
 		Entity m_CameraEntity;
 		Entity m_SecondCamera;
@@ -69,8 +49,6 @@ namespace UHE
 		Ref<Scene> m_ActiveScene;
 		Ref<Scene> m_EditorScene;
 
-		
-
 		glm::vec4 blueColor = { 0.2f, 0.3f, 0.8f, 1.0f };
 		glm::vec3 m_Transform;
 		glm::vec4 redColor = { 0.8f, 0.2f, 0.3f, 1.0f };
@@ -81,7 +59,6 @@ namespace UHE
 		glm::vec2 m_ViewPortBounds[2];
 		int m_GizmoType = -1;
 
-		std::unordered_map<char, Ref<SubTexture2D>> Land;
 		SceneHierarchyPanel m_SceneHireacyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 	    
@@ -93,6 +70,3 @@ namespace UHE
 		SceneState m_SceneState = SceneState::Edit;
 	};
 }
-
-
-

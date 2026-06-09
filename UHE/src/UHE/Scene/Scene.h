@@ -43,25 +43,6 @@ public:
 public:
   template <typename T> void OnComponentAdded(Entity entity, T &components);
 
-  template <>
-  void OnComponentAdded<TransformComponent>(Entity entity,TransformComponent &components);
-  template <>
-  void OnComponentAdded<CameraComponent>(Entity entity,CameraComponent &components);
-  template <>
-  void OnComponentAdded<TagComponent>(Entity entity, TagComponent &components);
-  template <>
-  void OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent &components);
-  template <>
-  void OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent &components);
-  template <>
-  void OnComponentAdded<NativeScriptComponent>(Entity entity,NativeScriptComponent &components);
-  template <>
-  void OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& components);
-  template <>
-  void OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& components);
-  template <>
-  void OnComponentAdded<IDComponent>(Entity entity, IDComponent &components);
-
 private:
   void RenderSprites(Timestep ts);
 
@@ -73,5 +54,15 @@ private:
   friend class Entity;
   friend class SceneHierarchyPanel;
 };
+
+template <> void Scene::OnComponentAdded<TransformComponent>(Entity entity,TransformComponent &components);
+template <> void Scene::OnComponentAdded<CameraComponent>(Entity entity,CameraComponent &components);
+template <> void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent &components);
+template <> void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent &components);
+template <> void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent &components);
+template <> void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity,NativeScriptComponent &components);
+template <> void Scene::OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& components);
+template <> void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& components);
+template <> void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent &components);
 
 } // namespace UHE

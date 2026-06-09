@@ -17,19 +17,19 @@ UHE::OrthographicCameraContoroller::OrthographicCameraContoroller(f32 aspectRati
 void UHE::OrthographicCameraContoroller::OnUpdate(Timestep ts)
 {
 	m_CameraTranslationSpeed = m_ZoomLevel;
-	if (Input::IsKeyPressed(VG_KEY_LEFT))
+	if (Input::IsKeyPressed(UHE_KEY_LEFT))
 	{
 		m_CameraPosition.x += m_CameraTranslationSpeed * ts;
 	}
-	else if (Input::IsKeyPressed(VG_KEY_RIGHT))
+	else if (Input::IsKeyPressed(UHE_KEY_RIGHT))
 	{
 		m_CameraPosition.x -= m_CameraTranslationSpeed * ts;
 	}
-	if (Input::IsKeyPressed(VG_KEY_DOWN))
+	if (Input::IsKeyPressed(UHE_KEY_DOWN))
 	{
 		m_CameraPosition.y += m_CameraTranslationSpeed * ts;
 	}
-	else if (Input::IsKeyPressed(VG_KEY_UP))
+	else if (Input::IsKeyPressed(UHE_KEY_UP))
 	{
 		m_CameraPosition.y -= m_CameraTranslationSpeed * ts;
 	}
@@ -38,28 +38,28 @@ void UHE::OrthographicCameraContoroller::OnUpdate(Timestep ts)
 
 	if (m_Rotation) {
 
-		if (Input::IsKeyPressed(VG_KEY_A))
+		if (Input::IsKeyPressed(UHE_KEY_A))
 		{
 			m_CameraRotation -= m_CameraRotationSpeed * ts;
 		}
-		else if (Input::IsKeyPressed(VG_KEY_D))
+		else if (Input::IsKeyPressed(UHE_KEY_D))
 		{
 			m_CameraRotation += m_CameraRotationSpeed * ts;
 		}
 
-		if (Input::IsKeyPressed(VG_KEY_J))
+		if (Input::IsKeyPressed(UHE_KEY_J))
 		{
 			m_CameraRotation += m_CameraRotationSpeed * ts;
 		}
-		else if (Input::IsKeyPressed(VG_KEY_L))
+		else if (Input::IsKeyPressed(UHE_KEY_L))
 		{
 			m_CameraRotation -= m_CameraRotationSpeed * ts;
 		}
-		if (Input::IsKeyPressed(VG_KEY_I))
+		if (Input::IsKeyPressed(UHE_KEY_I))
 		{
 			m_CameraRotation += m_CameraRotationSpeed * ts;
 		}
-		else if (Input::IsKeyPressed(VG_KEY_K))
+		else if (Input::IsKeyPressed(UHE_KEY_K))
 		{
 			m_CameraRotation -= m_CameraRotationSpeed * ts;
 		}
@@ -72,8 +72,8 @@ void UHE::OrthographicCameraContoroller::OnUpdate(Timestep ts)
 void UHE::OrthographicCameraContoroller::OnEvent(Event& e)
 {
     EventDispatcher dispatcher(e);
-    dispatcher.Dispatch<MouseScrolledEvent>(VG_BIND_EVENT_FN(OrthographicCameraContoroller::OnMouseScrolled));
-	dispatcher.Dispatch<WindowResizeEvent>(VG_BIND_EVENT_FN(OrthographicCameraContoroller::OnWindowResized));
+    dispatcher.Dispatch<MouseScrolledEvent>(UHE_BIND_EVENT_FN(OrthographicCameraContoroller::OnMouseScrolled));
+	dispatcher.Dispatch<WindowResizeEvent>(UHE_BIND_EVENT_FN(OrthographicCameraContoroller::OnWindowResized));
 }
 
 void UHE::OrthographicCameraContoroller::OnResize(f32 width, u32 height)

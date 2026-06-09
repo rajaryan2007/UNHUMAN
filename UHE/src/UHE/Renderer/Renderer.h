@@ -1,40 +1,19 @@
 #pragma once
+#include "UHE/Core/Core.h"
+#include "UHE/RHI/RHIDevice.h"
 
-#include "RendererAPI.h"
-#include "UHE\Renderer\VertexArray.h"
-#include "RenderCommand.h"
-#include "UHE\Renderer2D\OrthographicCamera.h"
-#include <memory>
+namespace UHE {
 
+class UHE_API Renderer {
+public:
+    static void Init();
+    static void Shutdown();
+    static void OnWindowResize(u32 width, u32 height);
 
-namespace UHE
-{   
-	class Shader;
-	class UHE_API Renderer
-	{
-	public:
+    static RHI::RHIDevice& GetDevice();
 
+private:
+    static std::unique_ptr<RHI::RHIDevice> s_Device;
+};
 
-		static void Init();
-		static void OnWindowResize(u32 width, u32 height);
-		static void BeginScene(OrthographicCamera& camera);
-		static void EndScene();
-
-		static void Submit(const std::shared_ptr<Shader>& shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4 transform = glm::mat4(1.0f));
-
-		static RendererAPI::API GetAPI()
-		{
-			return RendererAPI::GetAPI();
-		}
-
-	private:
-		/*static RendererAPI::API s_RendererAPI;*/
-
-		struct SceneData
-		{
-			glm::mat4 ViewProjectionMatrix;
-		};
-		static SceneData* s_SceneData;
-	};
-}
-
+} // namespace UHE

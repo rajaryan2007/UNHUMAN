@@ -16,8 +16,8 @@ namespace UHE {
 
 	static void SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
-        VG_CORE_ASSERT(entity, "Entity is null!");
-        VG_CORE_ASSERT(entity.GetUUID() != 0, "Entity must have a valid ID!");
+        UHE_CORE_ASSERT(entity, "Entity is null!");
+        UHE_CORE_ASSERT(entity.GetUUID() != 0, "Entity must have a valid ID!");
 
 		out << YAML::BeginMap;
 
@@ -224,8 +224,9 @@ namespace UHE {
 				if (spriteNode["TexturePath"])
 				{
 					src.TexturePath = spriteNode["TexturePath"].as<std::string>();
-					if (!src.TexturePath.empty())
-						src.Texture = Texture2D::Create(src.TexturePath);
+					if (!src.TexturePath.empty()) {
+						// src.Texture = Texture2D::Create(src.TexturePath);
+					}
 				}
 
 				if (spriteNode["TilingFactor"])
@@ -246,8 +247,9 @@ namespace UHE {
 				auto& animComp = entity.AddComponent<SpriteAnimationComponent>();
 				animComp.SpriteSheetPath = animNode["SpriteSheetPath"].as<std::string>();
 				auto& anim = animComp.Animation;
-				if (!animComp.SpriteSheetPath.empty())
-					anim.SpriteSheet = Texture2D::Create(animComp.SpriteSheetPath);
+				if (!animComp.SpriteSheetPath.empty()) {
+					// anim.SpriteSheet = Texture2D::Create(animComp.SpriteSheetPath);
+				}
 
 				anim.FrameSize.x = animNode["FrameSizeX"].as<float>();
 				anim.FrameSize.y = animNode["FrameSizeY"].as<float>();

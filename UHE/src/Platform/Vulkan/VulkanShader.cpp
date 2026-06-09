@@ -2,9 +2,11 @@
 #include "VulkanShader.h"
 #include "UHE/Core/Log.h"
 
-namespace UHE::RHI::VULKAN {
+namespace UHE::RHI::VULKAN
+{
 
-void VulkanShader::Create(const vk::raii::Device& device, const ShaderDesc& desc) {
+void VulkanShader::Create(const vk::raii::Device& device, const ShaderDesc& desc)
+{
     m_Stage = desc.stage;
     m_EntryPoint = desc.entryPoint;
 
@@ -12,10 +14,13 @@ void VulkanShader::Create(const vk::raii::Device& device, const ShaderDesc& desc
     createInfo.codeSize = desc.spirvSize;
     createInfo.pCode = reinterpret_cast<const uint32_t*>(desc.spirvData);
 
-    try {
+    try
+    {
         m_Module = vk::raii::ShaderModule(device, createInfo);
-    } catch (const std::exception& e) {
-        VG_CORE_ERROR("Failed to create Vulkan Shader Module! Error: {0}", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        UHE_CORE_ERROR("Failed to create Vulkan Shader Module! Error: {0}", e.what());
     }
 }
 

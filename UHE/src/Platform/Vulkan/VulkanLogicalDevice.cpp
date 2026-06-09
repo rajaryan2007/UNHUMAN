@@ -31,12 +31,13 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
     }
 
     vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features,
-                       vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+                       vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDescriptorIndexingFeatures>
         featureChain;
 
     auto& features2 = featureChain.get<vk::PhysicalDeviceFeatures2>();
     auto& vulkan13Features = featureChain.get<vk::PhysicalDeviceVulkan13Features>();
     auto& dynamicStateFeatures = featureChain.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
+    auto& descriptorIndexing = featureChain.get<vk::PhysicalDeviceDescriptorIndexingFeatures>();
 
     features2.features.samplerAnisotropy = VK_TRUE;
 
@@ -44,6 +45,10 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
     vulkan13Features.synchronization2 = VK_TRUE;
 
     dynamicStateFeatures.extendedDynamicState = VK_TRUE;
+
+    descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    descriptorIndexing.descriptorBindingPartiallyBound = VK_TRUE;
+    descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
     float queuePriority = 1.0f;
     vk::DeviceQueueCreateInfo deviceQueueCreateInfo{};

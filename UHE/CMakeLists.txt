@@ -6,9 +6,19 @@ project(UHE)
 file(GLOB_RECURSE UHE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.cpp"
 )
+
+list(FILTER UHE_SOURCES EXCLUDE REGEX "src/UHE/Renderer2D/Renderer2D.cpp")
+list(FILTER UHE_SOURCES EXCLUDE REGEX "src/UHE/Renderer/Shader.cpp")
+
+if(WIN32)
+    list(FILTER UHE_SOURCES EXCLUDE REGEX "src/Platform/Linux/.*")
+elseif(UNIX)
+    # Only exclude Windows-specific files (Win32 file dialogs etc.)
+    # WindowsWindow.h/cpp is pure GLFW and works on Linux
+    list(FILTER UHE_SOURCES EXCLUDE REGEX "WindowPlatformUtils\\.cpp")
+endif()
 
 find_package(Vulkan REQUIRED)
 if(WIN32)
@@ -55,10 +65,10 @@ target_sources(UHE PRIVATE
 )
 
 if(WIN32)
-    target_compile_definitions(UHE PUBLIC VG_PLATFORM_WINDOWS)
-    target_compile_definitions(UHE PUBLIC VG_DYNAMIC_LINK WINDLL)
+    target_compile_definitions(UHE PUBLIC UHE_PLATFORM_WINDOWS)
+    target_compile_definitions(UHE PUBLIC UHE_DYNAMIC_LINK WINDLL)
 elseif(UNIX)
-    target_compile_definitions(UHE PUBLIC VG_PLATFORM_LINUX)
+    target_compile_definitions(UHE PUBLIC UHE_PLATFORM_LINUX)
     # UNIX doesn't typically need WINDLL or explicit dllexport macros for shared objects if visibility is handled
 endif()
 
@@ -67,10 +77,10 @@ target_compile_definitions(UHE PUBLIC
     _CRT_SECURE_NO_WARNINGS
 )
 
-target_compile_definitions(UHE PRIVATE VG_BUILD_DLL TRACY_ENABLE)
+target_compile_definitions(UHE PRIVATE UHE_BUILD_DLL TRACY_ENABLE)
 
-if(VG_PROFILE)
-    target_compile_definitions(UHE PUBLIC VG_PROFILE=1 TRACY_ENABLE=1)
+if(UHE_PROFILE)
+    target_compile_definitions(UHE PUBLIC UHE_PROFILE=1 TRACY_ENABLE=1)
     target_compile_definitions(UHE PRIVATE TRACY_EXPORTS=1)
 endif()
 
@@ -91,14 +101,12 @@ PRIVATE
     box2d
 )
 
-if(WIN32)
-    target_link_libraries(UHE PUBLIC opengl32.lib)
-endif()
+target_link_libraries(UHE PRIVATE dl X11)
 
 # Copy Slang DLLs to output directory
 add_custom_command(TARGET UHE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${SLANG_DIR}/bin"
-    "$<TARGET_FILE_DIR:UHE>"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/bin/linux/slang/bin"
+    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
 )
 set_target_properties(UHE PROPERTIES DEBUG_POSTFIX d)

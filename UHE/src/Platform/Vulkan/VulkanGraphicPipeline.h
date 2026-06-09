@@ -35,8 +35,8 @@ private:
 
     std::vector<vk::VertexInputBindingDescription> m_BindingDescription;
     std::vector<vk::VertexInputAttributeDescription> m_AttributeDescription;
-    vk::raii::Pipeline m_GraphicsPipeline;
-    vk::raii::PipelineLayout m_PipelineLayout;
+    vk::raii::Pipeline m_GraphicsPipeline{nullptr};
+    vk::raii::PipelineLayout m_PipelineLayout{nullptr};
     std::vector<vk::raii::ShaderModule> m_ShaderModules;
 };
 } // namespace UHE::RHI::VULKAN

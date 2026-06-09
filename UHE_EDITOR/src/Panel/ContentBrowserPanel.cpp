@@ -7,10 +7,10 @@ namespace UHE {
 ContentBrowserPanel::ContentBrowserPanel() {
   m_BaseDirectory = FileSystem::Get().GetRootPath() / "assets";
   m_CurrentDirectory = m_BaseDirectory;
-  m_DirectoryIcon = Texture2D::Create(FileSystem::Get().Resolve("icon/folder.png"));
-  m_FileIcon = Texture2D::Create(FileSystem::Get().Resolve("icon/file.png"));
-  m_PngIcon = Texture2D::Create(FileSystem::Get().Resolve("icon/png.png"));
-  m_modelPng = Texture2D::Create(FileSystem::Get().Resolve("icon/3dmodel.png"));
+  m_DirectoryIcon = nullptr;
+  m_FileIcon = nullptr;
+  m_PngIcon = nullptr;
+  m_modelPng = nullptr;
 }
 void ContentBrowserPanel::DrawDirectoryTree(
     const std::filesystem::path &directoryPath) {
@@ -93,7 +93,7 @@ void ContentBrowserPanel::OnImGuiRender() {
       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
       if (directoryEntry.is_directory()) {
         ImTextureID dirTexID =
-            (ImTextureID)(intptr_t)m_DirectoryIcon->GetRendererID();
+            (ImTextureID)(intptr_t)m_DirectoryIcon;
         if (ImGui::ImageButton(filenameString.c_str(), dirTexID,{thumbnailSize, thumbnailSize}, {0, 1},
 {1, 0})) {
           m_CurrentDirectory /= path.filename();
@@ -104,30 +104,30 @@ void ContentBrowserPanel::OnImGuiRender() {
           std::string absolutePath = path.string();
           
           if (m_TextureCache.find(absolutePath) == m_TextureCache.end()) {
-              m_TextureCache[absolutePath] = Texture2D::Create(absolutePath);
+              m_TextureCache[absolutePath] = nullptr;
           }
          
           if (m_TextureCache[absolutePath]) {
-              fileTexID = (ImTextureID)(intptr_t)m_TextureCache[absolutePath]->GetRendererID();
+              fileTexID = (ImTextureID)(intptr_t)m_TextureCache[absolutePath];
           } else {
-              fileTexID = (ImTextureID)(intptr_t)m_PngIcon->GetRendererID();
+              fileTexID = (ImTextureID)(intptr_t)m_PngIcon;
           }
         } 
         else if (path.extension() == ".glb" || path.extension() == ".fbx" || path.extension() == ".gltf" || path.extension() == ".obj")
         {
-            fileTexID = (ImTextureID)(intptr_t)m_modelPng->GetRendererID();
+            fileTexID = (ImTextureID)(intptr_t)m_modelPng;
         }
         else {
-          fileTexID = (ImTextureID)(intptr_t)m_FileIcon->GetRendererID();
+          fileTexID = (ImTextureID)(intptr_t)m_FileIcon;
         }
         ImGui::ImageButton(filenameString.c_str(), fileTexID,
                            {thumbnailSize, thumbnailSize}, {0, 1},
                            {1, 0});
         if (ImGui::BeginDragDropSource())
         {   
-            const wchar_t* itempath = path.c_str();
-            // Important: + 1 ensures the string null-terminator \0 is passed to Windows memory!
-            ImGui::SetDragDropPayload("Content_Browser_item", itempath, (wcslen(itempath) + 1) * sizeof(wchar_t), ImGuiCond_Once);
+            std::string pathStr = path.string();
+            // Pass string length + 1 for null terminator
+            ImGui::SetDragDropPayload("Content_Browser_item", pathStr.c_str(), pathStr.length() + 1, ImGuiCond_Once);
             ImGui::EndDragDropSource();
         }
       }

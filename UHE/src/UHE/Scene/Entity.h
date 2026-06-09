@@ -30,14 +30,14 @@ namespace UHE {
 		template<typename T>
 		T& GetComponent()
 		{
-			VG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
+			UHE_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
 			return m_Scene->m_registry.get<T>(m_EntityHandle);
 		}
 
 		template<typename T, typename... Args>
 		T& AddComponent(Args&&... args)
 		{
-			VG_CORE_ASSERT(!HasComponent<T>(), "Entity already has component!");
+			UHE_CORE_ASSERT(!HasComponent<T>(), "Entity already has component!");
 			T& component = m_Scene->m_registry.emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
 			m_Scene->OnComponentAdded<T>(*this, component);
 			return component;
@@ -46,7 +46,7 @@ namespace UHE {
 		template<typename T>
 		void RemoveComponent()
 		{
-			VG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
+			UHE_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
 			m_Scene->m_registry.remove<T>(m_EntityHandle);
 		}
 

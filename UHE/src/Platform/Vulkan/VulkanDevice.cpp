@@ -16,6 +16,86 @@
 namespace UHE::RHI::VULKAN
 {
 
+VulkanDevice::VulkanDevice(const SwapchainDesc& swapDesc)
+{
+    m_WindowHandle = static_cast<GLFWwindow*>(swapDesc.nativeWindow);
+    m_WindowWidth = swapDesc.width;
+    m_WindowHeight = swapDesc.height;
+    InitVulkan(swapDesc);
+}
+
+VulkanDevice::~VulkanDevice()
+{
+    CleanupVulkan();
+}
+
+void VulkanDevice::InitVulkan(const SwapchainDesc& swapDesc)
+{
+    UHE_PROFILE_FUNCTION();
+
+    // 1. Create Vulkan instance
+    m_Instance.initialize();
+
+    // 2. Create window surface
+    m_LogicalDevice.CreateSurface(m_Instance, m_WindowHandle);
+
+    // 3. Pick physical device
+    m_PhysicalDevice.initPhysicalDevice(m_Instance);
+
+    // 4. Create logical device + VMA allocator
+    m_LogicalDevice.initialize(m_PhysicalDevice, *m_LogicalDevice.getSurface(), m_Instance);
+    m_Allocator = m_LogicalDevice.getAllocator();
+
+    // 5. Create swapchain
+    m_SwapChain.createSwapChain(m_LogicalDevice.getLogicalDevice(), m_PhysicalDevice.getPhysicalDevice(),
+                                m_LogicalDevice.getSurface(), m_WindowHandle);
+
+    // 6. Init per-frame contexts (command pools, semaphores, fences)
+    for (auto& frame : m_Frames)
+    {
+        frame.Init(m_LogicalDevice.getLogicalDevice(), m_LogicalDevice.getGraphicsQueueFamilyIndex());
+    }
+
+    m_RenderFinishedSemaphores.clear();
+    for (size_t i = 0; i < m_SwapChain.GetImages().size(); i++)
+    {
+        vk::SemaphoreCreateInfo semaphoreInfo{};
+        m_RenderFinishedSemaphores.emplace_back(m_LogicalDevice.getLogicalDevice(), semaphoreInfo);
+    }
+
+    // 7. Create upload context for immediate submissions
+    vk::CommandPoolCreateInfo uploadPoolInfo{};
+    uploadPoolInfo.queueFamilyIndex = m_LogicalDevice.getGraphicsQueueFamilyIndex();
+    m_UploadCommandPool = vk::raii::CommandPool(m_LogicalDevice.getLogicalDevice(), uploadPoolInfo);
+
+    vk::FenceCreateInfo fenceInfo{};
+    m_UploadFence = vk::raii::Fence(m_LogicalDevice.getLogicalDevice(), fenceInfo);
+
+    // 8. Init descriptor manager
+    m_DescriptorManager.init(*this);
+
+    UHE_CORE_INFO("Vulkan device initialized successfully");
+}
+
+void VulkanDevice::CleanupVulkan()
+{
+    WaitIdle();
+
+    m_DescriptorManager.cleanup();
+
+    for (auto& frame : m_Frames)
+    {
+        frame.Cleanup();
+    }
+
+    m_UploadFence = nullptr;
+    m_UploadCommandPool = nullptr;
+    m_RenderFinishedSemaphores.clear();
+
+    m_SwapChain.cleanupSwapChain();
+    m_LogicalDevice.cleanup();
+}
+
 void VulkanDevice::RecreateSwapchain()
 {
     UHE_PROFILE_FUNCTION();
@@ -30,7 +110,15 @@ void VulkanDevice::RecreateSwapchain()
 
     WaitIdle();
     m_SwapChain.cleanupSwapChain();
-    m_SwapChain.createSwapChain(m_LogDevice, m_PhysicalDevice.getPhysicalDevice(), m_Surface, m_WindowHandle);
+    m_SwapChain.createSwapChain(m_LogicalDevice.getLogicalDevice(), m_PhysicalDevice.getPhysicalDevice(),
+                                m_LogicalDevice.getSurface(), m_WindowHandle);
+
+    m_RenderFinishedSemaphores.clear();
+    for (size_t i = 0; i < m_SwapChain.GetImages().size(); i++)
+    {
+        vk::SemaphoreCreateInfo semaphoreInfo{};
+        m_RenderFinishedSemaphores.emplace_back(m_LogicalDevice.getLogicalDevice(), semaphoreInfo);
+    }
 }
 
 // ─── Resource Management Stubs  ───
@@ -84,19 +172,57 @@ PipelineHandle VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& 
     return reinterpret_cast<PipelineHandle>(pipeline);
 }
 
+void VulkanDevice::DestroyBuffer(BufferHandle handle)
+{
+    if (handle) {
+        auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
+        delete buffer;
+    }
+}
+
+void VulkanDevice::DestroyTexture(TextureHandle handle)
+{
+    if (handle) {
+        auto* texture = reinterpret_cast<VulkanTexture*>(handle);
+        delete texture;
+    }
+}
+
+void VulkanDevice::DestroyShader(ShaderHandle handle)
+{
+    if (handle) {
+        auto* shader = reinterpret_cast<VulkanShader*>(handle);
+        delete shader;
+    }
+}
+
+void VulkanDevice::DestroyGraphicsPipeline(PipelineHandle handle)
+{
+    if (handle) {
+        auto* pipeline = reinterpret_cast<VulkanGraphicPipeline*>(handle);
+        delete pipeline;
+    }
+}
+
 void VulkanDevice::Begin()
 {
-    auto waitResult = m_LogDevice.waitForFences({*m_Frames[m_CurrentFrame].GetInFlightFence()}, VK_TRUE, UINT64_MAX);
+    auto waitResult = m_LogicalDevice.getLogicalDevice().waitForFences({*m_Frames[m_CurrentFrame].GetInFlightFence()},
+                                                                       VK_TRUE, UINT64_MAX);
 
-    m_LogDevice.resetFences({*m_Frames[m_CurrentFrame].GetInFlightFence()});
+    m_LogicalDevice.getLogicalDevice().resetFences({*m_Frames[m_CurrentFrame].GetInFlightFence()});
 
     auto acquireResult = m_SwapChain.GetSwapchain().acquireNextImage(
         UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), nullptr);
 
-    if (acquireResult.result == vk::Result::eErrorOutOfDateKHR || acquireResult.result == vk::Result::eSuboptimalKHR)
+    if (acquireResult.result == vk::Result::eErrorOutOfDateKHR)
     {
         RecreateSwapchain();
-        return;
+        acquireResult = m_SwapChain.GetSwapchain().acquireNextImage(
+            UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), nullptr);
+    }
+    else if (acquireResult.result != vk::Result::eSuccess && acquireResult.result != vk::Result::eSuboptimalKHR)
+    {
+        throw std::runtime_error("Failed to acquire swap chain image!");
     }
 
     m_ImageIndex = acquireResult.value;
@@ -120,13 +246,14 @@ void VulkanDevice::End()
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &(*cmd);
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &(*m_Frames[m_CurrentFrame].GetrenderFinishedSemaphore());
+    submitInfo.pSignalSemaphores = &(*m_RenderFinishedSemaphores[m_ImageIndex]);
 
+    vk::raii::Queue& m_graphicsQueue = m_LogicalDevice.getGraphicsQueue();
     m_graphicsQueue.submit(submitInfo, *m_Frames[m_CurrentFrame].GetInFlightFence());
 
     vk::PresentInfoKHR presentInfo{};
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &(*m_Frames[m_CurrentFrame].GetrenderFinishedSemaphore());
+    presentInfo.pWaitSemaphores = &(*m_RenderFinishedSemaphores[m_ImageIndex]);
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &(*m_SwapChain.GetSwapchain());
     presentInfo.pImageIndices = &m_ImageIndex;
@@ -161,7 +288,7 @@ void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& c
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandBufferCount = 1;
 
-    vk::raii::CommandBuffers cmdBuffers(m_LogDevice, allocInfo);
+    vk::raii::CommandBuffers cmdBuffers(m_LogicalDevice.getLogicalDevice(), allocInfo);
     vk::raii::CommandBuffer cmd = std::move(cmdBuffers[0]);
 
     vk::CommandBufferBeginInfo beginInfo{};
@@ -176,14 +303,20 @@ void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& c
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &(*cmd);
 
+    vk::raii::Queue& m_graphicsQueue = m_LogicalDevice.getGraphicsQueue();
     m_graphicsQueue.submit(submitInfo, *m_UploadFence);
 
     // Wait for the command to finish executing
-    auto waitResult = m_LogDevice.waitForFences({*m_UploadFence}, VK_TRUE, UINT64_MAX);
-    VG_CORE_ASSERT(waitResult == vk::Result::eSuccess, "Failed to wait for upload fence!");
+    auto waitResult = m_LogicalDevice.getLogicalDevice().waitForFences({*m_UploadFence}, VK_TRUE, UINT64_MAX);
+    UHE_CORE_ASSERT(waitResult == vk::Result::eSuccess, "Failed to wait for upload fence!");
 
-    m_LogDevice.resetFences({*m_UploadFence});
+    m_LogicalDevice.getLogicalDevice().resetFences({*m_UploadFence});
     m_UploadCommandPool.reset();
+}
+
+void VulkanDevice::WaitIdle()
+{
+    getLogicalDevClass().getLogicalDevice().waitIdle();
 }
 
 } // namespace UHE::RHI::VULKAN

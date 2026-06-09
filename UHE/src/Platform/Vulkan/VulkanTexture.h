@@ -16,7 +16,7 @@ public:
     // VulkanTexture(const VulkanTexture&) = delete;
     // VulkanTexture& operator=(const VulkanTexture&) = delete;
 
-    virtual const TextureDesc& GetDesc() const override;
+    virtual const TextureDesc& GetDesc() const override { return m_Desc; }
 
     void Init(VulkanDevice& device);
     void CreateImage(VulkanLogicalDevice& device, uint32_t width, uint32_t height, vk::Format format,
@@ -39,5 +39,6 @@ private:
     VulkanDevice* m_Device = nullptr;
     u32 m_Width = 0;
     u32 m_Height = 0;
+    TextureDesc m_Desc;
 };
 } // namespace UHE::RHI::VULKAN

@@ -1,48 +1,36 @@
 #include "uhepch.h"
-#include "UHE\Renderer2D\Renderer2D.h"
 #include "Renderer.h"
-#include "RendererAPI.h"
+#include "UHE/Core/Application.h"
 
-#include "Platform/OpenGL/OpenGLShader.h"
-
-#include "Shader.h"
 namespace UHE {
 
-	Renderer::SceneData* Renderer::s_SceneData = new Renderer::SceneData;
+std::unique_ptr<RHI::RHIDevice> Renderer::s_Device = nullptr;
 
-	void Renderer::Init() {
-		UHE_PROFILE_FUNCTION();
-		RenderCommand::Init();
-		Renderer2D::Init();
-	}
+void Renderer::Init() {
+    auto& window = Application::Get().GetWindow();
 
-	void Renderer::OnWindowResize(u32 width, u32 height)
-	{
-		RenderCommand::SetViewport(0, 0, width, height);
-	}
+    RHI::SwapchainDesc swapDesc{};
+    swapDesc.nativeWindow = window.GetNativeWindow();
+    swapDesc.width = window.GetWidth();
+    swapDesc.height = window.GetHeight();
+    swapDesc.vsync = false;
 
-	void Renderer::BeginScene(OrthographicCamera& camera) {
-        // Implementation for beginning a scene
-		s_SceneData->ViewProjectionMatrix = camera.GetViewProjectionMatrix();
-	}
-
-    void Renderer::EndScene() 
-	{
-        // Implementation for ending a scene
-	}
-
-    void Renderer::Submit(const std::shared_ptr<Shader>& shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4 transform ) {
-        // Implementation for submitting a vertex array to be rendered
-		
-		shader->Bind();
-		std::dynamic_pointer_cast<OpenGLShader>(shader)->SetUniformMat4("u_ViewProjection", s_SceneData->ViewProjectionMatrix);
-		std::dynamic_pointer_cast<OpenGLShader>(shader)->SetUniformMat4("u_Transform", transform);
-		
-		/*mi.bind();*/
-
-		vertexArray->Bind();
-		RenderCommand::DrawIndexed(vertexArray);
-	}
-	
-
+    s_Device = RHI::RHIDevice::Create(RHI::Backend::Vulkan, swapDesc);
+    UHE_CORE_INFO("Renderer initialized with Vulkan backend");
 }
+
+void Renderer::Shutdown() {
+    s_Device.reset();
+    UHE_CORE_INFO("Renderer shut down");
+}
+
+void Renderer::OnWindowResize(u32 width, u32 height) {
+    // TODO: Recreate swapchain when needed
+}
+
+RHI::RHIDevice& Renderer::GetDevice() {
+    UHE_CORE_ASSERT(s_Device, "Renderer not initialized!");
+    return *s_Device;
+}
+
+} // namespace UHE

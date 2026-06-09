@@ -23,7 +23,7 @@ public:
     VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) = default;
 
     // ─── Internal Vulkan-specific methods ───────────────────────
-    void Allocate(vk::raii::Device& device, VulkanCommandPool& pool, bool isPrimary = true);
+    void Allocate(const vk::raii::Device& device, VulkanCommandPool& pool, bool isPrimary = true);
     void Free();
     void BeginCommandBuffer(vk::CommandBufferUsageFlags flags = {});
     void Reset(vk::CommandBufferUsageFlags flags = {});

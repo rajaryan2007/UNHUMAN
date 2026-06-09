@@ -1,22 +1,19 @@
+#include "uhepch.h"
 #include "WindowsWindow.h"
+
 #include "UHE/AssestsManager/VfsSystem.h"
 #include "UHE/Core/Log.h"
 #include "UHE/Events/ApplicationEvent.h"
 #include "UHE/Events/KeyEvent.h"
 #include "UHE/Events/MouseEvent.h"
-#include "backends/imgui_impl_glfw.h"
-#include "glad/glad.h"
-#include "imgui.h"
-#include "uhepch.h"
 
-#include "Platform/OpenGL/OpenGLContext.h"
 #include <stb_image.h>
 
 namespace UHE {
 static bool s_GLFWInitialized = false;
 
 static void GLFWErrorCallback(int error, const char *descrioption) {
-  VG_CORE_ERROR("GLFW_ERROR({0}):{1}", error, descrioption);
+  UHE_CORE_ERROR("GLFW_ERROR({0}):{1}", error, descrioption);
 }
 
 Window *Window::Create(const WindowProps &props) {
@@ -34,22 +31,23 @@ void WindowsWindow::Init(const WindowProps &props) {
   m_Data.Width = props.Width;
   m_Data.Height = props.Height;
 
-  VG_CORE_INFO("CREATE WINDOW {0} : {1}, {2}", props.Title, props.Width,
+  UHE_CORE_INFO("CREATE WINDOW {0} : {1}, {2}", props.Title, props.Width,
                props.Height);
 
   if (!s_GLFWInitialized) {
     int success = glfwInit();
-    VG_CORE_ASSERT(success, "Could not initialize GLFW!");
+    UHE_CORE_ASSERT(success, "Could not initialize GLFW!");
     glfwSetErrorCallback(GLFWErrorCallback);
     s_GLFWInitialized = true;
   }
 
-  // glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Breaks mouse dragging/events
-  // without custom Win32 event hooks!
+  // Tell GLFW we're using Vulkan, not OpenGL
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
   m_Window = glfwCreateWindow((int)props.Width, (int)props.Height,
                               m_Data.Title.c_str(), nullptr, nullptr);
   GLFWimage images[1];
-  const std::string path = UHE::FileSystem::Get().Resolve("icon\\ace.jpg");
+  const std::string path = UHE::FileSystem::Get().Resolve("icon/ace.jpg");
 
   images[0].pixels =
       stbi_load(path.c_str(), &images[0].width, &images[0].height, 0, 4);
@@ -63,17 +61,12 @@ void WindowsWindow::Init(const WindowProps &props) {
       glfwSetWindowIcon(m_Window, 1, images);
       stbi_image_free(images[0].pixels);
     } else {
-      VG_CORE_WARN("Could not load window icon.");
+      UHE_CORE_WARN("Could not load window icon.");
     }
   }
 
-  m_Context = new OpenGLContext(m_Window);
-  m_Context->Init();
-  // glfwMakeContextCurrent(m_Window);
-  // int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-  // VG_CORE_ASSERT(status, "Failed to initialize Glad!");
   glfwSetWindowUserPointer(m_Window, &m_Data);
-  SetVSync(true);
+  SetVSync(false);
 
   // If ImGui backend installed callbacks earlier with install_callbacks=true,
   // it saved previous callbacks and chained them. When using
@@ -168,11 +161,7 @@ void WindowsWindow::Shutdown() {
 }
 
 void WindowsWindow::OnUpdate() {
-  // Poll events and swap buffers
-
   glfwPollEvents();
-  m_Context->SwapBuffers();
-  // glfwSwapBuffers(m_Window);
 }
 
 void WindowsWindow::SetVSync(bool enabled) {

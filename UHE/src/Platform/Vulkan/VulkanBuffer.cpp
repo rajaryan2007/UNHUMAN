@@ -32,13 +32,13 @@ void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferU
 
     VkBuffer vkBuffer;
     VkResult res = vmaCreateBuffer(m_Allocator, &bufferInfo, &allocInfo, &vkBuffer, &m_Allocation, nullptr);
-    VG_CORE_ASSERT(res == VK_SUCCESS, "Failed to create Vulkan Buffer with VMA!");
+    UHE_CORE_ASSERT(res == VK_SUCCESS, "Failed to create Vulkan Buffer with VMA!");
 
     m_Buffer = vk::Buffer(vkBuffer);
 }
 
 void VulkanBuffer::UploadData(const void* data, vk::DeviceSize size) {
-    VG_CORE_ASSERT(size <= m_Size, "Upload size exceeds buffer size!");
+    UHE_CORE_ASSERT(size <= m_Size, "Upload size exceeds buffer size!");
 
     void* mappedData;
     vmaMapMemory(m_Allocator, m_Allocation, &mappedData);
@@ -68,7 +68,7 @@ void VulkanVertexBuffer::Create(VmaAllocator allocator, const void* vertexData, 
     m_Buffer.init(allocator, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
                   VMA_MEMORY_USAGE_GPU_ONLY);
 
-    VG_CORE_WARN("VulkanVertexBuffer staging copy command submission needs to be "
+    UHE_CORE_WARN("VulkanVertexBuffer staging copy command submission needs to be "
                  "handled by an immediate context!");
 }
 
@@ -85,7 +85,7 @@ void VulkanIndexBuffer::Create(VmaAllocator allocator, const std::vector<uint32_
     m_Buffer.init(allocator, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
                   VMA_MEMORY_USAGE_GPU_ONLY);
 
-    VG_CORE_WARN("VulkanIndexBuffer staging copy command submission needs to be "
+    UHE_CORE_WARN("VulkanIndexBuffer staging copy command submission needs to be "
                  "handled by an immediate context!");
 }
 

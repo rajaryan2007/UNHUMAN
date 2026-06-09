@@ -14,6 +14,7 @@ public:
     // ─── Frame Lifecycle ───────────────────────────────────────
     virtual void Begin() = 0;
     virtual void End() = 0;
+    virtual void WaitIdle() = 0;
 
     // ─── Resource Creation ─────────────────────────────────────
     virtual BufferHandle CreateBuffer(const BufferDesc &desc) = 0;
@@ -21,6 +22,12 @@ public:
     virtual ShaderHandle CreateShader(const ShaderDesc &desc) = 0;
     virtual PipelineHandle
     CreateGraphicsPipeline(const GraphicsPipelineDesc &desc) = 0;
+
+    // ─── Resource Destruction ──────────────────────────────────
+    virtual void DestroyBuffer(BufferHandle handle) = 0;
+    virtual void DestroyTexture(TextureHandle handle) = 0;
+    virtual void DestroyShader(ShaderHandle handle) = 0;
+    virtual void DestroyGraphicsPipeline(PipelineHandle handle) = 0;
 
     // ─── Command Buffer Access ─────────────────────────────────
     virtual RHICommandBuffer& GetCurrentCommandBuffer() = 0;

@@ -76,10 +76,16 @@ namespace UHE
 		ImGui::ShowDemoWindow(&show);
 	}*/
 
+	class StubImGuiLayer : public ImGuiLayer
+	{
+	public:
+		virtual void Begin() override {}
+		virtual void End() override {}
+	};
+
 	ImGuiLayer* ImGuiLayer::Create()
 	{
-		// TODO: Switch based on RendererAPI
-		return nullptr;
+		return new StubImGuiLayer();
 	}
 
 	void ImGuiLayer::SetDarkThemeColor() 

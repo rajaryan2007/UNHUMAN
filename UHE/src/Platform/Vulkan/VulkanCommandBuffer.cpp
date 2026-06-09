@@ -8,16 +8,18 @@
 #include "Platform/Vulkan/VulkanTexture.h"
 #include "UHE/RHI/RHITypes.h"
 #include "UHE/Renderer/Shader.h"
+#include "UHE/Scene/Scene.h"
 #include "VulkanCommandPool.h"
-
 #include "vulkan/vulkan.hpp"
+#include "UHE/Renderer/Renderer.h"
+#include "Platform/Vulkan/VulkanDevice.h"
 
 namespace UHE::RHI::VULKAN
 {
 
 // ─── Internal Vulkan-specific methods ───────────────────────────
 
-void VulkanCommandBuffer::Allocate(vk::raii::Device& device, VulkanCommandPool& pool, bool isPrimary)
+void VulkanCommandBuffer::Allocate(const vk::raii::Device& device, VulkanCommandPool& pool, bool isPrimary)
 {
     vk::CommandBufferAllocateInfo allocInfo{};
     allocInfo.commandPool = *pool.GetHandle();
@@ -42,7 +44,7 @@ void VulkanCommandBuffer::BeginCommandBuffer(vk::CommandBufferUsageFlags flags)
 
 void VulkanCommandBuffer::Reset(vk::CommandBufferUsageFlags flags)
 {
-    vkResetCommandBuffer(*m_CommandBuffer, static_cast<VkCommandBufferResetFlags>(flags));
+    m_CommandBuffer.reset(vk::CommandBufferResetFlags(static_cast<VkCommandBufferResetFlags>(flags)));
 }
 
 void VulkanCommandBuffer::EndCommandBuffer()
@@ -66,11 +68,26 @@ void VulkanCommandBuffer::End()
 
 void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
 {
-    VulkanTexture* texture = reinterpret_cast<VulkanTexture*>(desc.colorAttachments[0].texture);
+    auto* texture = reinterpret_cast<VulkanTexture*>(desc.colorAttachments[0].texture);
     m_CurrentRenderTarget = desc.colorAttachments[0].texture;
 
+    vk::Image image;
+    vk::ImageView imageView;
+
+    if (texture) {
+        image = *texture->GetImage();
+        imageView = *texture->GetImageView();
+    } else {
+        auto& device = UHE::Renderer::GetDevice();
+        auto& vulkanDevice = static_cast<VulkanDevice&>(device);
+        auto& swapChain = vulkanDevice.getSwapChainClass();
+        u32 index = vulkanDevice.ImageIndex();
+        image = swapChain.GetImages()[index];
+        imageView = *swapChain.GetImageView(index);
+    }
+
     vk::RenderingAttachmentInfo colorAttachment{};
-    colorAttachment.imageView = *texture->GetImageView();
+    colorAttachment.imageView = imageView;
     colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
     colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
     colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
@@ -78,9 +95,18 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
         std::array<f32, 4>{desc.colorAttachments[0].clearColor.r, desc.colorAttachments[0].clearColor.g,
                            desc.colorAttachments[0].clearColor.b, desc.colorAttachments[0].clearColor.a});
 
+    vk::Extent2D renderExtent;
+    if (texture) {
+        renderExtent = vk::Extent2D{desc.renderWidth, desc.renderHeight};
+    } else {
+        auto& device = UHE::Renderer::GetDevice();
+        auto& vulkanDevice = static_cast<VulkanDevice&>(device);
+        renderExtent = vulkanDevice.getSwapChainClass().GetExtent();
+    }
+
     vk::RenderingInfo renderingInfo{};
     renderingInfo.renderArea.offset = vk::Offset2D{0, 0};
-    renderingInfo.renderArea.extent = vk::Extent2D{desc.renderWidth, desc.renderHeight};
+    renderingInfo.renderArea.extent = renderExtent;
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colorAttachment;
@@ -90,7 +116,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = *texture->GetImage();
+    barrier.image = image;
     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
@@ -108,7 +134,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
 
 void VulkanCommandBuffer::EndRenderPass()
 {
-    VulkanTexture* texture = reinterpret_cast<VulkanTexture*>(m_CurrentRenderTarget);
+    auto* texture = reinterpret_cast<VulkanTexture*>(m_CurrentRenderTarget);
 
     m_CommandBuffer.endRendering();
 
@@ -117,10 +143,20 @@ void VulkanCommandBuffer::EndRenderPass()
     barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    vk::Image image;
     if (texture)
     {
-        barrier.image = *texture->GetImage();
+        image = *texture->GetImage();
     }
+    else
+    {
+        auto& device = UHE::Renderer::GetDevice();
+        auto& vulkanDevice = static_cast<VulkanDevice&>(device);
+        auto& swapChain = vulkanDevice.getSwapChainClass();
+        u32 index = vulkanDevice.ImageIndex();
+        image = swapChain.GetImages()[index];
+    }
+    barrier.image = image;
     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
@@ -152,22 +188,22 @@ void VulkanCommandBuffer::BindPipeline(PipelineHandle handle)
 
 void VulkanCommandBuffer::BindVertexBuffer(BufferHandle handle, u64 offset)
 {
-    VulkanBuffer* buffer = reinterpret_cast<VulkanBuffer*>(handle);
-    vk::Buffer vertexBuffers[] = {buffer->GetHandle()};
-    vk::DeviceSize m_offset[] = {offset};
+    auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
+    std::array<vk::Buffer, 1> vertexBuffers = {buffer->GetHandle()};
+    std::array<vk::DeviceSize, 1> m_offset = {offset};
     m_CommandBuffer.bindVertexBuffers(0, vertexBuffers, m_offset);
 }
 
 void VulkanCommandBuffer::BindIndexBuffer(BufferHandle handle, u64 offset)
 {
-    VulkanBuffer* buffer = reinterpret_cast<VulkanBuffer*>(handle);
+    auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
     m_CommandBuffer.bindIndexBuffer(buffer->GetHandle(), offset, vk::IndexType ::eUint32);
 }
 
 void VulkanCommandBuffer::BindTexture(u32 slot, TextureHandle handle)
 {
-    VulkanTexture* texture = reinterpret_cast<VulkanTexture*>(handle);
-    if (texture && m_DescriptorManager && m_LogDevice)
+    auto* texture = reinterpret_cast<VulkanTexture*>(handle);
+    if (texture != nullptr && m_DescriptorManager != nullptr && m_LogDevice != nullptr)
     {
         m_DescriptorManager->BindTexture(*m_LogDevice, slot, *texture->GetImageView(), texture->GetSampler());
     }
@@ -180,12 +216,11 @@ void VulkanCommandBuffer::SetViewport(float x, float y, float width, float heigh
     vk::Viewport viewPort{};
     viewPort.x = x;
     viewPort.y = y;
-    viewPort.height = width;
-    viewPort.width = height;
+    viewPort.width = width;
+    viewPort.height = height;
     viewPort.minDepth = 0.0f;
     viewPort.maxDepth = 1.0f;
-
-    m_CommandBuffer.setViewport(1, viewPort);
+    m_CommandBuffer.setViewport(0, viewPort);
 }
 
 void VulkanCommandBuffer::SetScissor(i32 x, i32 y, u32 width, u32 height)
@@ -193,7 +228,7 @@ void VulkanCommandBuffer::SetScissor(i32 x, i32 y, u32 width, u32 height)
     vk::Rect2D scissor{};
     scissor.offset = vk::Offset2D{x, y};
     scissor.extent = vk::Extent2D{width, height};
-    m_CommandBuffer.setScissor(1, scissor);
+    m_CommandBuffer.setScissor(0, scissor);
 }
 
 // ─── Inline Data Paths ──────────────────────────────────────────
@@ -216,13 +251,13 @@ void VulkanCommandBuffer::PushConstants(ShaderStage stage, const void* data, u32
 
 void VulkanCommandBuffer::UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset)
 {
-    VulkanBuffer* buffer = reinterpret_cast<VulkanBuffer*>(handle);
+    auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
     buffer->UploadData(data, size);
 }
 
 void VulkanCommandBuffer::UpdateTexture(TextureHandle handle, const void* data, u64 size)
 {
-    VulkanTexture* Texture = reinterpret_cast<VulkanTexture*>(handle);
+    auto* Texture = reinterpret_cast<VulkanTexture*>(handle);
     Texture->UpdateTexture(data, size);
 }
 
@@ -230,12 +265,12 @@ void VulkanCommandBuffer::UpdateTexture(TextureHandle handle, const void* data, 
 
 void VulkanCommandBuffer::Draw(u32 vertexCount, u32 firstVertex)
 {
-    // TODO: implement
+    m_CommandBuffer.draw(vertexCount, 1, firstVertex, 0);
 }
 
 void VulkanCommandBuffer::DrawIndexed(u32 indexCount, u32 firstIndex, i32 vertexOffset)
 {
-    // TODO: implement
+    m_CommandBuffer.drawIndexed(indexCount, 1, firstIndex, vertexOffset, 0);
 }
 
 } // namespace UHE::RHI::VULKAN

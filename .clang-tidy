@@ -22,7 +22,6 @@ Checks: >
 
 WarningsAsErrors: ""
 HeaderFilterRegex: "src/.*"
-AnalyzeTemporaryDtors: false
 FormatStyle: file
 
 CheckOptions:

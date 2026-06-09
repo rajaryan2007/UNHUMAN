@@ -1,4 +1,5 @@
 #pragma once
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_raii.hpp>
@@ -22,7 +23,10 @@ public:
 
     VmaAllocator& getAllocator() { return m_allocator; };
 
-    inline const vk::raii::Device& getLogicalDevice() { return m_logicalDevice; }
+    inline vk::raii::Device& getLogicalDevice() { return m_logicalDevice; }
+    u32 getGraphicsQueueFamilyIndex() const { return m_graphicsQueueFamilyIndex; }
+    inline vk::raii::Queue& getGraphicsQueue() { return m_graphicsQueue; }
+    inline vk::raii::SurfaceKHR& getSurface() { return surface; }
 
 private:
     u32 m_graphicsQueueFamilyIndex{0};

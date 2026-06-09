@@ -1,14 +1,23 @@
 #pragma once
+#include <vulkan/vulkan_raii.hpp>
 #include "UHE/ImGui/ImGuiLayer.h"
-
 namespace UHE::RHI::VULKAN
 {
+class VulkanDevice;
+
 class VulkanImGuiLayer : public ImGuiLayer
 {
-    VulkanImGuiLayer() = default;
-    ~VulkanImGuiLayer() = default;
+public:
+    VulkanImGuiLayer(VulkanDevice* device);
+    ~VulkanImGuiLayer() override = default;
 
+    virtual void OnAttach() override;
+    virtual void OnDetach() override;
     virtual void Begin() override;
     virtual void End() override;
+
+private:
+    VulkanDevice* m_Device;
+    VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 };
 } // namespace UHE::RHI::VULKAN

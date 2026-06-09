@@ -23,13 +23,10 @@
 
 #include "UHE/AssestsManager/VfsSystem.h"
 
-#include "UHE/Renderer/RenderCommand.h"
 #include "UHE/Renderer/Renderer.h"
 
-#include "UHE/Renderer/FrameBuffer.h"
 #include "UHE/Renderer/Shader.h"
 #include "UHE/Renderer/Texture.h"
-#include "UHE/Renderer/VertexArray.h"
 
 #include "UHE/Renderer2D/OrthographicCamera.h"
 #include "UHE/Renderer2D/Renderer2D.h"

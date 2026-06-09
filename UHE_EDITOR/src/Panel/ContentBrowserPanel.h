@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "UHE/Renderer/Texture.h"
+// #include "UHE/Renderer/Texture.h"
 #include <filesystem>
 #include <unordered_map>
 
@@ -19,12 +19,12 @@ namespace UHE {
 		std::filesystem::path m_BaseDirectory;
 		std::filesystem::path m_CurrentDirectory;
 
-		Ref<Texture2D> m_DirectoryIcon;
-		Ref<Texture2D> m_FileIcon;
-		Ref<Texture2D> m_PngIcon;
-		Ref<Texture2D> m_modelPng;
+		void* m_DirectoryIcon;
+		void* m_FileIcon;
+		void* m_PngIcon;
+		void* m_modelPng;
 
 		// Dynamic texture cache for image previews
-		std::unordered_map<std::string, Ref<Texture2D>> m_TextureCache;
+		std::unordered_map<std::string, void*> m_TextureCache;
 	};
 }

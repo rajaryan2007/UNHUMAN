@@ -20,12 +20,12 @@ target_include_directories(Sandbox PRIVATE
 target_link_libraries(Sandbox PRIVATE UHE)
 
 if(WIN32)
-    target_compile_definitions(Sandbox PRIVATE VG_PLATFORM_WINDOWS VG_DYNAMIC_LINK)
+    target_compile_definitions(Sandbox PRIVATE UHE_PLATFORM_WINDOWS UHE_DYNAMIC_LINK)
 elseif(UNIX)
-    target_compile_definitions(Sandbox PRIVATE VG_PLATFORM_LINUX)
+    target_compile_definitions(Sandbox PRIVATE UHE_PLATFORM_LINUX)
 endif()
 
-if(VG_PROFILE)
+if(UHE_PROFILE)
     target_compile_definitions(Sandbox PRIVATE TRACY_ENABLE=1 TRACY_IMPORTS=1)
 endif()
 

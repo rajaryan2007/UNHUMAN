@@ -18,7 +18,7 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
 
     vk::DescriptorPoolCreateInfo poolInfo{};
     poolInfo.flags =
-        vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind; // alllow updating descriptors after they've been bound
+        vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind | vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // alllow updating descriptors after they've been bound
     poolInfo.maxSets = 2;
     // poolInfo.maxSets = MAX_BINDLESS_RESOURCES * 2;          // max number of descriptor sets
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -83,7 +83,8 @@ u32 VulkanDescriptorManager::RegisterBuffer(vk::raii::Device& device, vk::Buffer
     device.updateDescriptorSets({descriptorWrite}, nullptr);
     return bindingIndex;
 }
-void BindTexture(vk::raii::Device& device, u32 slot, vk::ImageView imageView, vk::Sampler sampler)
+void VulkanDescriptorManager::BindTexture(vk::raii::Device& device, u32 slot, vk::ImageView imageView,
+                                          vk::Sampler sampler)
 {
     vk::DescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -100,5 +101,10 @@ void BindTexture(vk::raii::Device& device, u32 slot, vk::ImageView imageView, vk
     device.updateDescriptorSets({descriptorWrite}, nullptr);
 }
 
-void VulkanDescriptorManager::cleanup() {}
+void VulkanDescriptorManager::cleanup()
+{
+    m_GlobalDescriptorSet = nullptr;
+    m_DescriptorSetLayout = nullptr;
+    m_DescriptorPool = nullptr;
+}
 } // namespace UHE::RHI::VULKAN

@@ -38,16 +38,16 @@ target_include_directories(UHE_EDITOR PRIVATE
 target_link_libraries(UHE_EDITOR PRIVATE UHE)
 
 if(WIN32)
-    target_compile_definitions(UHE_EDITOR PRIVATE VG_PLATFORM_WINDOWS VG_DYNAMIC_LINK)
+    target_compile_definitions(UHE_EDITOR PRIVATE UHE_PLATFORM_WINDOWS UHE_DYNAMIC_LINK)
 elseif(UNIX)
-    target_compile_definitions(UHE_EDITOR PRIVATE VG_PLATFORM_LINUX)
+    target_compile_definitions(UHE_EDITOR PRIVATE UHE_PLATFORM_LINUX)
 endif()
 
 target_compile_definitions(UHE_EDITOR PRIVATE
-    VG_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    UHE_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-if(VG_PROFILE)
+if(UHE_PROFILE)
     target_compile_definitions(UHE_EDITOR PRIVATE TRACY_ENABLE=1 TRACY_IMPORTS=1)
 endif()
 
