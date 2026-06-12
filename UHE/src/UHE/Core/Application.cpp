@@ -3,6 +3,7 @@
 #include "Application.h"
 
 #include "UHE/Renderer/Renderer.h"
+#include "UHE/Renderer/Renderer2D.h"
 
 #include "UHE/Core/Log.h"
 #include "input.h"
@@ -29,6 +30,7 @@ namespace UHE{
 		m_Window->SetVSync(false);
 		
 		Renderer::Init();
+		Renderer2D::Init();
 
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushOverlay(m_ImGuiLayer);		
@@ -38,6 +40,7 @@ namespace UHE{
 	{
 		Renderer::GetDevice().WaitIdle();
 		m_LayerStack.Clear();
+		Renderer2D::Shutdown();
 		Renderer::Shutdown();
 	}
 

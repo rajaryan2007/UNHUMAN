@@ -2,6 +2,10 @@ CompileFlags:
   CompilationDatabase: build
   Add:
     - "-Wno-everything" # Don't spend CPU on warnings we don't care about
+  Remove:
+    - "-fmodules-ts"
+    - "-fmodule-mapper=*"
+    - "-fdeps-format=*"
 
 ---
 If:

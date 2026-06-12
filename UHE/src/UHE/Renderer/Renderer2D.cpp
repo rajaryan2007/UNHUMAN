@@ -7,6 +7,7 @@
 #include "UHE/Renderer/Renderer.h"
 #include "UHE/Renderer/SlangCompiler.h"
 #include "UHE/Scene/Components.h"
+#include "UHE/AssestsManager/VfsSystem.h"
 
 namespace UHE
 {
@@ -101,7 +102,7 @@ void Renderer2D::Init()
     s_Data.TextureSlots[0] = s_Data.WhiteTexture;
 
     // Compile Shader
-    std::string shaderPath = "../../UHE_EDITOR/assets/shaders/Texture.slang"; // Path relative to runtime
+    std::string shaderPath = (FileSystem::Get().GetRootPath() / "assets/shaders/Texture.slang").string();
     auto compiledShaders = SlangCompiler::CompileToSPIRV(shaderPath);
 
     if (compiledShaders.find(RHI::ShaderStage::Vertex) != compiledShaders.end())

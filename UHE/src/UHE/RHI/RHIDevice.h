@@ -23,6 +23,9 @@ public:
     virtual PipelineHandle
     CreateGraphicsPipeline(const GraphicsPipelineDesc &desc) = 0;
 
+    // ─── Data Transfer ─────────────────────────────────────────
+    virtual void ReadPixel(TextureHandle handle, int x, int y, void* outData) = 0;
+
     // ─── Resource Destruction ──────────────────────────────────
     virtual void DestroyBuffer(BufferHandle handle) = 0;
     virtual void DestroyTexture(TextureHandle handle) = 0;

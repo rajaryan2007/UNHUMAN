@@ -28,3 +28,6 @@
 [submodule "UHE/vendor/box2d"]
 	path = UHE/vendor/box2d
 	url = https://github.com/rajaryan2007/box2d.git
+[submodule "UHE/vendor/fastgltf"]
+	path = UHE/vendor/fastgltf
+	url = https://github.com/spnda/fastgltf.git

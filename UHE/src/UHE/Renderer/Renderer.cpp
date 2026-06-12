@@ -18,12 +18,9 @@ void Renderer::Init() {
 
     s_Device = RHI::RHIDevice::Create(RHI::Backend::Vulkan, swapDesc);
     UHE_CORE_INFO("Renderer initialized with Vulkan backend");
-    
-    Renderer2D::Init();
 }
 
 void Renderer::Shutdown() {
-    Renderer2D::Shutdown();
     s_Device.reset();
     UHE_CORE_INFO("Renderer shut down");
 }

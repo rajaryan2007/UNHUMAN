@@ -122,9 +122,16 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
             colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
             colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
             colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-            colorAttachment.clearValue.color = vk::ClearColorValue(
-                std::array<f32, 4>{desc.colorAttachments[i].clearColor.r, desc.colorAttachments[i].clearColor.g,
-                                   desc.colorAttachments[i].clearColor.b, desc.colorAttachments[i].clearColor.a});
+            
+            if (texture->GetDesc().format == RHI::TextureFormat::R32_SINT) {
+                colorAttachment.clearValue.color = vk::ClearColorValue(
+                    std::array<int32_t, 4>{(int32_t)desc.colorAttachments[i].clearColor.r, 0, 0, 0});
+            } else {
+                colorAttachment.clearValue.color = vk::ClearColorValue(
+                    std::array<f32, 4>{desc.colorAttachments[i].clearColor.r, desc.colorAttachments[i].clearColor.g,
+                                       desc.colorAttachments[i].clearColor.b, desc.colorAttachments[i].clearColor.a});
+            }
+            
             colorAttachments.push_back(colorAttachment);
 
             vk::ImageMemoryBarrier barrier{};

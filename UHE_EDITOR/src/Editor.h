@@ -63,6 +63,9 @@ namespace UHE
 		SceneHierarchyPanel m_SceneHireacyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 		Ref<Framebuffer> m_Framebuffer;
+		Ref<Texture2D> m_IconPlay;
+		Ref<Texture2D> m_IconStop;
+		uint32_t m_FramesSinceResize = 0;
 	    
 		enum class SceneState
 		{

@@ -28,6 +28,8 @@ public:
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
 
+    void ReadPixel(TextureHandle handle, int x, int y, void* outData) override;
+
     void DestroyBuffer(BufferHandle handle) override;
     void DestroyTexture(TextureHandle handle) override;
     void DestroyShader(ShaderHandle handle) override;
@@ -88,7 +90,7 @@ private:
 
     class VulkanGraphicPipeline* m_CurrentPipeline = nullptr;
 
-    enum VendorID
+    enum class VendorID
     {
         VENDOR_ID_AMD = 0x1002,
         VENDOR_ID_NVIDIA = 0x10de,

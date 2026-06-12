@@ -4,21 +4,9 @@ Checks: >
   bugprone-*,
   performance-*,
   modernize-*,
-  readability-*,
-  cppcoreguidelines-*,
-  misc-*,
   -modernize-use-trailing-return-type,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-owning-memory,
-  -readability-identifier-length,
-  -readability-magic-numbers,
   -modernize-use-nodiscard,
-  -bugprone-easily-swappable-parameters,
-  -cppcoreguidelines-macro-usage,
-  -cppcoreguidelines-pro-type-vararg,
-  -misc-no-recursion
+  -bugprone-easily-swappable-parameters
 
 WarningsAsErrors: ""
 HeaderFilterRegex: "src/.*"

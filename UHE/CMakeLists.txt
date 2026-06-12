@@ -46,7 +46,6 @@ target_include_directories(UHE PUBLIC
     "src"
     "vendor/spdlog/include"
     "vendor/GLFW/include"
-    "vendor/Glad/include"
     "vendor/imgui"
     "vendor/imGuizmo"
     "vendor/glm"
@@ -92,21 +91,28 @@ endif()
 target_precompile_headers(UHE PRIVATE src/uhepch.h)
 
 target_link_libraries(UHE PUBLIC
-    glfw Glad Vulkan::Vulkan ImGui ImGuizmo
+    glfw Vulkan::Vulkan ImGui ImGuizmo
 PRIVATE
     VulkanMemoryAllocator volk
     yaml-cpp
     TracyClient
     slang::slang
     box2d
+    fastgltf::fastgltf
 )
 
 target_link_libraries(UHE PRIVATE dl X11)
 
-# Copy Slang DLLs to output directory
+if(WIN32)
+    set(SLANG_BIN_DIR "${SLANG_DIR}/bin")
+else()
+    set(SLANG_BIN_DIR "${SLANG_DIR}/lib")
+endif()
+
+# Copy Slang shared libraries to output directory
 add_custom_command(TARGET UHE POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/bin/linux/slang/bin"
-    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    "${SLANG_BIN_DIR}"
+    "$<TARGET_FILE_DIR:UHE>"
 )
 set_target_properties(UHE PROPERTIES DEBUG_POSTFIX d)

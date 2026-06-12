@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 project(UHE)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-
+# Make RPATH/RUNPATH relative to the executable using $ORIGIN
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "$ORIGIN")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -46,13 +49,14 @@ endfunction()
 
 # all libs
 add_subdirectory(UHE/vendor/GLFW)
-add_subdirectory(UHE/vendor/Glad)
+
 add_subdirectory(UHE/vendor/imgui)
 add_subdirectory(UHE/vendor/imGuizmo)
 add_subdirectory(UHE/vendor/volk)
 add_subdirectory(UHE/vendor/VulkanMemoryAllocator)
 add_subdirectory(UHE/vendor/yaml-cpp)
 add_subdirectory(UHE/vendor/box2d)
+add_subdirectory(UHE/vendor/fastgltf)
 
 #Tracy Profiler
 set(TRACY_STATIC ON CACHE BOOL "" FORCE)

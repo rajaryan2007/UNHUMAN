@@ -1,3 +1,4 @@
+#ifdef __linux__
 #include "uhepch.h"
 #include "UHE/Utils/PlatfromUtils.h"
 #include <cstdio>
@@ -31,3 +32,4 @@ namespace UHE {
         return result;
     }
 }
+#endif
