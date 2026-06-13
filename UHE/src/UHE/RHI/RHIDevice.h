@@ -15,6 +15,7 @@ public:
     virtual void Begin() = 0;
     virtual void End() = 0;
     virtual void WaitIdle() = 0;
+    virtual void ResetCommandBuffers() = 0;
 
     // ─── Resource Creation ─────────────────────────────────────
     virtual BufferHandle CreateBuffer(const BufferDesc &desc) = 0;

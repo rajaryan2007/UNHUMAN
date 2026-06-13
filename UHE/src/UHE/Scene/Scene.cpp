@@ -7,6 +7,7 @@
 #include "ScriptableEntity.h"
 #include "UHE/Core/UIID.h"
 #include "UHE/Renderer/Renderer2D.h"
+#include "UHE/Renderer3D/Renderer3D.h"
 #include "UHE/Renderer2D/SubTexture2D.h"
 
 namespace UHE
@@ -186,6 +187,10 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
     Renderer2D::BeginScene(camera);
     RenderSprites(ts);
     Renderer2D::EndScene();
+
+    Renderer3D::BeginScene(camera);
+    RenderModels(ts);
+    Renderer3D::EndScene();
 }
 
 void Scene::RenderSprites(Timestep ts)
@@ -217,6 +222,19 @@ void Scene::RenderSprites(Timestep ts)
         if (overrideSubTex)
         {
             Renderer2D::DrawQuad(transform.GetTransform(), overrideSubTex, 1.0f, comp.Color);
+        }
+    }
+}
+
+void Scene::RenderModels(Timestep ts)
+{
+    auto view = m_registry.view<TransformComponent, Model3DComponent>();
+    for (auto entity : view)
+    {
+        auto [transform, model] = view.get<TransformComponent, Model3DComponent>(entity);
+        if (model.IsLoaded)
+        {
+            Renderer3D::SubmitModel(*model.ModelData, transform.GetTransform(), (int)entity);
         }
     }
 }
@@ -283,6 +301,10 @@ void Scene::OnUpdateRuntime(Timestep ts)
         Renderer2D::BeginScene(*mainCamera, cameraTransform);
         RenderSprites(ts);
         Renderer2D::EndScene();
+
+        Renderer3D::BeginScene(*mainCamera, cameraTransform);
+        RenderModels(ts);
+        Renderer3D::EndScene();
     }
 }
 

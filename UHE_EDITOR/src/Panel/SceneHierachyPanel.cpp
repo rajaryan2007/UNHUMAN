@@ -553,5 +553,60 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         ImGui::Text("Frame: %d / %d", animComp.Animation.CurrentFrameIndex,
                     animComp.Animation.FrameCount);
       });
+
+  ::UHE::DrawComponents<Model3DComponent>(
+      "3D Model", entity, [](Model3DComponent &mc) {
+        char pathBuf[256];
+        memset(pathBuf, 0, sizeof(pathBuf));
+        strncpy(pathBuf, mc.ModelPath.c_str(), sizeof(pathBuf) - 1); pathBuf[sizeof(pathBuf) - 1] = '\0';
+        float inputWidth = ImGui::GetContentRegionAvail().x - 70.0f -
+                           ImGui::CalcTextSize("Model").x - 10.0f;
+        ImGui::PushItemWidth(inputWidth > 10.0f ? inputWidth : 10.0f);
+        if (ImGui::InputText("##ModelInput", pathBuf, sizeof(pathBuf))) {
+          mc.ModelPath = std::string(pathBuf);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Load"))
+        {
+          mc.IsLoaded = mc.ModelData->loadModel(mc.ModelPath);
+        }
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (ImGui::Button("Browse##Model", ImVec2(60, 0))) {
+          std::string path =
+              FileDialogs::OpenFile("GLTF/GLB (*.gltf;*.glb)\0*.gltf;*.glb\0");
+          if (!path.empty()) {
+            mc.ModelPath = path;
+            mc.IsLoaded = mc.ModelData->loadModel(path);
+          }
+        }
+        
+        ImGui::Spacing();
+        if (mc.IsLoaded) {
+          ImGui::Text("Model Loaded Successfully");
+        } else {
+          ImGui::Button("Drop 3D Model Here", ImVec2(100.0f, 100.0f));
+        }
+        
+        if (ImGui::BeginDragDropTarget()) {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Content_Browser_item")) {
+            const char* path = (const char*)payload->Data;
+            std::filesystem::path itemPath(path);
+            UHE_CORE_INFO("Accepted DragDropPayload (3D Model): {0}", path);
+            if (itemPath.extension() == ".gltf" || itemPath.extension() == ".glb") {
+              mc.ModelPath = path;
+              mc.IsLoaded = mc.ModelData->loadModel(path);
+              if (mc.IsLoaded) {
+                  UHE_CORE_INFO("Successfully loaded 3D model from payload!");
+              } else {
+                  UHE_CORE_ERROR("Failed to load 3D model from payload!");
+              }
+            } else {
+                UHE_CORE_WARN("Payload extension not supported: {0}", itemPath.extension().string());
+            }
+          }
+          ImGui::EndDragDropTarget();
+        }
+      });
 }
 } // namespace UHE

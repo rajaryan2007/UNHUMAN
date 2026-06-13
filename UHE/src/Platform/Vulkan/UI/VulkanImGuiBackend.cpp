@@ -100,7 +100,7 @@ void VulkanImGuiLayer::End()
 
     // 1. Transition swapchain image to COLOR_ATTACHMENT_OPTIMAL
     vk::ImageMemoryBarrier barrier{};
-    barrier.oldLayout = vk::ImageLayout::eUndefined;
+    barrier.oldLayout = vk::ImageLayout::ePresentSrcKHR;
     barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -110,16 +110,16 @@ void VulkanImGuiLayer::End()
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = {};
+    barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
     barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
 
-    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, nullptr, nullptr, barrier);
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, nullptr, nullptr, barrier);
 
     // 2. Begin rendering pass
     vk::RenderingAttachmentInfo colorAttachment{};
     colorAttachment.imageView = *swapchainImageView;
     colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-    colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+    colorAttachment.loadOp = vk::AttachmentLoadOp::eLoad;
     colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
     colorAttachment.clearValue.color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
 

@@ -1,13 +1,22 @@
+#pragma once
+#include "UHE/Core/Core.h"
+#include "UHE/Renderer3D/LoadModel.h"
+#include "UHE/Renderer/EditorCamera.h"
+#include "UHE/Renderer/Camera.h"
+#include <glm/glm.hpp>
 
-
-namespace UHE::RD3d
+namespace UHE
 {
 class Renderer3D
 {
 public:
-    Renderer3D() = default;
-    void Init();
-    void Shutdown();
-    void Flush();
+    static void Init();
+    static void Shutdown();
+
+    static void BeginScene(const EditorCamera& camera);
+    static void BeginScene(const Camera& camera, const glm::mat4& transform);
+    static void EndScene();
+
+    static void SubmitModel(const RD3d::Model& model, const glm::mat4& transform = glm::mat4(1.0f), int entityID = -1);
 };
-} // namespace UHE::RD3d
+} // namespace UHE

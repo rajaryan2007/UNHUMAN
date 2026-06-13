@@ -8,6 +8,7 @@ namespace UHE {
     public:
         VulkanTexture2D(const std::string& path);
         VulkanTexture2D(u32 width, u32 height);
+        VulkanTexture2D(const void* data, size_t size);
         virtual ~VulkanTexture2D() override;
 
         virtual u32 GetWidth() const override { return m_Width; }
@@ -16,6 +17,7 @@ namespace UHE {
         virtual void Bind(u32 slot = 0) const override {}
         virtual void* GetImGuiTextureID() override;
         virtual RHI::TextureHandle GetTextureHandle() const override { return reinterpret_cast<RHI::TextureHandle>(m_VulkanTexture.get()); }
+        virtual u32 GetTextureIndex() const override { return m_VulkanTexture ? m_VulkanTexture->GetTextureIndex() : 0; }
 
         virtual bool operator==(const Texture& other) const override {
             return this == &other;

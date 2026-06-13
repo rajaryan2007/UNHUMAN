@@ -34,6 +34,32 @@ namespace UHE {
         }
     }
 
+    VulkanTexture2D::VulkanTexture2D(const void* inData, size_t size)
+    {
+        int width, height, channels;
+        stbi_set_flip_vertically_on_load(1);
+        stbi_uc* data = stbi_load_from_memory(static_cast<const stbi_uc*>(inData), size, &width, &height, &channels, 4);
+
+        if (data)
+        {
+            m_Width = width;
+            m_Height = height;
+
+            m_VulkanTexture = CreateRef<RHI::VULKAN::VulkanTexture>();
+            auto& rhiDevice = Renderer::GetDevice();
+            auto* vulkanDevice = static_cast<RHI::VULKAN::VulkanDevice*>(&rhiDevice);
+
+            size_t dataSize = m_Width * m_Height * 4;
+            m_VulkanTexture->CreateTexture(*vulkanDevice, data, m_Width, m_Height, dataSize);
+
+            stbi_image_free(data);
+        }
+        else
+        {
+            UHE_CORE_ERROR("Failed to load image from memory!");
+        }
+    }
+
     VulkanTexture2D::VulkanTexture2D(u32 width, u32 height)
         : m_Width(width), m_Height(height)
     {

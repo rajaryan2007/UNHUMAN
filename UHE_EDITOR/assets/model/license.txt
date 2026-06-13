@@ -1,0 +1,11 @@
+Model Information:
+* title:	Yak-130 (War Thunder) Heavy Cavalry
+* source:	https://sketchfab.com/3d-models/yak-130-war-thunder-heavy-cavalry-8beb3616a1e04779913ac9dfc347fffe
+* author:	KojfDiscord (https://sketchfab.com/KojfDiscord)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Yak-130 (War Thunder) Heavy Cavalry" (https://sketchfab.com/3d-models/yak-130-war-thunder-heavy-cavalry-8beb3616a1e04779913ac9dfc347fffe) by KojfDiscord (https://sketchfab.com/KojfDiscord) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

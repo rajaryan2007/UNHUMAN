@@ -127,6 +127,10 @@ struct UHE_API RigidBody2DComponent
 
 struct UHE_API Model3DComponent
 {
+    std::string ModelPath;
+    Ref<RD3d::Model> ModelData = CreateRef<RD3d::Model>();
+    bool IsLoaded = false;
+
     Model3DComponent() = default;
     Model3DComponent(const Model3DComponent&) = default;
 };

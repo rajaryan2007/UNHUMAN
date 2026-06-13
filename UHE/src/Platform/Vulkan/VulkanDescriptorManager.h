@@ -13,7 +13,7 @@ public:
 
     void init(VulkanDevice& device);
     u32 RegisterBuffer(vk::raii::Device& device, vk::Buffer buffer, vk::DeviceSize size);
-    void BindTexture(vk::raii::Device& device, u32 slot, vk::ImageView, vk::Sampler sampler);
+    u32 BindTexture(vk::raii::Device& device, vk::ImageView imageView, vk::Sampler sampler);
     void cleanup();
 
     [[nodiscard]] vk::DescriptorSetLayout GetLayoutHandle() const { return *m_DescriptorSetLayout; }

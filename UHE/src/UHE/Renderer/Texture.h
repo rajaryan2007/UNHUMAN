@@ -15,6 +15,7 @@ public:
     virtual void Bind(u32 slot = 0) const = 0;
     virtual void* GetImGuiTextureID() = 0;
     virtual RHI::TextureHandle GetTextureHandle() const = 0;
+    virtual u32 GetTextureIndex() const { return 0; }
 
     virtual bool operator==(const Texture& other) const = 0;
 };
@@ -25,6 +26,7 @@ public:
 
     static Ref<Texture2D> Create(const std::string& path);
     static Ref<Texture2D> Create(u32 width, u32 height);
+    static Ref<Texture2D> CreateFromMemory(const void* data, size_t size);
 };
 
 } // namespace UHE

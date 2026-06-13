@@ -50,14 +50,14 @@ void VulkanTexture::Init(VulkanDevice& device, const TextureDesc& desc) {
             aspect |= vk::ImageAspectFlagBits::eStencil;
     }
 
-    const auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
+    auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
     m_allocator = device.getLogicalDevClass().getAllocator();
 
     CreateImage(device.getLogicalDevClass(), m_Width, m_Height, format, usage, VMA_MEMORY_USAGE_GPU_ONLY, vk::ImageTiling::eOptimal, textureImage, textureImageMemory);
 
     // Create Image View
     vk::ImageViewCreateInfo viewInfo{};
-    viewInfo.image = *textureImage;
+    viewInfo.image = textureImage;
     viewInfo.viewType = vk::ImageViewType::e2D;
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = aspect;
@@ -82,14 +82,27 @@ void VulkanTexture::Init(VulkanDevice& device, const TextureDesc& desc) {
         samplerInfo.compareOp = vk::CompareOp::eAlways;
         samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
         textureSampler = vk::raii::Sampler(logicaldevice, samplerInfo);
+        if (!(aspect & vk::ImageAspectFlagBits::eDepth)) {
+            m_TextureIndex = device.GetDescriptorManager()->BindTexture(device.getLogicalDevClass().getLogicalDevice(), *textureImageView, *textureSampler);
+        }
     }
 }
 
 VulkanTexture::~VulkanTexture()
 {
-    if (m_allocator && textureImageMemory)
+    if (m_ImGuiDescriptorSet != VK_NULL_HANDLE && ImGui::GetCurrentContext() != nullptr)
     {
-        vmaFreeMemory(m_allocator, textureImageMemory);
+        ImGui_ImplVulkan_RemoveTexture(m_ImGuiDescriptorSet);
+        m_ImGuiDescriptorSet = VK_NULL_HANDLE;
+    }
+    
+    textureImageView.clear();
+    textureSampler.clear();
+    
+    if (m_allocator && textureImage && textureImageMemory)
+    {
+        vmaDestroyImage(m_allocator, static_cast<VkImage>(textureImage), textureImageMemory);
+        textureImage = nullptr;
         textureImageMemory = nullptr;
     }
 }
@@ -107,7 +120,7 @@ void* VulkanTexture::GetImGuiTextureID()
 
 void VulkanTexture::CreateImage(VulkanLogicalDevice& logDevice, uint32_t width, uint32_t height, vk::Format format,
                                 vk::ImageUsageFlags usage, VmaMemoryUsage memUsage, vk::ImageTiling tiling,
-                                vk::raii::Image& image, VmaAllocation& imageMemory)
+                                vk::Image& image, VmaAllocation& imageMemory)
 {
 
     vk::ImageCreateInfo imageInfo{};
@@ -135,8 +148,8 @@ void VulkanTexture::CreateImage(VulkanLogicalDevice& logDevice, uint32_t width, 
     {
         throw std::runtime_error("failed to create image via VMA!");
     }
-
-    image = vk::raii::Image(logDevice.getLogicalDevice(), rawImage);
+    
+    image = rawImage;
 }
 
 void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u32 width, u32 height, size_t dataSize)
@@ -145,7 +158,7 @@ void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u
     m_Width = width;
     m_Height = height;
 
-    const auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
+    auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
     m_allocator = device.getLogicalDevClass().getAllocator();
 
     vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
@@ -173,12 +186,12 @@ void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u
     memcpy(mapped, pixelData, dataSize);
     vmaUnmapMemory(m_allocator, stagingAlloc);
 
-    ExecuteCopyCommand(device, stagingBuffer, *textureImage, width, height);
+    ExecuteCopyCommand(device, stagingBuffer, textureImage, width, height);
     vmaDestroyBuffer(m_allocator, stagingBuffer, stagingAlloc);
 
     // Create Image View
     vk::ImageViewCreateInfo viewInfo{};
-    viewInfo.image = *textureImage;
+    viewInfo.image = textureImage;
     viewInfo.viewType = vk::ImageViewType::e2D;
     viewInfo.format = vk::Format::eR8G8B8A8Srgb;
     viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -202,6 +215,8 @@ void VulkanTexture::CreateTexture(VulkanDevice& device, const void* pixelData, u
     samplerInfo.compareOp = vk::CompareOp::eAlways;
     samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
     textureSampler = vk::raii::Sampler(logicaldevice, samplerInfo);
+    
+    m_TextureIndex = device.GetDescriptorManager()->BindTexture(logicaldevice, *textureImageView, *textureSampler);
 }
 
 void VulkanTexture::ExecuteCopyCommand(VulkanDevice& device, VkBuffer srcBuffer, vk::Image dstImage,
@@ -274,7 +289,7 @@ void VulkanTexture::UpdateTexture(const void* data, size_t size)
     memcpy(mapped, data, size);
     vmaUnmapMemory(m_allocator, stagingAlloc);
 
-    ExecuteCopyCommand(*m_Device, stagingBuffer, *textureImage, m_Width, m_Height);
+    ExecuteCopyCommand(*m_Device, stagingBuffer, textureImage, m_Width, m_Height);
     vmaDestroyBuffer(m_allocator, stagingBuffer, stagingAlloc);
 }
 

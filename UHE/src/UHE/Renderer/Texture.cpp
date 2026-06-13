@@ -15,4 +15,9 @@ namespace UHE {
         return CreateRef<VulkanTexture2D>(width, height);
     }
 
+    Ref<Texture2D> Texture2D::CreateFromMemory(const void* data, size_t size)
+    {
+        return CreateRef<VulkanTexture2D>(data, size);
+    }
+
 }

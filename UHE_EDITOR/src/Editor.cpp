@@ -48,6 +48,7 @@ void Editor::OnUpdate(UHE::Timestep ts)
     {
         m_Framebuffer->Resize((uint32_t)m_ViewPortSize.x, (uint32_t)m_ViewPortSize.y);
         m_CameraController.OnResize(m_ViewPortSize.x, m_ViewPortSize.y);
+        m_EditorCamera.SetViewportSize(m_ViewPortSize.x, m_ViewPortSize.y);
         m_ActiveScene->OnViewportResize((uint32_t)m_ViewPortSize.x, (uint32_t)m_ViewPortSize.y);
         m_FramesSinceResize = 0;
     }
@@ -102,6 +103,15 @@ void Editor::OnUpdate(UHE::Timestep ts)
         }
     }
 
+    cmd.EndRenderPass();
+
+    // Clear and transition swapchain image for ImGui
+    RHI::RenderPassDesc swapchainPass{};
+    swapchainPass.colorAttachmentCount = 0;
+    swapchainPass.renderWidth = Application::Get().GetWindow().GetWidth();
+    swapchainPass.renderHeight = Application::Get().GetWindow().GetHeight();
+    
+    cmd.BeginRenderPass(swapchainPass);
     cmd.EndRenderPass();
 }
 
@@ -398,6 +408,24 @@ void Editor::OnImGuiRender()
                     UHE_CORE_ERROR("Failed to load texture into viewport from payload!");
                 }
             }
+            else if (extension == ".gltf" || extension == ".glb")
+            {
+                UHE_CORE_INFO("Accepted Viewport DragDropPayload (3D Model): {0}", path);
+                std::string filename = itemPath.stem().string();
+                Entity modelEntity = m_ActiveScene->CreateEntity(filename);
+                auto& mc = modelEntity.AddComponent<Model3DComponent>();
+                mc.ModelPath = path;
+                if (mc.ModelData->loadModel(itemPath.string()))
+                {
+                    mc.IsLoaded = true;
+                    UHE_CORE_INFO("Successfully loaded 3D model into viewport!");
+                }
+                else
+                {
+                    mc.IsLoaded = false;
+                    UHE_CORE_ERROR("Failed to load 3D model into viewport from payload!");
+                }
+            }
         }
 
         ImGui::EndDragDropTarget();
@@ -428,7 +456,22 @@ void Editor::OnImGuiRender()
         if (m_FramesSinceResize > 1)
         {
             int pixelData = m_Framebuffer->ReadPixel(1, mouseX, mouseY);
-            m_HoverdEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
+            if (pixelData == -1 || pixelData < 0)
+            {
+                m_HoverdEntity = Entity();
+            }
+            else
+            {
+                entt::entity entId = (entt::entity)pixelData;
+                if (m_ActiveScene->GetRegistry().valid(entId))
+                {
+                    m_HoverdEntity = Entity(entId, m_ActiveScene.get());
+                }
+                else
+                {
+                    m_HoverdEntity = Entity();
+                }
+            }
         }
     }
 

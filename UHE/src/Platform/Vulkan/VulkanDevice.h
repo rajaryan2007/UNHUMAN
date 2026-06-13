@@ -21,6 +21,8 @@ public:
     // ─── Frame Lifecycle ────────────────────────────────────────
     void Begin() override;
     void End() override;
+    void WaitIdle() override;
+    void ResetCommandBuffers() override;
 
     // ─── Resource Creation ──────────────────────────────────────
     BufferHandle CreateBuffer(const BufferDesc& desc) override;
@@ -52,8 +54,9 @@ public:
     [[nodiscard]] VulkanPhysicalDevice& getPhysicalDevClass() { return m_PhysicalDevice; }
     [[nodiscard]] VulkanSwapChain& getSwapChainClass() { return m_SwapChain; }
     [[nodiscard]] const u32& ImageIndex() { return m_ImageIndex; }
+    [[nodiscard]] VulkanDescriptorManager* GetDescriptorManager() { return &m_DescriptorManager; }
     void ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function);
-    void WaitIdle() override;
+
 
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);

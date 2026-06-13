@@ -74,7 +74,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     vk::Extent2D renderExtent;
     m_CurrentRenderPassDesc = desc;
 
-    if (desc.colorAttachmentCount == 0 && desc.hasDepth == false) {
+    if (desc.colorAttachmentCount == 0) {
         // Swapchain fallback
         auto& device = UHE::Renderer::GetDevice();
         auto& vulkanDevice = static_cast<VulkanDevice&>(device);
@@ -114,7 +114,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
             auto* texture = reinterpret_cast<VulkanTexture*>(desc.colorAttachments[i].texture);
             if (!texture) continue;
             
-            vk::Image image = *texture->GetImage();
+            vk::Image image = texture->GetImage();
             vk::ImageView imageView = *texture->GetImageView();
 
             vk::RenderingAttachmentInfo colorAttachment{};
@@ -154,7 +154,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     vk::RenderingAttachmentInfo depthAttachmentInfo{};
     if (desc.hasDepth && desc.depthAttachment.texture) {
         auto* depthTex = reinterpret_cast<VulkanTexture*>(desc.depthAttachment.texture);
-        vk::Image image = *depthTex->GetImage();
+        vk::Image image = depthTex->GetImage();
         
         depthAttachmentInfo.imageView = *depthTex->GetImageView();
         depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
@@ -204,7 +204,7 @@ void VulkanCommandBuffer::EndRenderPass()
 
     std::vector<vk::ImageMemoryBarrier> barriers;
 
-    if (m_CurrentRenderPassDesc.colorAttachmentCount == 0 && m_CurrentRenderPassDesc.hasDepth == false) {
+    if (m_CurrentRenderPassDesc.colorAttachmentCount == 0) {
         auto& device = UHE::Renderer::GetDevice();
         auto& vulkanDevice = static_cast<VulkanDevice&>(device);
         auto& swapChain = vulkanDevice.getSwapChainClass();
@@ -222,15 +222,15 @@ void VulkanCommandBuffer::EndRenderPass()
         barrier.subresourceRange.levelCount = 1;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
-        barrier.srcAccessMask = vk::AccessFlags{};
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+        barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+        barrier.dstAccessMask = vk::AccessFlags{};
         barriers.push_back(barrier);
     } else {
         for (u32 i = 0; i < m_CurrentRenderPassDesc.colorAttachmentCount; i++) {
             auto* texture = reinterpret_cast<VulkanTexture*>(m_CurrentRenderPassDesc.colorAttachments[i].texture);
             if (!texture) continue;
 
-            vk::Image image = *texture->GetImage();
+            vk::Image image = texture->GetImage();
 
             vk::ImageMemoryBarrier barrier{};
             barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
@@ -250,7 +250,7 @@ void VulkanCommandBuffer::EndRenderPass()
 
         if (m_CurrentRenderPassDesc.hasDepth && m_CurrentRenderPassDesc.depthAttachment.texture) {
             auto* depthTex = reinterpret_cast<VulkanTexture*>(m_CurrentRenderPassDesc.depthAttachment.texture);
-            vk::Image image = *depthTex->GetImage();
+            vk::Image image = depthTex->GetImage();
 
             vk::ImageMemoryBarrier barrier{};
             barrier.oldLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
@@ -309,11 +309,7 @@ void VulkanCommandBuffer::BindIndexBuffer(BufferHandle handle, u64 offset)
 
 void VulkanCommandBuffer::BindTexture(u32 slot, TextureHandle handle)
 {
-    auto* texture = reinterpret_cast<VulkanTexture*>(handle);
-    if (texture != nullptr && m_DescriptorManager != nullptr && m_LogDevice != nullptr)
-    {
-        m_DescriptorManager->BindTexture(*m_LogDevice, slot, *texture->GetImageView(), texture->GetSampler());
-    }
+    // No-op for global bindless textures
 }
 
 // ─── Dynamic States ─────────────────────────────────────────────

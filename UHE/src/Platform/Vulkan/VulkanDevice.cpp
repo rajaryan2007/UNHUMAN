@@ -172,7 +172,7 @@ void VulkanDevice::DestroyBuffer(BufferHandle handle)
     if (handle)
     {
         auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
-        delete buffer;
+        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([buffer]() { delete buffer; });
     }
 }
 
@@ -181,7 +181,7 @@ void VulkanDevice::DestroyTexture(TextureHandle handle)
     if (handle)
     {
         auto* texture = reinterpret_cast<VulkanTexture*>(handle);
-        delete texture;
+        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([texture]() { delete texture; });
     }
 }
 
@@ -190,7 +190,7 @@ void VulkanDevice::DestroyShader(ShaderHandle handle)
     if (handle)
     {
         auto* shader = reinterpret_cast<VulkanShader*>(handle);
-        delete shader;
+        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([shader]() { delete shader; });
     }
 }
 
@@ -199,7 +199,7 @@ void VulkanDevice::DestroyGraphicsPipeline(PipelineHandle handle)
     if (handle)
     {
         auto* pipeline = reinterpret_cast<VulkanGraphicPipeline*>(handle);
-        delete pipeline;
+        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
     }
 }
 
@@ -318,10 +318,18 @@ void VulkanDevice::WaitIdle()
     getLogicalDevClass().getLogicalDevice().waitIdle();
 }
 
+void VulkanDevice::ResetCommandBuffers()
+{
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        m_Frames[i].GetCommandBuffer().Reset();
+    }
+}
+
 void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
 {
     auto* texture = reinterpret_cast<VulkanTexture*>(handle);
-    vk::Image image = *texture->GetImage();
+    vk::Image image = texture->GetImage();
 
     // 1. Create a CPU-visible buffer
     VkBuffer stagingBuffer;

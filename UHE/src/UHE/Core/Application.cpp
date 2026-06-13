@@ -4,6 +4,7 @@
 
 #include "UHE/Renderer/Renderer.h"
 #include "UHE/Renderer/Renderer2D.h"
+#include "UHE/Renderer3D/Renderer3D.h"
 
 #include "UHE/Core/Log.h"
 #include "input.h"
@@ -31,6 +32,7 @@ namespace UHE{
 		
 		Renderer::Init();
 		Renderer2D::Init();
+		Renderer3D::Init();
 
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushOverlay(m_ImGuiLayer);		
@@ -39,7 +41,9 @@ namespace UHE{
 	Application::~Application()
 	{
 		Renderer::GetDevice().WaitIdle();
+		Renderer::GetDevice().ResetCommandBuffers();
 		m_LayerStack.Clear();
+		Renderer3D::Shutdown();
 		Renderer2D::Shutdown();
 		Renderer::Shutdown();
 	}

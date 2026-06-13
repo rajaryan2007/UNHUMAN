@@ -83,9 +83,11 @@ u32 VulkanDescriptorManager::RegisterBuffer(vk::raii::Device& device, vk::Buffer
     device.updateDescriptorSets({descriptorWrite}, nullptr);
     return bindingIndex;
 }
-void VulkanDescriptorManager::BindTexture(vk::raii::Device& device, u32 slot, vk::ImageView imageView,
+u32 VulkanDescriptorManager::BindTexture(vk::raii::Device& device, vk::ImageView imageView,
                                           vk::Sampler sampler)
 {
+    u32 slot = m_NextTextureIndex++;
+
     vk::DescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
     imageInfo.imageView = imageView;
@@ -99,6 +101,8 @@ void VulkanDescriptorManager::BindTexture(vk::raii::Device& device, u32 slot, vk
     descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
     descriptorWrite.pImageInfo = &imageInfo;
     device.updateDescriptorSets({descriptorWrite}, nullptr);
+    
+    return slot;
 }
 
 void VulkanDescriptorManager::cleanup()

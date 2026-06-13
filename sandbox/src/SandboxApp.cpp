@@ -1,11 +1,11 @@
 #include <UHE.h>
 #include <UHE/Core/EntryPoint.h>
-#include "TriangleTestLayer.h"
+#include "ModelTestLayer.h"
 
 class Sandbox : public UHE::Application {
 public:
 	Sandbox() {
-		PushLayer(new TriangleTestLayer());
+		PushLayer(new ModelTestLayer());
 	}
 	~Sandbox() {
 	}
