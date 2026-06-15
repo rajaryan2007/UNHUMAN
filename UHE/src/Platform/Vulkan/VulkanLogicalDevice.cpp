@@ -30,17 +30,20 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
         throw std::runtime_error("Failed to find a suitable queue family!");
     }
 
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features,
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features,
                        vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDescriptorIndexingFeatures>
         featureChain;
 
     auto& features2 = featureChain.get<vk::PhysicalDeviceFeatures2>();
+    auto& vulkan11Features = featureChain.get<vk::PhysicalDeviceVulkan11Features>();
     auto& vulkan13Features = featureChain.get<vk::PhysicalDeviceVulkan13Features>();
     auto& dynamicStateFeatures = featureChain.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
     auto& descriptorIndexing = featureChain.get<vk::PhysicalDeviceDescriptorIndexingFeatures>();
 
     features2.features.samplerAnisotropy = VK_TRUE;
     features2.features.independentBlend = VK_TRUE;
+
+    vulkan11Features.shaderDrawParameters = VK_TRUE;
 
     vulkan13Features.dynamicRendering = VK_TRUE;
     vulkan13Features.synchronization2 = VK_TRUE;

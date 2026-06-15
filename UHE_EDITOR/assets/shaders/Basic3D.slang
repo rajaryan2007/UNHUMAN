@@ -27,6 +27,7 @@ struct FragmentOutput {
     [[vk::location(1)]] int EntityID : SV_Target1;
 };
 
+
 [shader("vertex")]
 VertexOutput vertexMain(VertexInput input) {
     VertexOutput output;

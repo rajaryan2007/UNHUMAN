@@ -43,6 +43,7 @@ namespace UHE
 		EditorCamera m_EditorCamera;
 		bool m_ViewPortFocused = false;
 		bool m_ViewPortHover = false;
+		bool m_IsViewportFullScreen = false;
 		
 		OrthographicCameraContoroller m_CameraController;
 

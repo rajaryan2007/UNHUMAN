@@ -10,7 +10,7 @@ class VulkanDevice;
 class VulkanCommandPool;
 class VulkanDescriptorManager;
 
-class VulkanCommandBuffer : public RHICommandBuffer
+class VulkanCommandBuffer final : public RHICommandBuffer
 {
 public:
     VulkanCommandBuffer() = default;

@@ -98,7 +98,7 @@ void VulkanImGuiLayer::End()
     vk::raii::ImageView& swapchainImageView = swapchain.GetImageView(imageIndex);
     vk::Extent2D extent = swapchain.GetExtent();
 
-    // 1. Transition swapchain image to COLOR_ATTACHMENT_OPTIMAL
+    
     vk::ImageMemoryBarrier barrier{};
     barrier.oldLayout = vk::ImageLayout::ePresentSrcKHR;
     barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
@@ -115,7 +115,7 @@ void VulkanImGuiLayer::End()
 
     cmd.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, nullptr, nullptr, barrier);
 
-    // 2. Begin rendering pass
+    
     vk::RenderingAttachmentInfo colorAttachment{};
     colorAttachment.imageView = *swapchainImageView;
     colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
@@ -132,13 +132,12 @@ void VulkanImGuiLayer::End()
 
     cmd.beginRendering(renderingInfo);
 
-    // 3. Render ImGui
+    
     ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
 
-    // 4. End rendering pass
+    
     cmd.endRendering();
 
-    // 5. Transition to PRESENT_SRC_KHR
     barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
     barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
     barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;

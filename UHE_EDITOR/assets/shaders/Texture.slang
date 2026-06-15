@@ -22,7 +22,7 @@ struct PushConstants {
 
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
-[[vk::binding(1, 0)]] Sampler2D u_Textures[32];
+[[vk::binding(1, 0)]] Sampler2D u_Textures[10000];
 
 [shader("vertex")]
 VertexOutput vertexMain(VertexInput input) {
@@ -45,43 +45,9 @@ struct FragmentOutput {
 [shader("fragment")]
 FragmentOutput fragmentMain(VertexOutput input) {
     FragmentOutput output;
-    float4 texColor = float4(1.0);
+    
     int index = (int)input.v_TexIndex;
-
-    switch(index) {
-        case 0: texColor = u_Textures[0].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 1: texColor = u_Textures[1].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 2: texColor = u_Textures[2].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 3: texColor = u_Textures[3].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 4: texColor = u_Textures[4].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 5: texColor = u_Textures[5].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 6: texColor = u_Textures[6].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 7: texColor = u_Textures[7].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 8: texColor = u_Textures[8].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 9: texColor = u_Textures[9].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 10: texColor = u_Textures[10].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 11: texColor = u_Textures[11].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 12: texColor = u_Textures[12].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 13: texColor = u_Textures[13].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 14: texColor = u_Textures[14].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 15: texColor = u_Textures[15].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 16: texColor = u_Textures[16].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 17: texColor = u_Textures[17].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 18: texColor = u_Textures[18].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 19: texColor = u_Textures[19].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 20: texColor = u_Textures[20].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 21: texColor = u_Textures[21].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 22: texColor = u_Textures[22].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 23: texColor = u_Textures[23].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 24: texColor = u_Textures[24].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 25: texColor = u_Textures[25].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 26: texColor = u_Textures[26].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 27: texColor = u_Textures[27].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 28: texColor = u_Textures[28].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 29: texColor = u_Textures[29].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 30: texColor = u_Textures[30].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-        case 31: texColor = u_Textures[31].Sample(input.v_TexCoord * input.v_TilingFactor); break;
-    }
+    float4 texColor = u_Textures[index].Sample(input.v_TexCoord * input.v_TilingFactor);
     
     output.color = texColor * input.v_Color;
     output.entityID = input.v_EntityID;

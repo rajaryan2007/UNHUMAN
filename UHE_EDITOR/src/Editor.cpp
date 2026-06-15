@@ -14,7 +14,7 @@ namespace UHE
 {
 
 Editor::Editor()
-    : Layer("Editor"), m_CameraController(1280.0f / 720.0f), m_Transform(0.0f, 0.0f, 0.0f),
+    : Layer("Editor"), m_CameraController(1280.0f / 720.0f), m_Transform(1.0f, 0.0f, 0.0f),
       m_SceneHireacyPanel(m_ActiveScene), m_ContentBrowserPanel()
 {
 }
@@ -110,7 +110,7 @@ void Editor::OnUpdate(UHE::Timestep ts)
     swapchainPass.colorAttachmentCount = 0;
     swapchainPass.renderWidth = Application::Get().GetWindow().GetWidth();
     swapchainPass.renderHeight = Application::Get().GetWindow().GetHeight();
-    
+
     cmd.BeginRenderPass(swapchainPass);
     cmd.EndRenderPass();
 }
@@ -127,6 +127,7 @@ void Editor::OnEvent(UHE::Event& e)
 
 void Editor::OnScreenPlay()
 {
+    m_HoverdEntity = {};
     m_EditorScene = m_ActiveScene;
     m_ActiveScene = Scene::Copy(m_EditorScene);
     m_ActiveScene->OnRuntimeStart();
@@ -135,6 +136,7 @@ void Editor::OnScreenPlay()
 
 void Editor::OnSceneStop()
 {
+    m_HoverdEntity = {};
     m_ActiveScene->OnRuntimeStop();
     m_SceneState = SceneState::Edit;
 
@@ -156,6 +158,14 @@ bool Editor::onKeyPressed(KeyPressedEvent& e)
             if (controlPressed)
             {
                 NewScene();
+            }
+            break;
+        }
+        case Key::F:
+        {
+            if (controlPressed && shift)
+            {
+                m_IsViewportFullScreen = !m_IsViewportFullScreen;
             }
             break;
         }
@@ -357,9 +367,33 @@ void Editor::OnImGuiRender()
                 ImGui::GetIO().Framerate);
 
     ImGui::End();
+    DrawConsolePanel();
+    
+    if (!m_IsViewportFullScreen)
+        UI_Toolbar();
+
+    ImGuiWindowFlags viewportFlags = 0;
+    std::string viewportName = "Viewport";
+    
+    if (m_IsViewportFullScreen)
+    {
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        viewportFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        viewportFlags |= ImGuiWindowFlags_NoDocking;
+        viewportName = "FullscreenViewport";
+    }
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
-    ImGui::Begin("Viewport");
+    ImGui::Begin(viewportName.c_str(), nullptr, viewportFlags);
+    
+    if (m_IsViewportFullScreen)
+    {
+        ImGui::SetWindowFocus();
+    }
+    
     auto viewPortOffset = ImGui::GetCursorPos();
 
     m_ViewportPos = ImGui::GetWindowPos();
@@ -522,9 +556,6 @@ void Editor::OnImGuiRender()
 
     ImGui::End();
     ImGui::PopStyleVar();
-
-    DrawConsolePanel();
-    UI_Toolbar();
 }
 
 bool Editor::OnMouseButtonPressedEvent(MouseButtonPressedEvent& e)

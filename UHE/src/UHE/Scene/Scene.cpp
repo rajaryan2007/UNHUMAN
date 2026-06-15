@@ -15,30 +15,17 @@ namespace UHE
 
 Scene::Scene()
 {
-    // entt::entity entity = m_registry.create();
-    //
-    // m_registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
-    //
-    // if (m_registry.all_of<TransformComponent>(entity))
-    // {
-    //     auto& transform = m_registry.get<TransformComponent>(entity);
-    // }
-    //
-    // auto view = m_registry.view<TransformComponent>();
-    //
-    // for (auto entity : view)
-    // {
-    //     auto& transform = view.get<TransformComponent>(entity);
-    // }
-    //
-    // auto group =
-    // m_registry.group<TransformComponent>(entt::get<MeshComponent>);
-    //
-    // for (auto entity : group)
-    // {
-    //     auto& [transform, mesh] = group.get<TransformComponent,
-    //     MeshComponent>(entity);
-    // }
+    // Initialize all component pools to prevent EnTT out-of-bounds asserts across DLL boundaries
+    m_registry.storage<IDComponent>();
+    m_registry.storage<TagComponent>();
+    m_registry.storage<TransformComponent>();
+    m_registry.storage<CameraComponent>();
+    m_registry.storage<SpriteRendererComponent>();
+    m_registry.storage<SpriteAnimationComponent>();
+    m_registry.storage<NativeScriptComponent>();
+    m_registry.storage<RigidBody2DComponent>();
+    m_registry.storage<BoxColliderComponent>();
+    m_registry.storage<Model3DComponent>();
 }
 
 Scene::~Scene() = default;
@@ -133,6 +120,15 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
             dst.Restitution = src.Restitution;
             dst.RestitutionThreshold = src.RestitutionThreshold;
         }
+        // Copy Model3DComponent
+        if (srcRegistry.all_of<Model3DComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<Model3DComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<Model3DComponent>();
+            dst.ModelPath = src.ModelPath;
+            dst.IsLoaded = src.IsLoaded;
+            dst.ModelData = src.ModelData;
+        }
     }
 
     return newScene;
@@ -189,6 +185,7 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
     Renderer2D::EndScene();
 
     Renderer3D::BeginScene(camera);
+    Renderer3D::DrawGrid();
     RenderModels(ts);
     Renderer3D::EndScene();
 }

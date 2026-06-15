@@ -39,9 +39,6 @@ struct Renderer2DData
     QuadVertex* QuadVertexBufferBase = nullptr;
     QuadVertex* QuadVertexBufferPtr = nullptr;
 
-    std::array<RHI::TextureHandle, MaxTextureSlots> TextureSlots;
-    uint32_t TextureSlotIndex = 1; // 0 is white texture
-
     glm::vec4 QuadVertexPositions[4];
 
     Renderer2D::Statistics Stats;
@@ -98,8 +95,6 @@ void Renderer2D::Init()
     s_Data.WhiteTexture = device.CreateTexture(whiteTexDesc);
 
     device.GetCurrentCommandBuffer().UpdateTexture(s_Data.WhiteTexture, &whiteTextureData, sizeof(uint32_t));
-
-    s_Data.TextureSlots[0] = s_Data.WhiteTexture;
 
     // Compile Shader
     std::string shaderPath = (FileSystem::Get().GetRootPath() / "assets/shaders/Texture.slang").string();
@@ -201,7 +196,6 @@ void Renderer2D::StartBatch()
 {
     s_Data.QuadIndexCount = 0;
     s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
-    s_Data.TextureSlotIndex = 1;
 }
 
 void Renderer2D::Flush()
@@ -215,12 +209,6 @@ void Renderer2D::Flush()
     auto& cmd = device.GetCurrentCommandBuffer();
 
     cmd.UpdateBuffer(s_Data.QuadVertexBuffer, s_Data.QuadVertexBufferBase, dataSize, 0);
-
-    // Bind textures
-    for (uint32_t i = 0; i < s_Data.TextureSlotIndex; i++)
-    {
-        cmd.BindTexture(i, s_Data.TextureSlots[i]);
-    }
 
     cmd.BindVertexBuffer(s_Data.QuadVertexBuffer, 0);
     cmd.BindIndexBuffer(s_Data.QuadIndexBuffer, 0);
@@ -266,7 +254,7 @@ void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, cons
 void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
 {
     constexpr size_t quadVertexCount = 4;
-    const float textureIndex = 0.0f; // White Texture
+    const float textureIndex = (float)reinterpret_cast<RHI::RHITexture*>(s_Data.WhiteTexture)->GetTextureIndex();
     constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
     const float tilingFactor = 1.0f;
 
@@ -297,25 +285,7 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& text
     if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
         NextBatch();
 
-    float textureIndex = 0.0f;
-    for (uint32_t i = 1; i < s_Data.TextureSlotIndex; i++)
-    {
-        if (s_Data.TextureSlots[i] == texture->GetTextureHandle())
-        {
-            textureIndex = (float)i;
-            break;
-        }
-    }
-
-    if (textureIndex == 0.0f)
-    {
-        if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
-            NextBatch();
-
-        textureIndex = (float)s_Data.TextureSlotIndex;
-        s_Data.TextureSlots[s_Data.TextureSlotIndex] = texture->GetTextureHandle();
-        s_Data.TextureSlotIndex++;
-    }
+    float textureIndex = (float)texture->GetTextureIndex();
 
     for (size_t i = 0; i < quadVertexCount; i++)
     {
@@ -342,25 +312,7 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& s
     if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
         NextBatch();
 
-    float textureIndex = 0.0f;
-    for (uint32_t i = 1; i < s_Data.TextureSlotIndex; i++)
-    {
-        if (s_Data.TextureSlots[i] == texture->GetTextureHandle())
-        {
-            textureIndex = (float)i;
-            break;
-        }
-    }
-
-    if (textureIndex == 0.0f)
-    {
-        if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
-            NextBatch();
-
-        textureIndex = (float)s_Data.TextureSlotIndex;
-        s_Data.TextureSlots[s_Data.TextureSlotIndex] = texture->GetTextureHandle();
-        s_Data.TextureSlotIndex++;
-    }
+    float textureIndex = (float)texture->GetTextureIndex();
 
     for (size_t i = 0; i < quadVertexCount; i++)
     {

@@ -18,5 +18,7 @@ public:
     static void EndScene();
 
     static void SubmitModel(const RD3d::Model& model, const glm::mat4& transform = glm::mat4(1.0f), int entityID = -1);
+    
+    static void DrawGrid();
 };
 } // namespace UHE

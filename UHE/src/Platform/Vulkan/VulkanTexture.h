@@ -9,16 +9,15 @@ namespace UHE::RHI::VULKAN
 class VulkanDevice;
 class VulkanLogicalDevice;
 
-class VulkanTexture : public RHITexture
+class VulkanTexture final : public RHITexture
 {
 public:
     VulkanTexture() = default;
-    virtual ~VulkanTexture() override;
+    ~VulkanTexture() override;
 
-    virtual const TextureDesc& GetDesc() const override { return m_Desc; }
-    virtual void* GetImGuiTextureID() override;
-    virtual u32 GetTextureIndex() const override { return m_TextureIndex; }
-
+    const TextureDesc& GetDesc() const override { return m_Desc; }
+    void* GetImGuiTextureID() override;
+    u32 GetTextureIndex() const override { return m_TextureIndex; }
 
     void Init(VulkanDevice& device, const TextureDesc& desc);
     void CreateImage(VulkanLogicalDevice& device, uint32_t width, uint32_t height, vk::Format format,

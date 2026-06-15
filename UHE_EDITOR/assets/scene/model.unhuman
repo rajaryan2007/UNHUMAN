@@ -1,0 +1,11 @@
+Scene: Untitled
+Entities:
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [0, -0.92900085, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/coderepo/enginedev/unhuman/./UHE_EDITOR/assets/model/lynae_from_wuthering_waves.glb

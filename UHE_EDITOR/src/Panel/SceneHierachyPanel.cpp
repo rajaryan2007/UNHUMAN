@@ -295,6 +295,10 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
       m_SelectionContext.AddComponent<BoxColliderComponent>();
       ImGui::CloseCurrentPopup();
     }
+    if (ImGui::MenuItem("  Model 3D")) {
+      m_SelectionContext.AddComponent<Model3DComponent>();
+      ImGui::CloseCurrentPopup();
+    }
     ImGui::EndPopup();
   }
   ImGui::Spacing();

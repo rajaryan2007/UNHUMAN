@@ -1,5 +1,7 @@
 #pragma once
 
+#define ENTT_STANDARD_CPP 1
+
 #include <UHE/Core/Log.h>
 #include <UHE/Debug/TracySetup.h>
 #include <algorithm>

@@ -5,7 +5,7 @@
 
 namespace UHE::RHI::VULKAN
 {
-class VulkanSwapChain : RHISwapChain
+class VulkanSwapChain final : RHISwapChain
 {
 public:
     VulkanSwapChain() = default;
@@ -16,11 +16,11 @@ public:
 
     void cleanupSwapChain();
 
-    virtual void AcquireNextImage() override;
-    virtual void Present() override;
-    virtual void ResizeSwapchain(u32 width, u32 height) override;
-    virtual TextureHandle GetSwapchainImage() override;
-    virtual TextureFormat GetSwapchainFormat() override;
+    void AcquireNextImage() override;
+    void Present() override;
+    void ResizeSwapchain(u32 width, u32 height) override;
+    TextureHandle GetSwapchainImage() override;
+    TextureFormat GetSwapchainFormat() override;
 
     inline vk::raii::SwapchainKHR& GetSwapchain() { return swapChain; }
     inline const std::vector<vk::Image>& GetImages() const { return swapChainImages; }
