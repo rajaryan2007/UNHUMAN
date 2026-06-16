@@ -347,7 +347,12 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
 
-    vmaCreateBuffer(m_Allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAlloc, nullptr);
+    VkResult res = vmaCreateBuffer(m_Allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAlloc, nullptr);
+    if (res != VK_SUCCESS)
+    {
+        UHE_CORE_ERROR("Failed to create staging buffer for ReadPixel!");
+        return;
+    }
 
     // 2. Allocate and begin command buffer
     vk::CommandBufferAllocateInfo allocInfoCmd{};
@@ -398,10 +403,12 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
         });
 
     // 7. Map memory and read
-    void* mappedData;
-    vmaMapMemory(m_Allocator, stagingAlloc, &mappedData);
-    memcpy(outData, mappedData, 4);
-    vmaUnmapMemory(m_Allocator, stagingAlloc);
+    void* mappedData = nullptr;
+    if (vmaMapMemory(m_Allocator, stagingAlloc, &mappedData) == VK_SUCCESS && mappedData)
+    {
+        memcpy(outData, mappedData, 4);
+        vmaUnmapMemory(m_Allocator, stagingAlloc);
+    }
 
     vmaDestroyBuffer(m_Allocator, stagingBuffer, stagingAlloc);
 }
