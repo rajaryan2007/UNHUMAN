@@ -27,8 +27,8 @@ jobs:
         shell: pwsh
         run: |
           $sdkVersion = "1.4.350.0"
-          $installerUrl = "https://sdk.lunarg.com/sdk/download/$sdkVersion/windows/VulkanSDK-$sdkVersion-Installer.exe"
-          $installerPath = "$env:TEMP\VulkanSDK-Installer.exe"
+          $installerUrl = "https://vulkan.lunarg.com/sdk/download/$sdkVersion/windows/vulkansdk-windows-X64-$sdkVersion.exe"
+          $installerPath = "$env:TEMP\vulkansdk-installer.exe"
           
           Write-Host "Downloading Vulkan SDK $sdkVersion..."
           Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
