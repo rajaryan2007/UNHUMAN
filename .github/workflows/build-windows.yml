@@ -26,7 +26,7 @@ jobs:
       - name: Install Vulkan SDK
         shell: pwsh
         run: |
-          $sdkVersion = "1.4.313.0"
+          $sdkVersion = "1.4.350.0"
           $installerUrl = "https://sdk.lunarg.com/sdk/download/$sdkVersion/windows/VulkanSDK-$sdkVersion-Installer.exe"
           $installerPath = "$env:TEMP\VulkanSDK-Installer.exe"
           
