@@ -29,9 +29,9 @@ public:
     void CreateTextureSampler();
     void CreateDepthImageView(vk::Extent2D swapChainExtent, vk::Format depthFormat = vk::Format::eD32Sfloat);
 
-    vk::ImageView GetImageView() { return *textureImageView; }
-    vk::ImageView GetDepthImageView() { return *depthImageView; }
-    vk::Sampler GetTextureSampler() { return *textureSampler; }
+    [[nodiscard]] vk::ImageView GetImageView() { return *textureImageView; }
+    [[nodiscard]] vk::ImageView GetDepthImageView() { return *depthImageView; }
+    [[nodiscard]] vk::Sampler GetTextureSampler() { return *textureSampler; }
 
 private:
     vk::raii::PhysicalDevice* physicaldevice = nullptr;

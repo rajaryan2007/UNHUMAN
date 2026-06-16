@@ -23,10 +23,10 @@ public:
 
     VmaAllocator& getAllocator() { return m_allocator; };
 
-    inline vk::raii::Device& getLogicalDevice() { return m_logicalDevice; }
-    u32 getGraphicsQueueFamilyIndex() const { return m_graphicsQueueFamilyIndex; }
-    inline vk::raii::Queue& getGraphicsQueue() { return m_graphicsQueue; }
-    inline vk::raii::SurfaceKHR& getSurface() { return surface; }
+    [[nodiscard]] inline vk::raii::Device& getLogicalDevice() { return m_logicalDevice; }
+    [[nodiscard]] u32 getGraphicsQueueFamilyIndex() const { return m_graphicsQueueFamilyIndex; }
+    [[nodiscard]] inline vk::raii::Queue& getGraphicsQueue() { return m_graphicsQueue; }
+    [[nodiscard]] inline vk::raii::SurfaceKHR& getSurface() { return surface; }
 
 private:
     u32 m_graphicsQueueFamilyIndex{0};
