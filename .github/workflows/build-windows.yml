@@ -44,16 +44,20 @@ jobs:
       - name: Run Setup Script (download Slang etc.)
         run: python script/Setup.py
 
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Configure CMake
         run: >
           cmake -B build
-          -G "Visual Studio 17 2022"
-          -A x64
+          -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DVG_PROFILE=OFF
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --parallel
 
       - name: Prepare artifact
         shell: pwsh
