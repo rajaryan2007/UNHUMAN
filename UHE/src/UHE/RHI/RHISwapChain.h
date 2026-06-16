@@ -3,7 +3,7 @@
 
 
 namespace UHE::RHI {
-	class RHISwapChain {
+	class UHE_API RHISwapChain {
     public:
           virtual ~RHISwapChain() = default;
 

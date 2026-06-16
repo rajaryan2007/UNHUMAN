@@ -7,7 +7,7 @@
 
 namespace UHE
 {
-class Renderer3D
+class UHE_API Renderer3D
 {
 public:
     static void Init();

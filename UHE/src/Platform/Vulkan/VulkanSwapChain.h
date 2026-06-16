@@ -5,7 +5,7 @@
 
 namespace UHE::RHI::VULKAN
 {
-class VulkanSwapChain final : RHISwapChain
+class UHE_API VulkanSwapChain final : RHISwapChain
 {
 public:
     VulkanSwapChain() = default;

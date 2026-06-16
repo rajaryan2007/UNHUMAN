@@ -39,7 +39,7 @@ struct Mesh
     std::vector<Primitive> primitive;
 };
 
-class Model
+class UHE_API Model
 {
 public:
     Model() = default;
