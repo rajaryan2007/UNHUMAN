@@ -20,9 +20,9 @@ target_include_directories(Sandbox PRIVATE
 target_link_libraries(Sandbox PRIVATE UHE)
 
 if(WIN32)
-    target_compile_definitions(Sandbox PRIVATE UHE_PLATFORM_WINDOWS UHE_DYNAMIC_LINK)
+    target_compile_definitions(Sandbox PRIVATE UHE_PLATFORM_WINDOWS UHE_DYNAMIC_LINK ENTT_API_IMPORT)
 elseif(UNIX)
-    target_compile_definitions(Sandbox PRIVATE UHE_PLATFORM_LINUX)
+    target_compile_definitions(Sandbox PRIVATE UHE_PLATFORM_LINUX ENTT_API_IMPORT)
 endif()
 
 if(UHE_PROFILE)

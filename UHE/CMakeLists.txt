@@ -76,7 +76,7 @@ target_compile_definitions(UHE PUBLIC
     _CRT_SECURE_NO_WARNINGS
 )
 
-target_compile_definitions(UHE PRIVATE UHE_BUILD_DLL TRACY_ENABLE)
+target_compile_definitions(UHE PRIVATE UHE_BUILD_DLL ENTT_API_EXPORT TRACY_ENABLE)
 
 if(UHE_PROFILE)
     target_compile_definitions(UHE PUBLIC UHE_PROFILE=1 TRACY_ENABLE=1)

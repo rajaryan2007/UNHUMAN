@@ -45,6 +45,7 @@ endif()
 
 target_compile_definitions(UHE_EDITOR PRIVATE
     UHE_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    ENTT_API_IMPORT
 )
 
 if(UHE_PROFILE)
