@@ -4,7 +4,11 @@
 #include <atomic>
 #include <common/TracyQueue.hpp>
 #include <cstdint>
-#include <unistd.h>
+#ifdef _WIN32
+// Windows-specific includes if needed
+#else
+    #include <unistd.h>
+#endif
 #include <vulkan/vulkan_raii.hpp>
 #include "Platform/Vulkan/VulkanBuffer.h"
 #include "Platform/Vulkan/VulkanGraphicPipeline.h"
