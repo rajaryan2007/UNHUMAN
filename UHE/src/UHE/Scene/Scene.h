@@ -62,15 +62,15 @@ private:
     friend class SceneHierarchyPanel;
 };
 
-template <> void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& components);
-template <> void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& components);
-template <> void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& components);
-template <> void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& components);
-template <> void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent& components);
-template <> void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& components);
-template <> void Scene::OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& components);
-template <> void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& components);
-template <> void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& components);
-template <> void Scene::OnComponentAdded<Model3DComponent>(Entity entity, Model3DComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<Model3DComponent>(Entity entity, Model3DComponent& components);
 
 } // namespace UHE

@@ -1,4 +1,4 @@
-#ifdef _WIN32_
+#ifdef _WIN32
 #include "uhepch.h"
 #include <GLFW/glfw3.h>
 #include "UHE/Utils/PlatfromUtils.h"
