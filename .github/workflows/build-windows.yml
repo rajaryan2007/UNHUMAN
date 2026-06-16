@@ -24,10 +24,22 @@ jobs:
           python-version: '3.12'
 
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.1.1
-        with:
-          version: latest
-          cache: true
+        shell: pwsh
+        run: |
+          $sdkVersion = "1.4.313.0"
+          $installerUrl = "https://sdk.lunarg.com/sdk/download/$sdkVersion/windows/VulkanSDK-$sdkVersion-Installer.exe"
+          $installerPath = "$env:TEMP\VulkanSDK-Installer.exe"
+          
+          Write-Host "Downloading Vulkan SDK $sdkVersion..."
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+          
+          Write-Host "Installing Vulkan SDK silently..."
+          Start-Process -FilePath $installerPath -ArgumentList "--accept-licenses --default-answer --confirm-command install" -Wait -NoNewWindow
+          
+          $sdkPath = "C:\VulkanSDK\$sdkVersion"
+          Write-Host "Setting VULKAN_SDK=$sdkPath"
+          echo "VULKAN_SDK=$sdkPath" >> $env:GITHUB_ENV
+          echo "$sdkPath\Bin" >> $env:GITHUB_PATH
 
       - name: Run Setup Script (download Slang etc.)
         run: python script/Setup.py
