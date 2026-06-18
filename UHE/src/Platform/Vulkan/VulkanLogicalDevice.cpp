@@ -30,15 +30,15 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
         throw std::runtime_error("Failed to find a suitable queue family!");
     }
 
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features,
-                       vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceDescriptorIndexingFeatures>
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features,
+                       vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
         featureChain;
 
     auto& features2 = featureChain.get<vk::PhysicalDeviceFeatures2>();
     auto& vulkan11Features = featureChain.get<vk::PhysicalDeviceVulkan11Features>();
+    auto& vulkan12Features = featureChain.get<vk::PhysicalDeviceVulkan12Features>();
     auto& vulkan13Features = featureChain.get<vk::PhysicalDeviceVulkan13Features>();
     auto& dynamicStateFeatures = featureChain.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
-    auto& descriptorIndexing = featureChain.get<vk::PhysicalDeviceDescriptorIndexingFeatures>();
 
     features2.features.samplerAnisotropy = VK_TRUE;
     features2.features.independentBlend = VK_TRUE;
@@ -50,10 +50,10 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
 
     dynamicStateFeatures.extendedDynamicState = VK_TRUE;
 
-    descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-    descriptorIndexing.descriptorBindingPartiallyBound = VK_TRUE;
-    descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-    descriptorIndexing.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    vulkan12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    vulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
+    vulkan12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    vulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
     float queuePriority = 1.0f;
     vk::DeviceQueueCreateInfo deviceQueueCreateInfo{};

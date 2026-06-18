@@ -16,6 +16,7 @@ public:
     virtual void End() = 0;
     virtual void WaitIdle() = 0;
     virtual void ResetCommandBuffers() = 0;
+    virtual uint32_t GetCurrentFrameIndex() const = 0;
 
     // ─── Resource Creation ─────────────────────────────────────
     virtual BufferHandle CreateBuffer(const BufferDesc &desc) = 0;

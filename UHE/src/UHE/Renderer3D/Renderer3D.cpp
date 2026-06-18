@@ -187,7 +187,7 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
             if (!prim.VertexBuffer || !prim.IndexBuffer)
                 continue;
 
-            int textureSlot = 0; 
+            int textureSlot = s_Data3D.WhiteTexture->GetTextureIndex(); // Default to white texture
             if (prim.materialIndex < model.GetMaterials().size())
             {
                 auto& material = model.GetMaterials()[prim.materialIndex];

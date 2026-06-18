@@ -2,12 +2,12 @@
 #include <array>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
+#include "UHE/AssestsManager/VfsSystem.h"
 #include "UHE/RHI/RHICommadBuffer.h"
 #include "UHE/RHI/RHIDevice.h"
 #include "UHE/Renderer/Renderer.h"
 #include "UHE/Renderer/SlangCompiler.h"
 #include "UHE/Scene/Components.h"
-#include "UHE/AssestsManager/VfsSystem.h"
 
 namespace UHE
 {
@@ -17,9 +17,14 @@ struct QuadVertex
     glm::vec3 Position;
     glm::vec4 Color;
     glm::vec2 TexCoord;
-    float TexIndex;
+    float TexIndex; // Changed from uint32_t to float to avoid integer attribute bugs
     float TilingFactor;
-    int EntityID;
+    float EntityID; // Changed from int to float to avoid integer attribute bugs
+};
+
+struct Renderer2DPushConstants {
+    glm::mat4 viewProjection;
+    int textureIndices[32];
 };
 
 struct Renderer2DData
@@ -32,7 +37,7 @@ struct Renderer2DData
     RHI::PipelineHandle QuadPipeline;
     RHI::ShaderHandle QuadVertexShader;
     RHI::ShaderHandle QuadFragmentShader;
-    RHI::BufferHandle QuadVertexBuffer;
+    RHI::BufferHandle QuadVertexBuffers[2];
     RHI::BufferHandle QuadIndexBuffer;
 
     uint32_t QuadIndexCount = 0;
@@ -44,21 +49,29 @@ struct Renderer2DData
     Renderer2D::Statistics Stats;
 
     RHI::TextureHandle WhiteTexture;
+    
+    uint32_t TextureSlots[MaxTextureSlots];
+    uint32_t TextureSlotIndex = 1; // 0 is white texture
+    glm::mat4 ViewProjectionMatrix;
 };
 
 static Renderer2DData s_Data;
 
 void Renderer2D::Init()
 {
+    UHE_PROFILE_FUNCTION();
     auto& device = Renderer::GetDevice();
 
-    // Create Vertex Buffer
+    // Create Vertex Buffers for double buffering
     RHI::BufferDesc vboDesc{};
     vboDesc.size = s_Data.MaxVertices * sizeof(QuadVertex);
     vboDesc.usage = RHI::BufferUsage::Vertex;
     vboDesc.hostVisible = true;
     vboDesc.debugName = "QuadVertexBuffer";
-    s_Data.QuadVertexBuffer = device.CreateBuffer(vboDesc);
+    for (int i = 0; i < 2; i++)
+    {
+        s_Data.QuadVertexBuffers[i] = device.CreateBuffer(vboDesc);
+    }
 
     // Create Index Buffer
     uint32_t* quadIndices = new uint32_t[s_Data.MaxIndices];
@@ -95,6 +108,7 @@ void Renderer2D::Init()
     s_Data.WhiteTexture = device.CreateTexture(whiteTexDesc);
 
     device.GetCurrentCommandBuffer().UpdateTexture(s_Data.WhiteTexture, &whiteTextureData, sizeof(uint32_t));
+    s_Data.TextureSlots[0] = reinterpret_cast<RHI::RHITexture*>(s_Data.WhiteTexture)->GetTextureIndex();
 
     // Compile Shader
     std::string shaderPath = (FileSystem::Get().GetRootPath() / "assets/shaders/Texture.slang").string();
@@ -131,10 +145,10 @@ void Renderer2D::Init()
     RHI::GraphicsPipelineDesc pipeDesc{};
     pipeDesc.vertexShader = s_Data.QuadVertexShader;
     pipeDesc.fragmentShader = s_Data.QuadFragmentShader;
-    pipeDesc.vertexLayout = {{RHI::ShaderDataType::Float3, "a_Position"},    {RHI::ShaderDataType::Float4, "a_Color"},
-                             {RHI::ShaderDataType::Float2, "a_TexCoord"},    {RHI::ShaderDataType::Float, "a_TexIndex"},
-                             {RHI::ShaderDataType::Float, "a_TilingFactor"}, {RHI::ShaderDataType::Int, "a_EntityID"}};
-    pipeDesc.pushConstantSize = sizeof(glm::mat4); // viewProjection
+    pipeDesc.vertexLayout = {{RHI::ShaderDataType::Float3, "a_Position"}, {RHI::ShaderDataType::Float4, "a_Color"},
+                             {RHI::ShaderDataType::Float2, "a_TexCoord"}, {RHI::ShaderDataType::Float, "a_TexIndex"},
+                             {RHI::ShaderDataType::Float, "a_TilingFactor"}, {RHI::ShaderDataType::Float, "a_EntityID"}};
+    pipeDesc.pushConstantSize = sizeof(Renderer2DPushConstants);
     pipeDesc.blendMode = RHI::BlendMode::Alpha;
     pipeDesc.depthTest = true;
     pipeDesc.depthWrite = true;
@@ -155,51 +169,57 @@ void Renderer2D::Init()
 
 void Renderer2D::Shutdown()
 {
+    UHE_PROFILE_FUNCTION();
     auto& device = Renderer::GetDevice();
     delete[] s_Data.QuadVertexBufferBase;
     device.DestroyGraphicsPipeline(s_Data.QuadPipeline);
     device.DestroyShader(s_Data.QuadVertexShader);
     device.DestroyShader(s_Data.QuadFragmentShader);
-    device.DestroyBuffer(s_Data.QuadVertexBuffer);
+    for (int i = 0; i < 2; i++)
+    {
+        device.DestroyBuffer(s_Data.QuadVertexBuffers[i]);
+    }
     device.DestroyBuffer(s_Data.QuadIndexBuffer);
     device.DestroyTexture(s_Data.WhiteTexture);
 }
 
 void Renderer2D::BeginScene(const Camera& camera, const glm::mat4& transform)
 {
-    glm::mat4 viewProj = camera.GetProjection() * glm::inverse(transform);
-
+    UHE_PROFILE_FUNCTION();
+    s_Data.ViewProjectionMatrix = camera.GetProjection() * glm::inverse(transform);
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
     cmd.BindPipeline(s_Data.QuadPipeline);
-    cmd.PushConstants(RHI::ShaderStage::AllGraphics, &viewProj, sizeof(glm::mat4), 0);
 
     StartBatch();
 }
 
 void Renderer2D::BeginScene(const EditorCamera& camera)
 {
-    glm::mat4 viewProj = camera.GetViewProjection();
-
+    UHE_PROFILE_FUNCTION();
+    s_Data.ViewProjectionMatrix = camera.GetViewProjection();
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
     cmd.BindPipeline(s_Data.QuadPipeline);
-    cmd.PushConstants(RHI::ShaderStage::AllGraphics, &viewProj, sizeof(glm::mat4), 0);
 
     StartBatch();
 }
 
 void Renderer2D::EndScene()
 {
+    UHE_PROFILE_FUNCTION();
     Flush();
 }
 
 void Renderer2D::StartBatch()
 {
+    UHE_PROFILE_FUNCTION();
     s_Data.QuadIndexCount = 0;
     s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
+    s_Data.TextureSlotIndex = 1;
 }
 
 void Renderer2D::Flush()
 {
+    UHE_PROFILE_FUNCTION();
     if (s_Data.QuadIndexCount == 0)
         return; // Nothing to draw
 
@@ -208,28 +228,39 @@ void Renderer2D::Flush()
     auto& device = Renderer::GetDevice();
     auto& cmd = device.GetCurrentCommandBuffer();
 
-    cmd.UpdateBuffer(s_Data.QuadVertexBuffer, s_Data.QuadVertexBufferBase, dataSize, 0);
+    uint32_t frameIndex = device.GetCurrentFrameIndex();
+    cmd.UpdateBuffer(s_Data.QuadVertexBuffers[frameIndex], s_Data.QuadVertexBufferBase, dataSize, 0);
 
-    cmd.BindVertexBuffer(s_Data.QuadVertexBuffer, 0);
+    cmd.BindVertexBuffer(s_Data.QuadVertexBuffers[frameIndex], 0);
     cmd.BindIndexBuffer(s_Data.QuadIndexBuffer, 0);
-    cmd.DrawIndexed(s_Data.QuadIndexCount, 0, 0);
+    
+    Renderer2DPushConstants pc;
+    pc.viewProjection = s_Data.ViewProjectionMatrix;
+    for (uint32_t i = 0; i < 32; i++) {
+        pc.textureIndices[i] = (i < s_Data.TextureSlotIndex) ? s_Data.TextureSlots[i] : 0;
+    }
+    cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(Renderer2DPushConstants), 0);
 
+    cmd.DrawIndexed(s_Data.QuadIndexCount, 0, 0);
     s_Data.Stats.DrawCalls++;
 }
 
 void Renderer2D::NextBatch()
 {
+    UHE_PROFILE_FUNCTION();
     Flush();
     StartBatch();
 }
 
 void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
 {
+    UHE_PROFILE_FUNCTION();
     DrawQuad({position.x, position.y, 0.0f}, size, color);
 }
 
 void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 {
+    UHE_PROFILE_FUNCTION();
     glm::mat4 transform =
         glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
 
@@ -239,12 +270,14 @@ void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, cons
 void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture,
                           float tilingFactor, const glm::vec4& tintColor)
 {
+    UHE_PROFILE_FUNCTION();
     DrawQuad({position.x, position.y, 0.0f}, size, texture, tilingFactor, tintColor);
 }
 
 void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture,
                           float tilingFactor, const glm::vec4& tintColor)
 {
+    UHE_PROFILE_FUNCTION();
     glm::mat4 transform =
         glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), {size.x, size.y, 1.0f});
 
@@ -253,8 +286,9 @@ void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, cons
 
 void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
 {
+    UHE_PROFILE_FUNCTION();
     constexpr size_t quadVertexCount = 4;
-    const float textureIndex = (float)reinterpret_cast<RHI::RHITexture*>(s_Data.WhiteTexture)->GetTextureIndex();
+    const float textureIndex = 0.0f; // 0 maps to WhiteTexture in TextureSlots
     constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
     const float tilingFactor = 1.0f;
 
@@ -279,13 +313,33 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, in
 void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingFactor,
                           const glm::vec4& tintColor, int entityID)
 {
+    UHE_PROFILE_FUNCTION();
     constexpr size_t quadVertexCount = 4;
     constexpr glm::vec2 textureCoords[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
 
     if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
         NextBatch();
 
-    float textureIndex = (float)texture->GetTextureIndex();
+    float textureIndex = 0.0f;
+    uint32_t globalTexIndex = texture->GetTextureIndex();
+    for (uint32_t i = 1; i < s_Data.TextureSlotIndex; i++)
+    {
+        if (s_Data.TextureSlots[i] == globalTexIndex)
+        {
+            textureIndex = (float)i;
+            break;
+        }
+    }
+
+    if (textureIndex == 0.0f)
+    {
+        if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
+            NextBatch();
+
+        textureIndex = (float)s_Data.TextureSlotIndex;
+        s_Data.TextureSlots[s_Data.TextureSlotIndex] = globalTexIndex;
+        s_Data.TextureSlotIndex++;
+    }
 
     for (size_t i = 0; i < quadVertexCount; i++)
     {
@@ -305,6 +359,7 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& text
 void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, float tilingFactor,
                           const glm::vec4& tintColor, int entityID)
 {
+    UHE_PROFILE_FUNCTION();
     constexpr size_t quadVertexCount = 4;
     const glm::vec2* textureCoords = subtexture->GetTexCoords();
     const Ref<Texture2D> texture = subtexture->GetTexture();
@@ -312,7 +367,26 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& s
     if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
         NextBatch();
 
-    float textureIndex = (float)texture->GetTextureIndex();
+    float textureIndex = 0.0f;
+    uint32_t globalTexIndex = texture->GetTextureIndex();
+    for (uint32_t i = 1; i < s_Data.TextureSlotIndex; i++)
+    {
+        if (s_Data.TextureSlots[i] == globalTexIndex)
+        {
+            textureIndex = (float)i;
+            break;
+        }
+    }
+
+    if (textureIndex == 0.0f)
+    {
+        if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
+            NextBatch();
+
+        textureIndex = (float)s_Data.TextureSlotIndex;
+        s_Data.TextureSlots[s_Data.TextureSlotIndex] = globalTexIndex;
+        s_Data.TextureSlotIndex++;
+    }
 
     for (size_t i = 0; i < quadVertexCount; i++)
     {

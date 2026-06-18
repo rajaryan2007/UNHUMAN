@@ -145,7 +145,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc)
     }
     else if (desc.usage == BufferUsage::Staging)
     {
-        usage = vk::BufferUsageFlagBits::eTransferDst;
+        usage = vk::BufferUsageFlagBits::eTransferSrc;
     }
 
     VmaMemoryUsage memUsage = desc.hostVisible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY;

@@ -20,6 +20,8 @@ Model::~Model()
 void Model::Destroy()
 {
     auto& device = Renderer::GetDevice();
+    device.WaitIdle();
+    
     for (auto& mesh : m_LoadedMeshes)
     {
         for (auto& prim : mesh.primitive)

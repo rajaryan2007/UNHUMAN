@@ -179,7 +179,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
     }
 
     if (!barriers.empty()) {
-        m_CommandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+        m_CommandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput,
                                         vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
                                         vk::DependencyFlags{}, nullptr, nullptr, barriers);
     }

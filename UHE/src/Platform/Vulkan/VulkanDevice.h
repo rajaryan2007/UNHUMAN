@@ -23,6 +23,7 @@ public:
     void End() override;
     void WaitIdle() override;
     void ResetCommandBuffers() override;
+    uint32_t GetCurrentFrameIndex() const override { return m_CurrentFrame; }
 
     // ─── Resource Creation ──────────────────────────────────────
     BufferHandle CreateBuffer(const BufferDesc& desc) override;

@@ -1,0 +1,100 @@
+Scene: Untitled
+Entities:
+  - Entity: 0
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Translation: [0, 1.1819893, 5.833049]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      ProjectionType: 0
+      PerspectiveFOV: 0.7853982
+      PerspectiveNear: 0.01
+      PerspectiveFar: 1
+      OrthographicSize: 10
+      OrthographicNear: -1
+      OrthographicFar: 1
+      Primary: true
+      FixedAspectRatio: false
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.07780501, 0.07780501, 0.07780501]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/yelan.glb
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [4.0058875, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.022500021, 0.022500021, 0.022500021]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/genshin_impact_-_arlecchino.glb
+  - Entity: 0
+    TagComponent:
+      Tag: anime
+    TransformComponent:
+      Translation: [-4.0682607, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.00065, 0.00065, 0.00065]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/yinlin1_05_wuthering_waves.glb
+  - Entity: 0
+    TagComponent:
+      Tag: anime
+    TransformComponent:
+      Translation: [-2.9976532, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.00078, 0.00078, 0.00078]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/shorekeeper_wuthering_waves.glb
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [2.9714847, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.0007000001, 0.0007000001, 0.0007000001]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/jinhsi_wuthering_waves.glb
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [0.99773186, -0.0064696604, 0.0026855036]
+      Rotation: [0, 0, 0]
+      Scale: [0.00070519996, 0.00070519996, 0.00070519996]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/phoebe_hair_more_stable_version_wuthering_wave.glb
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [2.0069916, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/mornye_from_wuthering_waves.glb
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [-1.0411165, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/coderepo/enginedev/unhuman/UHE_EDITOR/assets/model/lynae_from_wuthering_waves.glb
+  - Entity: 0
+    TagComponent:
+      Tag: lynae_from_wuthering_waves
+    TransformComponent:
+      Translation: [-2.0352006, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/Downloads/genshin_impact_-_raiden_ei_boss.glb

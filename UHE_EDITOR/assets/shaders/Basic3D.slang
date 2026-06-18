@@ -1,3 +1,4 @@
+#pragma warning(disable: 41012)
 struct VertexInput {
     [[vk::location(0)]] float3 a_Position : POSITION;
     [[vk::location(1)]] float3 a_Normal : NORMAL;

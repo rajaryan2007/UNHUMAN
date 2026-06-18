@@ -109,7 +109,7 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     vk::PipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.depthTestEnable = desc.depthTest ? vk::True : vk::False;
     depthStencil.depthWriteEnable = desc.depthWrite ? vk::True : vk::False;
-    depthStencil.depthCompareOp = vk::CompareOp::eLess;
+    depthStencil.depthCompareOp = vk::CompareOp::eLessOrEqual;
     depthStencil.depthBoundsTestEnable = vk::False;
     depthStencil.stencilTestEnable = vk::False;
 
@@ -186,7 +186,7 @@ vk::PipelineVertexInputStateCreateInfo VulkanGraphicPipeline::CreateVertexInputS
         if (elements.Type == ShaderDataType::Mat4)
         {
             slotcount = 4;
-            slotcount = 4 * 4;
+            slotsize = 4 * 4;
         }
 
         for (u32 i = 0; i < slotcount; i++)
