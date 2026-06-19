@@ -41,6 +41,13 @@ jobs:
       - name: Run Setup Script (download Slang etc.)
         run: python script/Setup.py
 
+      - name: Patch Vendor CMakeLists (Fix Platform Detection)
+        run: |
+          sed -i 's/if(WIN32)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows")/g' UHE/vendor/imgui/CMakeLists.txt
+          sed -i 's/if(MSVC)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")/g' UHE/vendor/imgui/CMakeLists.txt
+          sed -i 's/if(WIN32)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows")/g' UHE/vendor/imGuizmo/CMakeLists.txt
+          sed -i 's/if(MSVC)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")/g' UHE/vendor/imGuizmo/CMakeLists.txt
+
       - name: Configure CMake
         run: >
           cmake -B build
