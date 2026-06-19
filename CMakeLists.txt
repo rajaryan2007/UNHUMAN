@@ -11,7 +11,7 @@ set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN")
 
-# Use standard C++ string hashing for EnTT across DLL boundaries
+
 add_compile_definitions(ENTT_STANDARD_CPP)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

@@ -1,0 +1,76 @@
+name: Build Linux
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxi-dev libwayland-dev libxkbcommon-dev
+
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          source /etc/os-release
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${VERSION_CODENAME}.list http://packages.lunarg.com/vulkan/lunarg-vulkan-${VERSION_CODENAME}.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Run Setup Script (download Slang etc.)
+        run: python script/Setup.py
+
+      - name: Configure CMake
+        run: >
+          cmake -B build
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DVG_PROFILE=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Prepare artifact
+        run: |
+          OUT_DIR="bin/Release-linux-x64"
+          ARTIFACT_DIR="release-package"
+          mkdir -p $ARTIFACT_DIR
+
+          # Copy all executables and shared libraries from the output directory
+          if [ -d "$OUT_DIR" ]; then
+            cp -r $OUT_DIR/* $ARTIFACT_DIR/
+          fi
+
+          # Copy editor assets alongside the executable
+          if [ -d "UHE_EDITOR/assets" ]; then
+            mkdir -p $ARTIFACT_DIR/assets
+            cp -r UHE_EDITOR/assets/* $ARTIFACT_DIR/assets/
+          fi
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: UHE-Editor-Linux-x64
+          path: release-package/
+          retention-days: 30
