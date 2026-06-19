@@ -43,8 +43,27 @@ jobs:
 
       - name: Patch Vendor CMakeLists (Fix Platform Detection)
         run: |
-          sed -i 's/if(WIN32)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows")/g' UHE/vendor/imgui/CMakeLists.txt
-          sed -i 's/if(MSVC)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")/g' UHE/vendor/imgui/CMakeLists.txt
+          cat << 'EOF' > UHE/vendor/imgui/CMakeLists.txt
+          cmake_minimum_required(VERSION 3.16)
+          project(ImGui)
+          set(CMAKE_CXX_STANDARD 17)
+          set(CMAKE_CXX_STANDARD_REQUIRED ON)
+          add_library(ImGui STATIC imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp imgui_demo.cpp imgui.h imgui_internal.h imconfig.h imstb_rectpack.h imstb_textedit.h imstb_truetype.h)
+          set_target_properties(ImGui PROPERTIES POSITION_INDEPENDENT_CODE ON)
+          if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+              target_compile_definitions(ImGui PRIVATE IMGUI_API=__declspec\(dllexport\))
+          elseif(UNIX)
+              target_compile_definitions(ImGui PRIVATE IMGUI_API=__attribute__\(\(visibility\(\"default\"\)\)\))
+          endif()
+          target_include_directories(ImGui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+          if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+              target_compile_options(ImGui PRIVATE $<$<CONFIG:Release>:/MT>)
+              target_compile_options(ImGui PRIVATE /utf-8)
+              target_compile_options(ImGui PRIVATE $<$<CONFIG:Debug>:/Zi>)
+              target_compile_options(ImGui PRIVATE $<$<CONFIG:Release>:/O2>)
+          endif()
+          set_target_properties(ImGui PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR}/VEGA ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR}/VEGA LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR}/VEGA)
+          EOF
           sed -i 's/if(WIN32)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows")/g' UHE/vendor/imGuizmo/CMakeLists.txt
           sed -i 's/if(MSVC)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")/g' UHE/vendor/imGuizmo/CMakeLists.txt
 
