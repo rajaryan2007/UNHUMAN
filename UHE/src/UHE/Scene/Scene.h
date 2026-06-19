@@ -79,5 +79,8 @@ template <> UHE_API void Scene::OnComponentAdded<RigidBody2DComponent>(Entity en
 template <> UHE_API void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<Model3DComponent>(Entity entity, Model3DComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<DirectionalLightComponent>(Entity entity, DirectionalLightComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<PointLightComponent>(Entity entity, PointLightComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<AnimatorComponent>(Entity entity, AnimatorComponent& components);
 
 } // namespace UHE

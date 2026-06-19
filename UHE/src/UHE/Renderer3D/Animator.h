@@ -1,12 +1,14 @@
 #pragma once
+#include <vector>
 #include "UHE/Core/Core.h"
 #include "UHE/Renderer3D/Animation.h"
 #include "UHE/Renderer3D/LoadModel.h"
-#include <vector>
 
-namespace UHE::RD3d {
+namespace UHE::RD3d
+{
 
-class Animator {
+class UHE_API Animator
+{
 public:
     Animator() = default;
     Animator(Ref<Model> model);

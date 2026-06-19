@@ -1,13 +1,15 @@
 #pragma once
-#include "UHE/Core/Core.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <string>
 #include <vector>
+#include "UHE/Core/Core.h"
 
-namespace UHE::RD3d {
+namespace UHE::RD3d
+{
 
-struct Bone {
+struct UHE_API Bone
+{
     std::string Name;
     int ID = -1;
     int ParentID = -1;
@@ -15,32 +17,36 @@ struct Bone {
     glm::mat4 LocalTransform{1.0f};
 };
 
-struct Skeleton {
+struct UHE_API Skeleton
+{
     std::vector<Bone> Bones;
     std::vector<int> JointNodes;
     int RootBoneID = -1;
 };
 
-template <typename T>
-struct Keyframe {
+template <typename T> struct UHE_API Keyframe
+{
     float Time;
     T Value;
 };
 
-struct VectorTrack {
+struct UHE_API VectorTrack
+{
     int TargetBoneID = -1;
     std::vector<Keyframe<glm::vec3>> Keyframes;
 };
 
-struct QuaternionTrack {
+struct UHE_API QuaternionTrack
+{
     int TargetBoneID = -1;
     std::vector<Keyframe<glm::quat>> Keyframes;
 };
 
-struct AnimationClip {
+struct UHE_API AnimationClip
+{
     std::string Name;
     float Duration = 0.0f;
-    
+
     std::vector<VectorTrack> PositionTracks;
     std::vector<QuaternionTrack> RotationTracks;
     std::vector<VectorTrack> ScaleTracks;
