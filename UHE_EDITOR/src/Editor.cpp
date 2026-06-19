@@ -6,6 +6,7 @@
 #include "UHE/AssestsManager/VfsSystem.h"
 #include "UHE/Math/Math.h"
 #include "UHE/RHI/RHICommadBuffer.h"
+#include "UHE/Renderer3D/Renderer3D.h"
 
 ImVec2 m_ViewportPos;
 ImVec2 m_ViewportSize;
@@ -365,6 +366,14 @@ void Editor::OnImGuiRender()
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
+
+    ImGui::Separator();
+    bool enableLighting = Renderer3D::IsLightingEnabled();
+    if (ImGui::Checkbox("Enable Basic3D Lighting", &enableLighting)) {
+        Renderer3D::SetLightingEnabled(enableLighting);
+    }
+    
+    ImGui::Checkbox("Show Light Icons", &Scene::GetShowLightIcons());
 
     ImGui::End();
     DrawConsolePanel();

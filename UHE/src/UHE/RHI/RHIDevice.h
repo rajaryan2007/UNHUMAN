@@ -20,6 +20,7 @@ public:
 
     // ─── Resource Creation ─────────────────────────────────────
     virtual BufferHandle CreateBuffer(const BufferDesc &desc) = 0;
+    virtual u32 GetBufferBindlessIndex(BufferHandle handle) = 0;
     virtual TextureHandle CreateTexture(const TextureDesc &desc) = 0;
     virtual ShaderHandle CreateShader(const ShaderDesc &desc) = 0;
     virtual PipelineHandle

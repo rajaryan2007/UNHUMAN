@@ -5,6 +5,7 @@
 #include "UHE/RHI/RHICommadBuffer.h"
 #include "UHE/Renderer/SlangCompiler.h"
 #include "UHE/AssestsManager/VfsSystem.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace UHE
 {
@@ -20,7 +21,18 @@ struct Renderer3DData
     RHI::PipelineHandle GridPipeline;
     
     glm::mat4 ViewProjection;
+    glm::vec3 CameraPosition;
+    std::vector<RD3d::LightData> CurrentLights;
     Ref<Texture2D> WhiteTexture;
+    
+    RHI::BufferHandle LightStorageBufferHandle = nullptr;
+    uint32_t LightStorageBufferIndex = 0;
+    
+    RHI::BufferHandle BoneStorageBufferHandle = nullptr;
+    uint32_t BoneStorageBufferIndex = 0;
+    uint32_t BoneBufferOffset = 0; // In number of matrices
+    
+    bool EnableLighting = true;
 };
 
 static Renderer3DData s_Data3D;
@@ -56,10 +68,12 @@ void Renderer3D::Init()
     pipeDesc.vertexLayout = {
         {RHI::ShaderDataType::Float3, "a_Position"},
         {RHI::ShaderDataType::Float3, "a_Normal"},
-        {RHI::ShaderDataType::Float2, "a_TexCoord"}
+        {RHI::ShaderDataType::Float2, "a_TexCoord"},
+        {RHI::ShaderDataType::Int4, "a_Joints"},
+        {RHI::ShaderDataType::Float4, "a_Weights"}
     };
     
-    pipeDesc.pushConstantSize = sizeof(glm::mat4) * 2 + sizeof(int) * 2; // viewProj + model + entityID + textureSlot
+    pipeDesc.pushConstantSize = 192;
     pipeDesc.blendMode = RHI::BlendMode::Alpha;
     pipeDesc.depthTest = true;
     pipeDesc.depthWrite = true;
@@ -109,6 +123,20 @@ void Renderer3D::Init()
     s_Data3D.GridPipeline = device.CreateGraphicsPipeline(gridPipeDesc);
 
     s_Data3D.WhiteTexture = Texture2D::Create(1, 1);
+
+    RHI::BufferDesc desc;
+    desc.size = sizeof(RD3d::LightData) * 1024; // Limit to 1024 lights
+    desc.usage = RHI::BufferUsage::Storage;
+    desc.hostVisible = true;
+    s_Data3D.LightStorageBufferHandle = device.CreateBuffer(desc);
+    s_Data3D.LightStorageBufferIndex = device.GetBufferBindlessIndex(s_Data3D.LightStorageBufferHandle);
+    
+    RHI::BufferDesc boneBufferDesc{};
+    boneBufferDesc.size = sizeof(glm::mat4) * 4096; // Support up to 4096 bones per frame
+    boneBufferDesc.usage = RHI::BufferUsage::Storage;
+    boneBufferDesc.hostVisible = true;
+    s_Data3D.BoneStorageBufferHandle = device.CreateBuffer(boneBufferDesc);
+    s_Data3D.BoneStorageBufferIndex = device.GetBufferBindlessIndex(s_Data3D.BoneStorageBufferHandle);
 }
 
 void Renderer3D::Shutdown()
@@ -122,17 +150,34 @@ void Renderer3D::Shutdown()
     device.DestroyShader(s_Data3D.GridVertexShader);
     device.DestroyShader(s_Data3D.GridFragmentShader);
     
+    device.DestroyBuffer(s_Data3D.LightStorageBufferHandle);
+    device.DestroyBuffer(s_Data3D.BoneStorageBufferHandle);
+    
     s_Data3D.WhiteTexture.reset();
 }
 
-void Renderer3D::BeginScene(const EditorCamera& camera)
+void Renderer3D::BeginScene(const EditorCamera& camera, const std::vector<RD3d::LightData>& lights)
 {
     s_Data3D.ViewProjection = camera.GetViewProjection();
+    s_Data3D.CameraPosition = camera.GetPosition();
+    s_Data3D.CurrentLights = lights;
+    if (!lights.empty())
+    {
+        Renderer::GetDevice().GetCurrentCommandBuffer().UpdateBuffer(s_Data3D.LightStorageBufferHandle, lights.data(), lights.size() * sizeof(RD3d::LightData));
+    }
+    s_Data3D.BoneBufferOffset = 0;
 }
 
-void Renderer3D::BeginScene(const Camera& camera, const glm::mat4& transform)
+void Renderer3D::BeginScene(const Camera& camera, const glm::mat4& transform, const std::vector<RD3d::LightData>& lights)
 {
     s_Data3D.ViewProjection = camera.GetProjection() * glm::inverse(transform);
+    s_Data3D.CameraPosition = glm::vec3(transform[3]);
+    s_Data3D.CurrentLights = lights;
+    if (!lights.empty())
+    {
+        Renderer::GetDevice().GetCurrentCommandBuffer().UpdateBuffer(s_Data3D.LightStorageBufferHandle, lights.data(), lights.size() * sizeof(RD3d::LightData));
+    }
+    s_Data3D.BoneBufferOffset = 0;
 }
 
 void Renderer3D::EndScene()
@@ -159,7 +204,7 @@ void Renderer3D::DrawGrid()
     cmd.Draw(6, 0);
 }
 
-void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID)
+void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID, const RD3d::Animator* animator)
 {
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
     
@@ -169,13 +214,46 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
     {
         glm::mat4 viewProj;
         glm::mat4 model;
+        glm::vec4 cameraPos;
         int entityID;
         int textureSlot;
+        int enableLighting;
+        int lightBufferIndex;
+        int numLights;
+        int mrTextureSlot;
+        float metallicFactor;
+        float roughnessFactor;
+        int boneBufferIndex;
+        int boneOffset;
+        int padding1;
+        int padding2;
     } pc;
     pc.viewProj = s_Data3D.ViewProjection;
     pc.model = transform;
+    pc.cameraPos = glm::vec4(s_Data3D.CameraPosition, 1.0f);
     pc.entityID = entityID;
-    pc.textureSlot = 0;
+    pc.textureSlot = 0; // Temp hardcode until material system is done
+    pc.enableLighting = s_Data3D.EnableLighting ? 1 : 0;
+    pc.lightBufferIndex = s_Data3D.LightStorageBufferIndex;
+    pc.numLights = static_cast<int>(s_Data3D.CurrentLights.size());
+    pc.mrTextureSlot = -1;
+    pc.metallicFactor = 1.0f;
+    pc.roughnessFactor = 1.0f;
+    pc.boneBufferIndex = -1;
+    pc.boneOffset = -1;
+    
+    if (animator && animator->HasAnimation())
+    {
+        const auto& matrices = animator->GetFinalBoneMatrices();
+        if (!matrices.empty())
+        {
+            uint64_t size = matrices.size() * sizeof(glm::mat4);
+            cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size, s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
+            pc.boneBufferIndex = s_Data3D.BoneStorageBufferIndex;
+            pc.boneOffset = s_Data3D.BoneBufferOffset;
+            s_Data3D.BoneBufferOffset += matrices.size();
+        }
+    }
     
     // We will push constants per primitive now since textureSlot can change.
     // cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
@@ -188,6 +266,10 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
                 continue;
 
             int textureSlot = s_Data3D.WhiteTexture->GetTextureIndex(); // Default to white texture
+            int mrTextureSlot = -1;
+            float metallicFactor = 0.0f;
+            float roughnessFactor = 0.4f;
+
             if (prim.materialIndex < model.GetMaterials().size())
             {
                 auto& material = model.GetMaterials()[prim.materialIndex];
@@ -195,9 +277,18 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
                 {
                     textureSlot = material.AlbedoTexture->GetTextureIndex();
                 }
+                if (material.MetallicRoughnessTexture)
+                {
+                    mrTextureSlot = material.MetallicRoughnessTexture->GetTextureIndex();
+                }
+                metallicFactor = material.MetallicFactor;
+                roughnessFactor = material.RoughnessFactor;
             }
 
             pc.textureSlot = textureSlot;
+            pc.mrTextureSlot = mrTextureSlot;
+            pc.metallicFactor = metallicFactor;
+            pc.roughnessFactor = roughnessFactor;
             cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
 
             cmd.BindVertexBuffer(prim.VertexBuffer);
@@ -205,6 +296,16 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
             cmd.DrawIndexed(prim.IndexCount);
         }
     }
+}
+
+bool Renderer3D::IsLightingEnabled()
+{
+    return s_Data3D.EnableLighting;
+}
+
+void Renderer3D::SetLightingEnabled(bool enabled)
+{
+    s_Data3D.EnableLighting = enabled;
 }
 
 } // namespace UHE

@@ -9,7 +9,7 @@ struct VSInput
 
 struct VSOutput
 {
-    float4 projection;
+    float4 Pos : SV_POSITION;
     float3 UVW;
 };
 
@@ -48,15 +48,15 @@ float3 Uncharted2Tonemap(float3 color)
 VSOutput vertexMain(VSInput input)
 {
     VSOutput output;
-    output,UVM = input.Pos;
-    output.Pos = mul(ubo.projection,mul(ubo.model,float4(input.Pos.xyz,1.0)));
+    output.UVW = input.pos;
+    output.Pos = mul(ubo.projection, mul(ubo.model, float4(input.pos, 1.0)));
     return output;
 }
 
 [shader("fragment")]
 float4 fragmentMain(VSOutput input)
 {
-    float3 color = SamplerEnv.Sample(input.UVM).rgb;
+    float3 color = SamplerEnv.Sample(input.UVW).rgb;
     
     color = Uncharted2Tonemap(color * uboParams.exposure);
     color = color * (1.0f / Uncharted2Tonemap((11.2f).xxx));

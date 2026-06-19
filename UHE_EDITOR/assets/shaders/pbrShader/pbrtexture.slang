@@ -20,9 +20,16 @@ struct UBO {
     float4x4 model;
     float4x4 view;
     float3 camPos;
-}
+    float4 lights[4];
+    float exposure;
+};
 
 ConstantBuffer<UBO> ubo;
+
+struct PushConstants {
+    int enableLighting;
+};
+[[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
 SamplerCube samplerIrradiance;
 Sampler2D samplerBRDFLUT;
@@ -81,7 +88,7 @@ float3 F_Schlick(float cosTheta,float F0)
 
 float3 F_Schlick(float cosTheta,float3 F0,float roughness)
 {
-    return F0 + (max((1.0 = roughness).xxx,F0) - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (max((1.0 - roughness).xxx,F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 float3 prefilteredReflections(float3 R, float roughness)
@@ -156,8 +163,8 @@ VSOutput vertexMain(VSInput input)
 float4 fragmentMain(VSOutput input)
 {
    float3 N = calculateNormal(input);
-   float3 V = normalize(ubo.campos - input.WorldPos);
-   float  R = reflect(-V,N);
+   float3 V = normalize(ubo.camPos - input.WorldPos);
+   float3 R = reflect(-V,N);
 
    float metallic = metallicMapSampler.Sample(input.UV).r;
    float roughness = roughnessMapSampler.Sample(input.UV).r;
@@ -168,7 +175,7 @@ float4 fragmentMain(VSOutput input)
    float3 Lo = float3(0.0, 0.0, 0.0);
    for(int i = 0; i < 4; i++)
    {
-       float3 L = normalize(uboParams.light[i].xyz - input.WorldPos);
+       float3 L = normalize(ubo.lights[i].xyz - input.WorldPos);
        Lo += specularContribution(input.UV, L, V, N, F0, metallic, roughness);
    }
     
@@ -188,10 +195,14 @@ float4 fragmentMain(VSOutput input)
    float3 kD = 1.0 -F;
    kD *= 1.0 - metallic;
    float3 ambient = (kD * diffuse + specular) * aoMapSampler.Sample(input.UV).rrr;
-   float color = ambient + Lo;
+   float3 color = ambient + Lo;
+   
+   if (pc.enableLighting == 0) {
+       return float4(ALBEDO(input.UV), 1.0);
+   }
    
    // tone mapping and gamma correction
-   color = Uncharted2Tonemap(color *  uboParmas.exposure);
+   color = Uncharted2Tonemap(color * ubo.exposure);
    color = pow(color, float3(1.0/2.2, 1.0/2.2, 1.0/2.2));
    return float4(color, 1.0);
 }

@@ -69,7 +69,14 @@ void ModelTestLayer::OnUpdate(UHE::Timestep ts)
     cmd.SetViewport(0.0f, 0.0f, (float)width, (float)height);
     cmd.SetScissor(0, 0, width, height);
 
-    UHE::Renderer3D::BeginScene(m_Camera);
+    std::vector<UHE::RD3d::LightData> lights;
+    UHE::RD3d::LightData defaultLight;
+    defaultLight.Type_Radius_Pad = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // Type = 0 (Directional)
+    defaultLight.PositionOrDirection = glm::vec4(0.5f, -1.0f, 0.3f, 0.0f);
+    defaultLight.ColorIntensity = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    lights.push_back(defaultLight);
+
+    UHE::Renderer3D::BeginScene(m_Camera, lights);
 
     // Render the model with some rotation
     glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(m_Rotation), glm::vec3(0.0f, 1.0f, 0.0f));

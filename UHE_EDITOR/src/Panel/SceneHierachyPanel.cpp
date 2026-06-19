@@ -299,6 +299,18 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
       m_SelectionContext.AddComponent<Model3DComponent>();
       ImGui::CloseCurrentPopup();
     }
+    if (ImGui::MenuItem("  Animator 3D")) {
+      m_SelectionContext.AddComponent<AnimatorComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::MenuItem("  Directional Light")) {
+      m_SelectionContext.AddComponent<DirectionalLightComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::MenuItem("  Point Light")) {
+      m_SelectionContext.AddComponent<PointLightComponent>();
+      ImGui::CloseCurrentPopup();
+    }
     ImGui::EndPopup();
   }
   ImGui::Spacing();
@@ -612,5 +624,79 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
           ImGui::EndDragDropTarget();
         }
       });
+
+  ::UHE::DrawComponents<DirectionalLightComponent>(
+      "Directional Light", entity, [](DirectionalLightComponent &light) {
+        ImGui::ColorEdit3("Color", glm::value_ptr(light.Color));
+        ImGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
+        ImGui::TextDisabled("Rotate the entity's Transform to change light direction.");
+      });
+
+  ::UHE::DrawComponents<PointLightComponent>(
+      "Point Light", entity, [](PointLightComponent &light) {
+        ImGui::ColorEdit3("Color", glm::value_ptr(light.Color));
+        ImGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
+        ImGui::DragFloat("Radius", &light.Radius, 0.5f, 0.0f, 1000.0f);
+      });
+
+  ::UHE::DrawComponents<AnimatorComponent>(
+      "Animator 3D", entity, [entity](AnimatorComponent &anim) {
+        UHE::Entity ent = entity;
+        if (!anim.Animator) {
+            // Check if we have a model component
+            if (ent.HasComponent<Model3DComponent>()) {
+                auto& mc = ent.GetComponent<Model3DComponent>();
+                if (mc.IsLoaded && mc.ModelData) {
+                    if (ImGui::Button("Initialize Animator")) {
+                        anim.Animator = CreateRef<RD3d::Animator>(mc.ModelData);
+                    }
+                } else {
+                    ImGui::TextDisabled("Model not loaded yet.");
+                }
+            } else {
+                ImGui::TextDisabled("Requires a Model3DComponent on the entity.");
+            }
+        }
+
+        if (anim.Animator) {
+            auto model = anim.Animator->GetModel();
+            if (model && !model->GetAnimations().empty()) {
+                const auto& animations = model->GetAnimations();
+                
+                if (ImGui::BeginCombo("Animation", anim.CurrentAnimationName.empty() ? "None" : anim.CurrentAnimationName.c_str())) {
+                    for (const auto& a : animations) {
+                        bool isSelected = (anim.CurrentAnimationName == a.Name);
+                        if (ImGui::Selectable(a.Name.c_str(), isSelected)) {
+                            anim.CurrentAnimationName = a.Name;
+                            anim.Animator->PlayAnimation(a.Name);
+                            anim.IsPlaying = true;
+                        }
+                        if (isSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Text("Playback Controls");
+                if (ImGui::Button(anim.IsPlaying ? "Pause" : "Play")) {
+                    anim.IsPlaying = !anim.IsPlaying;
+                }
+                
+                ImGui::SameLine();
+                if (ImGui::Button("Restart")) {
+                    anim.Animator->PlayAnimation(anim.CurrentAnimationName);
+                    anim.IsPlaying = true;
+                }
+                
+                ImGui::DragFloat("Playback Speed", &anim.PlaybackSpeed, 0.1f, 0.0f, 5.0f);
+            } else {
+                ImGui::TextDisabled("Model has no animations.");
+            }
+        }
+      });
 }
+
 } // namespace UHE

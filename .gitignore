@@ -420,4 +420,4 @@ UHE/vendor/bin/
 
 # Exceptions for UHE
 !UHE/src/UHE/Debug/
-!UHE/src/UHE/Debug/**/*
+!UHE/src/UHE/Debug/**/*core

@@ -7,7 +7,7 @@ struct PushConsts {
     [[vk::offset(68)]] uint numSamples;
 };
 
-[[vk::push_constant]] PushConsts consts;
+[[vk::push_constant]] ConstantBuffer<PushConsts> consts;
 
 float random(float2 co)
 {
@@ -35,14 +35,14 @@ float3 importanceSample_GGX(float2 Xi, float roughness, float3 normal)
 {
     float alpha = roughness * roughness;
     float phi = 2.0 * PI * Xi.x + random(normal.xz) *  0.1;
-    float conTheta = sqrt((1.0 - Xi.v) / (1.0 + (alpha * alpha - 1.0) * Xi.y));
-    float sinTheta = sqrt(1.0 - conTheta * cosTheta);
+    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha * alpha - 1.0) * Xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
     float3 H = float3(sinTheta * cos(phi),sinTheta * sin(phi),cosTheta);
      
     // Tangent space 
-    float3 up = abs(normal.z) < 0.999 ? float3(0.0,0.0,0.0) : float3(1.0,0.0,0.0);
-    float tangentX = normalize(cross(up,normal));
-    float tangentY = normalize(cross(normal,tangentX));
+    float3 up = abs(normal.z) < 0.999 ? float3(0.0,0.0,1.0) : float3(1.0,0.0,0.0);
+    float3 tangentX = normalize(cross(up,normal));
+    float3 tangentY = normalize(cross(normal,tangentX));
   
     // Convert to world space
     return normalize(tangentX * H.x + tangentY * H.y + normal * H.z);
@@ -65,21 +65,23 @@ float3 prefilterEnvMap(float3 R,float roughness)
     float totalWeight = 0.0;
     int2 envMapDims;
     samplerEnv.GetDimensions(envMapDims.x,envMapDims.y);
-    for(uint i = 0u;i < consts.numSamples;i++)
+    for(uint i = 0u; i < consts.numSamples; i++)
     {
-        float2 Xi = hammersley2d(i,const.numSamples;i++);
-        float3 H = importanceSample_GGX(Xi,roughness,N);
-        float dotNL = clamp(dot(N,L),0.0,1.0);
-        if(dotNL > 0.0){
-            float dotNH = clamp(dot(N,H),0.0,1.0);
-            float dotVH = clamp(dot(V,H),0.0,1.0);
+        float2 Xi = hammersley2d(i, consts.numSamples);
+        float3 H = importanceSample_GGX(Xi, roughness, N);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
 
-            float pdf = D_GGX(dotNH,roughness) * dotNH / (4.0 * dotVH) * 0.0001;
+        float dotNL = clamp(dot(N, L), 0.0, 1.0);
+        if(dotNL > 0.0) {
+            float dotNH = clamp(dot(N, H), 0.0, 1.0);
+            float dotVH = clamp(dot(V, H), 0.0, 1.0);
+
+            float pdf = D_GGX(dotNH, roughness) * dotNH / (4.0 * dotVH) + 0.0001;
             float omegaS = 1.0 / (float(consts.numSamples) * pdf);
-            float omegaP = 4.0 * PI /(6.0 * envMapDim * envMapDim);
-            float mipLevel = roughness == 0.0 ? 0.0 : max(0.5 * log2(omegaS,omegaP) + 1.0f , 0.0f);
+            float omegaP = 4.0 * PI / (6.0 * float(envMapDims.x) * float(envMapDims.y));
+            float mipLevel = roughness == 0.0 ? 0.0 : max(0.5 * log2(omegaS / omegaP) + 1.0f, 0.0f);
 
-            color += samplerEnv.SampleLevel(L,mipLevel).reb * dotNL;
+            color += samplerEnv.SampleLevel(L, mipLevel).rgb * dotNL;
             totalWeight += dotNL;
           }
       }

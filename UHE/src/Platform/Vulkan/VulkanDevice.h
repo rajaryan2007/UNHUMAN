@@ -27,6 +27,7 @@ public:
 
     // ─── Resource Creation ──────────────────────────────────────
     BufferHandle CreateBuffer(const BufferDesc& desc) override;
+    u32 GetBufferBindlessIndex(BufferHandle handle) override;
     TextureHandle CreateTexture(const TextureDesc& desc) override;
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;

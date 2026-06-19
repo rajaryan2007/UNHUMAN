@@ -17,8 +17,10 @@ public:
     void init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage);
     void UploadData(const void* data, vk::DeviceSize size);
     void CopyTo(VulkanBuffer& dstBuffer, vk::DeviceSize size, vk::raii::CommandBuffer& commandBuffer);
+    void Destroy();
 
     vk::Buffer GetHandle() const { return m_Buffer; }
+    vk::DeviceSize GetSize() const { return m_Size; }
 
 private:
     VmaAllocator m_Allocator = nullptr;

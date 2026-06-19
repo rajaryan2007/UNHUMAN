@@ -9,6 +9,8 @@
 #include "UHE/Renderer/Renderer2D.h"
 #include "UHE/Renderer3D/Renderer3D.h"
 #include "UHE/Renderer2D/SubTexture2D.h"
+#include "UHE/Renderer3D/LightSystem.h"
+#include "UHE/AssestsManager/VfsSystem.h"
 
 namespace UHE
 {
@@ -180,11 +182,25 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
             nsc.Instance->OnUpdate(ts);
         });
 
+    {
+        auto view = m_registry.view<AnimatorComponent>();
+        for (auto entity : view)
+        {
+            auto& anim = view.get<AnimatorComponent>(entity);
+            if (anim.IsPlaying && anim.Animator)
+            {
+                anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+            }
+        }
+    }
+
     Renderer2D::BeginScene(camera);
     RenderSprites(ts);
+    RenderLightIcons(camera);
     Renderer2D::EndScene();
 
-    Renderer3D::BeginScene(camera);
+    auto lights = RD3d::LightSystem::ExtractLights(m_registry);
+    Renderer3D::BeginScene(camera, lights);
     Renderer3D::DrawGrid();
     RenderModels(ts);
     Renderer3D::EndScene();
@@ -223,6 +239,40 @@ void Scene::RenderSprites(Timestep ts)
     }
 }
 
+void Scene::RenderLightIcons(EditorCamera& camera)
+{
+    if (!GetShowLightIcons()) return;
+
+    if (!m_DirLightIcon)
+    {
+        std::string dirPath = (FileSystem::Get().GetRootPath() / "assets/icon/directionLight.png").string();
+        m_DirLightIcon = Texture2D::Create(dirPath);
+    }
+    if (!m_PointLightIcon)
+    {
+        std::string pointPath = (FileSystem::Get().GetRootPath() / "assets/icon/pointLight.png").string();
+        m_PointLightIcon = Texture2D::Create(pointPath);
+    }
+
+    auto rotation = glm::mat4(camera.GetOrientation());
+
+    auto dirLightView = m_registry.view<TransformComponent, DirectionalLightComponent>();
+    for (auto entity : dirLightView)
+    {
+        auto [transform, light] = dirLightView.get<TransformComponent, DirectionalLightComponent>(entity);
+        glm::mat4 billTransform = glm::translate(glm::mat4(1.0f), transform.Translation) * rotation * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
+        Renderer2D::DrawQuad(billTransform, m_DirLightIcon, 1.0f, glm::vec4(1.0f), (int)entity);
+    }
+    
+    auto pointLightView = m_registry.view<TransformComponent, PointLightComponent>();
+    for (auto entity : pointLightView)
+    {
+        auto [transform, light] = pointLightView.get<TransformComponent, PointLightComponent>(entity);
+        glm::mat4 billTransform = glm::translate(glm::mat4(1.0f), transform.Translation) * rotation * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
+        Renderer2D::DrawQuad(billTransform, m_PointLightIcon, 1.0f, glm::vec4(1.0f), (int)entity);
+    }
+}
+
 void Scene::RenderModels(Timestep ts)
 {
     auto view = m_registry.view<TransformComponent, Model3DComponent>();
@@ -231,7 +281,14 @@ void Scene::RenderModels(Timestep ts)
         auto [transform, model] = view.get<TransformComponent, Model3DComponent>(entity);
         if (model.IsLoaded)
         {
-            Renderer3D::SubmitModel(*model.ModelData, transform.GetTransform(), (int)entity);
+            const RD3d::Animator* animator = nullptr;
+            if (m_registry.all_of<AnimatorComponent>(entity))
+            {
+                auto& animComp = m_registry.get<AnimatorComponent>(entity);
+                if (animComp.Animator)
+                    animator = animComp.Animator.get();
+            }
+            Renderer3D::SubmitModel(*model.ModelData, transform.GetTransform(), (int)entity, animator);
         }
     }
 }
@@ -240,7 +297,18 @@ void Scene::OnUpdateRuntime(Timestep ts)
 {
 
     {
+        auto view = m_registry.view<AnimatorComponent>();
+        for (auto entity : view)
+        {
+            auto& anim = view.get<AnimatorComponent>(entity);
+            if (anim.IsPlaying && anim.Animator)
+            {
+                anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+            }
+        }
+    }
 
+    {
         m_registry.view<NativeScriptComponent>().each(
             [=](auto entity, auto& nsc)
             {
@@ -298,8 +366,10 @@ void Scene::OnUpdateRuntime(Timestep ts)
         Renderer2D::BeginScene(*mainCamera, cameraTransform);
         RenderSprites(ts);
         Renderer2D::EndScene();
+        
+        auto lights = RD3d::LightSystem::ExtractLights(m_registry);
+        Renderer3D::BeginScene(*mainCamera, cameraTransform, lights);
 
-        Renderer3D::BeginScene(*mainCamera, cameraTransform);
         RenderModels(ts);
         Renderer3D::EndScene();
     }
@@ -383,27 +453,30 @@ Entity Scene::GetPrimaryCameraEntity()
     return {};
 }
 
-template <typename T> void Scene::OnComponentAdded(Entity entity, T& components)
+template <typename T> void Scene::OnComponentAdded(Entity entity, T& component)
 {
     static_assert(sizeof(T) == 0, "Only specialized components can be added!");
 }
 
-template <> void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& components) {}
-template <> void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& components)
+template <> void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& component) {}
+template <> void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& component)
 {
-    components.Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+    component.Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 }
 
-template <> void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& components) {}
-template <> void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& components) {}
-template <> void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent& components)
+template <> void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& component) {}
+template <> void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& component) {}
+template <> void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent& component)
 {
 }
-template <> void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& components) {}
-template <> void Scene::OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& components) {}
-template <> void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& components) {}
-template <> void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& components) {};
-template <> void Scene::OnComponentAdded<Model3DComponent>(Entity entity, Model3DComponent& components) {};
+template <> void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& component) {}
+template <> void Scene::OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& component) {}
+template <> void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& component) {}
+template <> void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& component) {};
+template <> void Scene::OnComponentAdded<Model3DComponent>(Entity entity, Model3DComponent& component) {};
+template <> void Scene::OnComponentAdded<DirectionalLightComponent>(Entity entity, DirectionalLightComponent& component) {};
+template <> void Scene::OnComponentAdded<PointLightComponent>(Entity entity, PointLightComponent& component) {};
+template <> void Scene::OnComponentAdded<AnimatorComponent>(Entity entity, AnimatorComponent& component) {};
 
 
 } // namespace UHE

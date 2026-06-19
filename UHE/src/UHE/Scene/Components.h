@@ -8,6 +8,7 @@
 #include "UHE/Core/UIID.h"
 #include "UHE/Renderer/Texture.h"
 #include "UHE/Renderer3D/LoadModel.h"
+#include "UHE/Renderer3D/Animator.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -133,6 +134,36 @@ struct UHE_API Model3DComponent
 
     Model3DComponent() = default;
     Model3DComponent(const Model3DComponent&) = default;
+};
+
+struct UHE_API AnimatorComponent
+{
+    Ref<RD3d::Animator> Animator;
+    bool IsPlaying = false;
+    float PlaybackSpeed = 1.0f;
+    std::string CurrentAnimationName = "";
+
+    AnimatorComponent() = default;
+    AnimatorComponent(const AnimatorComponent&) = default;
+};
+
+struct UHE_API DirectionalLightComponent
+{
+    glm::vec3 Color{1.0f, 1.0f, 1.0f};
+    float Intensity = 1.0f;
+
+    DirectionalLightComponent() = default;
+    DirectionalLightComponent(const DirectionalLightComponent&) = default;
+};
+
+struct UHE_API PointLightComponent
+{
+    glm::vec3 Color{1.0f, 1.0f, 1.0f};
+    float Intensity = 1.0f;
+    float Radius = 10.0f;
+
+    PointLightComponent() = default;
+    PointLightComponent(const PointLightComponent&) = default;
 };
 
 struct UHE_API BoxColliderComponent

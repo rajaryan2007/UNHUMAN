@@ -2,10 +2,18 @@
 #include "VulkanBuffer.h"
 #include "UHE/Core/Log.h"
 
-namespace UHE::RHI::VULKAN {
+namespace UHE::RHI::VULKAN
+{
 
-VulkanBuffer::~VulkanBuffer() {
-    if (m_Buffer && m_Allocator) {
+VulkanBuffer::~VulkanBuffer()
+{
+    Destroy();
+}
+
+void VulkanBuffer::Destroy()
+{
+    if (m_Buffer && m_Allocator)
+    {
         vmaDestroyBuffer(m_Allocator, static_cast<VkBuffer>(m_Buffer), m_Allocation);
         m_Buffer = nullptr;
         m_Allocation = nullptr;
@@ -13,7 +21,8 @@ VulkanBuffer::~VulkanBuffer() {
 }
 
 void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferUsageFlags usage,
-                        VmaMemoryUsage memoryUsage) {
+                        VmaMemoryUsage memoryUsage)
+{
     m_Allocator = allocator;
     m_Size = size;
 
@@ -26,7 +35,8 @@ void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferU
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = memoryUsage;
 
-    if (memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY || memoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU) {
+    if (memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY || memoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU)
+    {
         allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     }
 
@@ -37,7 +47,8 @@ void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferU
     m_Buffer = vk::Buffer(vkBuffer);
 }
 
-void VulkanBuffer::UploadData(const void* data, vk::DeviceSize size) {
+void VulkanBuffer::UploadData(const void* data, vk::DeviceSize size)
+{
     UHE_CORE_ASSERT(size <= m_Size, "Upload size exceeds buffer size!");
 
     void* mappedData;
@@ -47,7 +58,8 @@ void VulkanBuffer::UploadData(const void* data, vk::DeviceSize size) {
     vmaUnmapMemory(m_Allocator, m_Allocation);
 }
 
-void VulkanBuffer::CopyTo(VulkanBuffer& dstBuffer, vk::DeviceSize size, vk::raii::CommandBuffer& commandBuffer) {
+void VulkanBuffer::CopyTo(VulkanBuffer& dstBuffer, vk::DeviceSize size, vk::raii::CommandBuffer& commandBuffer)
+{
     vk::BufferCopy copyRegion{};
     copyRegion.srcOffset = 0;
     copyRegion.dstOffset = 0;
@@ -58,7 +70,8 @@ void VulkanBuffer::CopyTo(VulkanBuffer& dstBuffer, vk::DeviceSize size, vk::raii
 
 // ------------------ Vertex Buffer ---------------
 
-void VulkanVertexBuffer::Create(VmaAllocator allocator, const void* vertexData, uint32_t vertexCount, uint32_t stride) {
+void VulkanVertexBuffer::Create(VmaAllocator allocator, const void* vertexData, uint32_t vertexCount, uint32_t stride)
+{
     m_VertexCount = vertexCount;
     vk::DeviceSize bufferSize = static_cast<vk::DeviceSize>(vertexCount * stride);
 
@@ -70,12 +83,13 @@ void VulkanVertexBuffer::Create(VmaAllocator allocator, const void* vertexData, 
                   VMA_MEMORY_USAGE_GPU_ONLY);
 
     UHE_CORE_WARN("VulkanVertexBuffer staging copy command submission needs to be "
-                 "handled by an immediate context!");
+                  "handled by an immediate context!");
 }
 
 // ------------- Index Buffer ----------------
 
-void VulkanIndexBuffer::Create(VmaAllocator allocator, const std::vector<uint32_t>& indices) {
+void VulkanIndexBuffer::Create(VmaAllocator allocator, const std::vector<uint32_t>& indices)
+{
     m_IndexCount = static_cast<uint32_t>(indices.size());
     vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -87,7 +101,7 @@ void VulkanIndexBuffer::Create(VmaAllocator allocator, const std::vector<uint32_
                   VMA_MEMORY_USAGE_GPU_ONLY);
 
     UHE_CORE_WARN("VulkanIndexBuffer staging copy command submission needs to be "
-                 "handled by an immediate context!");
+                  "handled by an immediate context!");
 }
 
 } // namespace UHE::RHI::VULKAN

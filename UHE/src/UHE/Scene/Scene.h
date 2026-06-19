@@ -46,17 +46,24 @@ public:
     static Ref<Scene> Copy(Ref<Scene> other);
     entt::registry& GetRegistry() { return m_registry; }
 
+    static bool& GetShowLightIcons() { static bool s_ShowLightIcons = true; return s_ShowLightIcons; }
+
 public:
     template <typename T> void OnComponentAdded(Entity entity, T& components);
 
 private:
     void RenderSprites(Timestep ts);
     void RenderModels(Timestep ts);
+    void RenderLightIcons(EditorCamera& camera);
 
     entt::registry m_registry;
     u32 m_ViewportWidth = 0, m_ViewportHeight = 0;
 
     b2WorldId m_PhysicsWorldId = b2_nullWorldId;
+    
+    Ref<Texture2D> m_DirLightIcon;
+    Ref<Texture2D> m_PointLightIcon;
+
     friend class SceneSerializer;
     friend class Entity;
     friend class SceneHierarchyPanel;

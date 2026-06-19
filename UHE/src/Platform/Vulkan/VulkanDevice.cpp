@@ -152,6 +152,14 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc)
     buffer->init(m_Allocator, desc.size, usage, memUsage);
     return reinterpret_cast<BufferHandle>(buffer);
 }
+
+u32 VulkanDevice::GetBufferBindlessIndex(BufferHandle handle)
+{
+    if (!handle) return 0;
+    auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
+    return m_DescriptorManager.RegisterBuffer(m_LogicalDevice.getLogicalDevice(), buffer->GetHandle(), buffer->GetSize());
+}
+
 TextureHandle VulkanDevice::CreateTexture(const TextureDesc& desc)
 {
     VulkanTexture* texture = new VulkanTexture();
