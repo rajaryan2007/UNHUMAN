@@ -1,7 +1,9 @@
 #pragma once
 
 #define ENTT_STANDARD_CPP 1
+#ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif
 
 #include <UHE/Core/Log.h>
 #include <UHE/Debug/TracySetup.h>

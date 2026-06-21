@@ -66,10 +66,6 @@ void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance &m_Vkinstance)
        throw std::runtime_error("Failed to find suitable GPU with Vulkan support!");
      }
   }
-  vk::PhysicalDevice VulkanPhysicalDevice::PickPhsycialDevic()
-  {
-     
-  }
-  }
+} // namespace UHE::RHI::VULKAN
 
 

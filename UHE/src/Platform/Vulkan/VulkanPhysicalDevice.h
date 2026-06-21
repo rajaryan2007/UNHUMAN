@@ -29,7 +29,7 @@ public:
     }
 
 private:
-    vk::PhysicalDevice PickPhsycialDevic();
+
     vk::raii::PhysicalDevice m_physicalDevice = nullptr;
     QueueFamilyIndices m_queueFamilyIndices;
     std::vector<const char*> requiredDeviceExtension = {
