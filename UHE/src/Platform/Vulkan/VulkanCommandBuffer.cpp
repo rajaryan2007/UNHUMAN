@@ -350,7 +350,7 @@ void VulkanCommandBuffer::PushConstants(ShaderStage stage, const void* data, u32
         else if (stage == ShaderStage::AllGraphics)
             flags = vk::ShaderStageFlagBits::eAllGraphics;
 
-        m_CommandBuffer.pushConstants(m_CurrentPipelineLayout, static_cast<vk::ShaderStageFlags>(flags), offset, size, data);
+        m_CommandBuffer.pushConstants<uint8_t>(m_CurrentPipelineLayout, static_cast<vk::ShaderStageFlags>(flags), offset, vk::ArrayProxy<const uint8_t>(size, static_cast<const uint8_t*>(data)));
     }
 }
 
