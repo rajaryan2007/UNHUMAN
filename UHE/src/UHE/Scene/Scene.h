@@ -5,6 +5,7 @@
 #include "UHE/Core/Timestep.h"
 #include "UHE/Renderer/EditorCamera.h"
 #include "UHE/Scene/Components.h"
+#include "UHE/Physics/PhysicsSystem3D.h"
 #include "entt.hpp"
 class b2World;
 
@@ -22,6 +23,10 @@ struct RigidBody2DComponent;
 struct BoxColliderComponent;
 struct IDComponent;
 struct Model3DComponent;
+struct RigidBody3DComponent;
+struct BoxCollider3DComponent;
+struct SphereCollider3DComponent;
+struct CapsuleCollider3DComponent;
 
 class UHE_API Scene
 {
@@ -60,6 +65,7 @@ private:
     u32 m_ViewportWidth = 0, m_ViewportHeight = 0;
 
     b2WorldId m_PhysicsWorldId = b2_nullWorldId;
+    Physics::PhysicsSystem3D m_PhysicsSystem3D;
     
     Ref<Texture2D> m_DirLightIcon;
     Ref<Texture2D> m_PointLightIcon;
@@ -82,5 +88,9 @@ template <> UHE_API void Scene::OnComponentAdded<Model3DComponent>(Entity entity
 template <> UHE_API void Scene::OnComponentAdded<DirectionalLightComponent>(Entity entity, DirectionalLightComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<PointLightComponent>(Entity entity, PointLightComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<AnimatorComponent>(Entity entity, AnimatorComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<RigidBody3DComponent>(Entity entity, RigidBody3DComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<BoxCollider3DComponent>(Entity entity, BoxCollider3DComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<SphereCollider3DComponent>(Entity entity, SphereCollider3DComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<CapsuleCollider3DComponent>(Entity entity, CapsuleCollider3DComponent& components);
 
 } // namespace UHE

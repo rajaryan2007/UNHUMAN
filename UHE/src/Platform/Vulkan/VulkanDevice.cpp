@@ -222,14 +222,35 @@ void VulkanDevice::Begin()
 
     m_LogicalDevice.getLogicalDevice().resetFences({*m_Frames[m_CurrentFrame].GetInFlightFence()});
 
-    vk::Result acquireResult;
-    uint32_t imageIndex;
-    acquireResult = static_cast<vk::Result>(vkAcquireNextImageKHR(*m_LogicalDevice.getLogicalDevice(), *m_SwapChain.GetSwapchain(), UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex));
+    vk::Result acquireResult = vk::Result::eSuccess;
+    uint32_t imageIndex = 0;
+
+    try
+    {
+        auto [res, idx] = m_SwapChain.GetSwapchain().acquireNextImage(
+            UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), nullptr);
+        acquireResult = res;
+        imageIndex = idx;
+    }
+    catch (const vk::OutOfDateKHRError&)
+    {
+        acquireResult = vk::Result::eErrorOutOfDateKHR;
+    }
 
     if (acquireResult == vk::Result::eErrorOutOfDateKHR)
     {
         RecreateSwapchain();
-        acquireResult = static_cast<vk::Result>(vkAcquireNextImageKHR(*m_LogicalDevice.getLogicalDevice(), *m_SwapChain.GetSwapchain(), UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex));
+        try
+        {
+            auto [res, idx] = m_SwapChain.GetSwapchain().acquireNextImage(
+                UINT64_MAX, *m_Frames[m_CurrentFrame].GetimageAvailableSemaphore(), nullptr);
+            acquireResult = res;
+            imageIndex = idx;
+        }
+        catch (const std::exception&)
+        {
+            throw std::runtime_error("Failed to acquire swap chain image!");
+        }
     }
     else if (acquireResult != vk::Result::eSuccess && acquireResult != vk::Result::eSuboptimalKHR)
     {

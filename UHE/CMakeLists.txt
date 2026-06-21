@@ -57,6 +57,7 @@ target_include_directories(UHE PUBLIC
     "vendor/tracy/public"
     "vendor/slang/include"
     "vendor/box2d/include"
+    "vendor/jolt"
 )
 
 target_sources(UHE PRIVATE
@@ -99,6 +100,7 @@ PRIVATE
     TracyClient
     slang::slang
     box2d
+    Jolt
 )
 
 if(UNIX)

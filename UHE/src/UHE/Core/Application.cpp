@@ -7,6 +7,7 @@
 #include "UHE/Renderer3D/Renderer3D.h"
 
 #include "UHE/Core/Log.h"
+#include "UHE/Physics/PhysicsSystem3D.h"
 #include "input.h"
 
 #include <GLFW/glfw3.h>
@@ -33,6 +34,7 @@ namespace UHE{
 		Renderer::Init();
 		Renderer2D::Init();
 		Renderer3D::Init();
+		Physics::PhysicsSystem3D::Init();
 
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushOverlay(m_ImGuiLayer);		
@@ -43,6 +45,7 @@ namespace UHE{
 		Renderer::GetDevice().WaitIdle();
 		Renderer::GetDevice().ResetCommandBuffers();
 		m_LayerStack.Clear();
+		Physics::PhysicsSystem3D::Shutdown();
 		Renderer3D::Shutdown();
 		Renderer2D::Shutdown();
 		Renderer::Shutdown();

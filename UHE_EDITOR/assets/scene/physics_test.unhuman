@@ -1,0 +1,138 @@
+Scene: Untitled
+Entities:
+  - Entity: 123456789
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Translation: [0, -2, 0]
+      Rotation: [0, 0, 0]
+      Scale: [20, 1, 20]
+    Model3DComponent:
+      ModelPath: /home/misa/coderepo/enginedev/unhuman/UHE_EDITOR/assets/model/cube.gltf
+    RigidBody3DComponent:
+      BodyType: 0
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      IsSensor: false
+      AllowedDOFs:
+        - true
+        - true
+        - true
+        - true
+        - true
+        - true
+    BoxCollider3DComponent:
+      Offset: [0, 0, 0]
+      HalfExtent: [10, 0.5, 10]
+      Friction: 0.5
+      Restitution: 0.0
+  - Entity: 123456790
+    TagComponent:
+      Tag: FallingBox
+    TransformComponent:
+      Translation: [0, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/coderepo/enginedev/unhuman/UHE_EDITOR/assets/model/cube.gltf
+    RigidBody3DComponent:
+      BodyType: 2
+      Mass: 10
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      IsSensor: false
+      AllowedDOFs:
+        - true
+        - true
+        - true
+        - true
+        - true
+        - true
+    BoxCollider3DComponent:
+      Offset: [0, 0, 0]
+      HalfExtent: [0.5, 0.5, 0.5]
+      Friction: 0.2
+      Restitution: 0.5
+  - Entity: 123456791
+    TagComponent:
+      Tag: FallingSphere
+    TransformComponent:
+      Translation: [2, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/coderepo/enginedev/unhuman/UHE_EDITOR/assets/model/cube.gltf
+    RigidBody3DComponent:
+      BodyType: 2
+      Mass: 5
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      IsSensor: false
+      AllowedDOFs:
+        - true
+        - true
+        - true
+        - true
+        - true
+        - true
+    SphereCollider3DComponent:
+      Offset: [0, 0, 0]
+      Radius: 0.5
+      Friction: 0.2
+      Restitution: 0.8
+  - Entity: 123456794
+    TagComponent:
+      Tag: FallingCapsule
+    TransformComponent:
+      Translation: [-2, 8, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 2, 1]
+    Model3DComponent:
+      ModelPath: /home/misa/coderepo/enginedev/unhuman/UHE_EDITOR/assets/model/cube.gltf
+    RigidBody3DComponent:
+      BodyType: 2
+      Mass: 5
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      IsSensor: false
+      AllowedDOFs:
+        - true
+        - true
+        - true
+        - true
+        - true
+        - true
+    CapsuleCollider3DComponent:
+      Offset: [0, 0, 0]
+      Radius: 0.5
+      HalfHeight: 1.0
+      Friction: 0.2
+      Restitution: 0.5
+  - Entity: 123456792
+    TagComponent:
+      Tag: DirectionalLight
+    TransformComponent:
+      Translation: [0, 10, 0]
+      Rotation: [-0.5, 0, 0]
+      Scale: [1, 1, 1]
+    DirectionalLightComponent:
+      Color: [1, 1, 1]
+      Intensity: 1.0
+  - Entity: 123456793
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Translation: [0, 5, 20]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      ProjectionType: 0
+      PerspectiveFOV: 0.785398
+      PerspectiveNear: 0.01
+      PerspectiveFar: 1000.0
+      OrthographicSize: 10.0
+      OrthographicNear: -1.0
+      OrthographicFar: 1.0
+      Primary: true
+      FixedAspectRatio: false

@@ -12,6 +12,15 @@
 #include "UHE/Renderer3D/LightSystem.h"
 #include "UHE/AssestsManager/VfsSystem.h"
 
+// Jolt Physics
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/Body.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+
 namespace UHE
 {
 
@@ -28,6 +37,10 @@ Scene::Scene()
     m_registry.storage<RigidBody2DComponent>();
     m_registry.storage<BoxColliderComponent>();
     m_registry.storage<Model3DComponent>();
+    m_registry.storage<RigidBody3DComponent>();
+    m_registry.storage<BoxCollider3DComponent>();
+    m_registry.storage<SphereCollider3DComponent>();
+    m_registry.storage<CapsuleCollider3DComponent>();
 }
 
 Scene::~Scene() = default;
@@ -130,6 +143,85 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
             dst.ModelPath = src.ModelPath;
             dst.IsLoaded = src.IsLoaded;
             dst.ModelData = src.ModelData;
+        }
+
+        // Copy AnimatorComponent
+        if (srcRegistry.all_of<AnimatorComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<AnimatorComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<AnimatorComponent>();
+            dst.CurrentAnimationName = src.CurrentAnimationName;
+            dst.PlaybackSpeed = src.PlaybackSpeed;
+            dst.IsPlaying = src.IsPlaying;
+            // Note: Animator itself needs to be recreated since it depends on the ModelData instance, 
+            // but we can just share it or let it re-initialize in OnUpdate. We'll copy the ref.
+            dst.Animator = src.Animator;
+        }
+
+        // Copy DirectionalLightComponent
+        if (srcRegistry.all_of<DirectionalLightComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<DirectionalLightComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<DirectionalLightComponent>();
+            dst.Color = src.Color;
+            dst.Intensity = src.Intensity;
+        }
+
+        // Copy PointLightComponent
+        if (srcRegistry.all_of<PointLightComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<PointLightComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<PointLightComponent>();
+            dst.Color = src.Color;
+            dst.Intensity = src.Intensity;
+            dst.Radius = src.Radius;
+        }
+
+        // Copy RigidBody3DComponent
+        if (srcRegistry.all_of<RigidBody3DComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<RigidBody3DComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<RigidBody3DComponent>();
+            dst.Type = src.Type;
+            dst.Mass = src.Mass;
+            dst.LinearDamping = src.LinearDamping;
+            dst.AngularDamping = src.AngularDamping;
+            for (int i = 0; i < 6; i++) dst.AllowedDOFs[i] = src.AllowedDOFs[i];
+            dst.IsSensor = src.IsSensor;
+        }
+
+        // Copy BoxCollider3DComponent
+        if (srcRegistry.all_of<BoxCollider3DComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<BoxCollider3DComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<BoxCollider3DComponent>();
+            dst.Offset = src.Offset;
+            dst.HalfExtent = src.HalfExtent;
+            dst.Friction = src.Friction;
+            dst.Restitution = src.Restitution;
+        }
+
+        // Copy SphereCollider3DComponent
+        if (srcRegistry.all_of<SphereCollider3DComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<SphereCollider3DComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<SphereCollider3DComponent>();
+            dst.Offset = src.Offset;
+            dst.Radius = src.Radius;
+            dst.Friction = src.Friction;
+            dst.Restitution = src.Restitution;
+        }
+
+        // Copy CapsuleCollider3DComponent
+        if (srcRegistry.all_of<CapsuleCollider3DComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<CapsuleCollider3DComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<CapsuleCollider3DComponent>();
+            dst.Offset = src.Offset;
+            dst.Radius = src.Radius;
+            dst.HalfHeight = src.HalfHeight;
+            dst.Friction = src.Friction;
+            dst.Restitution = src.Restitution;
         }
     }
 
@@ -343,6 +435,30 @@ void Scene::OnUpdateRuntime(Timestep ts)
             b2Rot rotation = b2Body_GetRotation(rb2d.RuntimeBody);
             transform.Rotation.z = b2Rot_GetAngle(rotation);
         }
+
+        // 3D Physics Jolt
+        m_PhysicsSystem3D.Update(ts);
+        JPH::BodyInterface* bodyInterface = m_PhysicsSystem3D.GetBodyInterface();
+
+        auto view3d = m_registry.view<TransformComponent, RigidBody3DComponent>();
+        for (auto entity : view3d)
+        {
+            auto [transform, rb3d] = view3d.get<TransformComponent, RigidBody3DComponent>(entity);
+
+            if (rb3d.RuntimeBodyID == 0xFFFFFFFF)
+                continue;
+
+            JPH::BodyID bodyID(rb3d.RuntimeBodyID);
+            if (!bodyInterface->IsActive(bodyID))
+                continue;
+
+            JPH::Vec3 position = bodyInterface->GetPosition(bodyID);
+            JPH::Quat rotation = bodyInterface->GetRotation(bodyID);
+
+            transform.Translation = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+            // glm::quat constructor is (w, x, y, z)
+            transform.Rotation = glm::eulerAngles(glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ()));
+        }
     }
 
     Camera* mainCamera = nullptr;
@@ -430,6 +546,91 @@ void Scene::OnRuntimeStart()
 
         b2CreatePolygonShape(bodyId, &shapeDef, &box);
     }
+
+    // --- 3D Physics (Jolt) ---
+    m_PhysicsSystem3D.InitializeScene();
+    JPH::BodyInterface* bodyInterface = m_PhysicsSystem3D.GetBodyInterface();
+
+    auto view3d = m_registry.view<TransformComponent, RigidBody3DComponent>();
+    for (auto entity : view3d)
+    {
+        auto [transform, rb3d] = view3d.get<TransformComponent, RigidBody3DComponent>(entity);
+
+        JPH::ShapeRefC shape = nullptr;
+        float friction = 0.2f;
+        float restitution = 0.0f;
+
+        // Determine shape
+        if (m_registry.all_of<BoxCollider3DComponent>(entity))
+        {
+            auto& bc = m_registry.get<BoxCollider3DComponent>(entity);
+            glm::vec3 scaleExtents = bc.HalfExtent * transform.Scale;
+            shape = new JPH::BoxShape(JPH::Vec3(scaleExtents.x, scaleExtents.y, scaleExtents.z));
+            friction = bc.Friction;
+            restitution = bc.Restitution;
+        }
+        else if (m_registry.all_of<SphereCollider3DComponent>(entity))
+        {
+            auto& sc = m_registry.get<SphereCollider3DComponent>(entity);
+            float maxScale = std::max(std::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
+            shape = new JPH::SphereShape(sc.Radius * maxScale);
+            friction = sc.Friction;
+            restitution = sc.Restitution;
+        }
+        else if (m_registry.all_of<CapsuleCollider3DComponent>(entity))
+        {
+            auto& cc = m_registry.get<CapsuleCollider3DComponent>(entity);
+            float maxScale = std::max(transform.Scale.x, transform.Scale.z);
+            shape = new JPH::CapsuleShape(cc.HalfHeight * transform.Scale.y, cc.Radius * maxScale);
+            friction = cc.Friction;
+            restitution = cc.Restitution;
+        }
+
+        if (shape)
+        {
+            JPH::EMotionType motionType = JPH::EMotionType::Static;
+            JPH::ObjectLayer layer = 0; // Layers::NON_MOVING
+
+            if (rb3d.Type == RigidBody3DComponent::BodyType::Dynamic)
+            {
+                motionType = JPH::EMotionType::Dynamic;
+                layer = 1; // Layers::MOVING
+            }
+            else if (rb3d.Type == RigidBody3DComponent::BodyType::Kinematic)
+            {
+                motionType = JPH::EMotionType::Kinematic;
+                layer = 1; // Layers::MOVING
+            }
+
+            glm::quat q = glm::quat(transform.Rotation);
+            JPH::BodyCreationSettings bodySettings(
+                shape, 
+                JPH::Vec3(transform.Translation.x, transform.Translation.y, transform.Translation.z),
+                JPH::Quat(q.x, q.y, q.z, q.w), 
+                motionType, 
+                layer
+            );
+
+            bodySettings.mFriction = friction;
+            bodySettings.mRestitution = restitution;
+            bodySettings.mLinearDamping = rb3d.LinearDamping;
+            bodySettings.mAngularDamping = rb3d.AngularDamping;
+            bodySettings.mIsSensor = rb3d.IsSensor;
+            
+            if (rb3d.Type == RigidBody3DComponent::BodyType::Dynamic)
+            {
+                bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+                bodySettings.mMassPropertiesOverride.mMass = rb3d.Mass;
+            }
+
+            JPH::Body* body = bodyInterface->CreateBody(bodySettings);
+            if (body)
+            {
+                bodyInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
+                rb3d.RuntimeBodyID = body->GetID().GetIndexAndSequenceNumber();
+            }
+        }
+    }
 }
 
 void Scene::OnRuntimeStop()
@@ -439,6 +640,9 @@ void Scene::OnRuntimeStop()
         b2DestroyWorld(m_PhysicsWorldId);
         m_PhysicsWorldId = b2_nullWorldId;
     }
+
+    // 3D Physics
+    m_PhysicsSystem3D.ShutdownScene();
 }
 
 Entity Scene::GetPrimaryCameraEntity()
@@ -477,6 +681,9 @@ template <> void Scene::OnComponentAdded<Model3DComponent>(Entity entity, Model3
 template <> void Scene::OnComponentAdded<DirectionalLightComponent>(Entity entity, DirectionalLightComponent& component) {};
 template <> void Scene::OnComponentAdded<PointLightComponent>(Entity entity, PointLightComponent& component) {};
 template <> void Scene::OnComponentAdded<AnimatorComponent>(Entity entity, AnimatorComponent& component) {};
-
+template <> void Scene::OnComponentAdded<RigidBody3DComponent>(Entity entity, RigidBody3DComponent& component) {};
+template <> void Scene::OnComponentAdded<BoxCollider3DComponent>(Entity entity, BoxCollider3DComponent& component) {};
+template <> void Scene::OnComponentAdded<SphereCollider3DComponent>(Entity entity, SphereCollider3DComponent& component) {};
+template <> void Scene::OnComponentAdded<CapsuleCollider3DComponent>(Entity entity, CapsuleCollider3DComponent& component) {};
 
 } // namespace UHE

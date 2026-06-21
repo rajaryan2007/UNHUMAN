@@ -182,4 +182,66 @@ struct UHE_API BoxColliderComponent
     BoxColliderComponent(const BoxColliderComponent&) = default;
 };
 
+// --- 3D Physics Components ---
+
+struct UHE_API RigidBody3DComponent
+{
+    enum class BodyType
+    {
+        Static = 0,
+        Kinematic,
+        Dynamic
+    };
+    BodyType Type = BodyType::Static;
+    
+    float Mass = 1.0f;
+    float LinearDamping = 0.05f;
+    float AngularDamping = 0.05f;
+    bool AllowedDOFs[6] = {true, true, true, true, true, true}; // Translation X,Y,Z Rotation X,Y,Z
+    bool IsSensor = false;
+
+    // We store the JPH::BodyID as a uint32_t to avoid including Jolt headers everywhere
+    uint32_t RuntimeBodyID = 0xFFFFFFFF; // JPH::BodyID::cInvalidBodyID
+
+    RigidBody3DComponent() = default;
+    RigidBody3DComponent(const RigidBody3DComponent&) = default;
+};
+
+struct UHE_API BoxCollider3DComponent
+{
+    glm::vec3 Offset{0.0f, 0.0f, 0.0f};
+    glm::vec3 HalfExtent{0.5f, 0.5f, 0.5f};
+
+    float Friction = 0.2f;
+    float Restitution = 0.0f;
+
+    BoxCollider3DComponent() = default;
+    BoxCollider3DComponent(const BoxCollider3DComponent&) = default;
+};
+
+struct UHE_API SphereCollider3DComponent
+{
+    glm::vec3 Offset{0.0f, 0.0f, 0.0f};
+    float Radius = 0.5f;
+
+    float Friction = 0.2f;
+    float Restitution = 0.0f;
+
+    SphereCollider3DComponent() = default;
+    SphereCollider3DComponent(const SphereCollider3DComponent&) = default;
+};
+
+struct UHE_API CapsuleCollider3DComponent
+{
+    glm::vec3 Offset{0.0f, 0.0f, 0.0f};
+    float Radius = 0.5f;
+    float HalfHeight = 1.0f; // Total height is 2 * (Radius + HalfHeight)
+
+    float Friction = 0.2f;
+    float Restitution = 0.0f;
+
+    CapsuleCollider3DComponent() = default;
+    CapsuleCollider3DComponent(const CapsuleCollider3DComponent&) = default;
+};
+
 } // namespace UHE

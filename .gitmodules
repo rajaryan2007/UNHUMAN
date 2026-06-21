@@ -31,3 +31,6 @@
 [submodule "UHE/vendor/fastgltf"]
 	path = UHE/vendor/fastgltf
 	url = https://github.com/spnda/fastgltf.git
+[submodule "UHE/vendor/jolt"]
+	path = UHE/vendor/jolt
+	url = https://github.com/jrouwe/JoltPhysics.git

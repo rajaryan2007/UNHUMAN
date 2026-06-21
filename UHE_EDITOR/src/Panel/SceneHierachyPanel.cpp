@@ -299,6 +299,22 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
       m_SelectionContext.AddComponent<Model3DComponent>();
       ImGui::CloseCurrentPopup();
     }
+    if (ImGui::MenuItem("  Rigid Body 3D")) {
+      m_SelectionContext.AddComponent<RigidBody3DComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::MenuItem("  Box Collider 3D")) {
+      m_SelectionContext.AddComponent<BoxCollider3DComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::MenuItem("  Sphere Collider 3D")) {
+      m_SelectionContext.AddComponent<SphereCollider3DComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::MenuItem("  Capsule Collider 3D")) {
+      m_SelectionContext.AddComponent<CapsuleCollider3DComponent>();
+      ImGui::CloseCurrentPopup();
+    }
     if (ImGui::MenuItem("  Animator 3D")) {
       m_SelectionContext.AddComponent<AnimatorComponent>();
       ImGui::CloseCurrentPopup();
@@ -355,6 +371,62 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         ImGui::DragFloat("Friction", &components.Friction, 0.01f, 0.0f, 1.0f);
         ImGui::DragFloat("Restitution", &components.Restitution, 0.01f, 0.0f, 1.0f);
         ImGui::DragFloat("Restitution Threshold", &components.RestitutionThreshold, 0.01f, 0.0f, 10.0f);
+      });
+
+  ::UHE::DrawComponents<RigidBody3DComponent>(
+      "Rigid Body 3D", entity, [](auto &components) {
+        const char *bodyTypeStrings[] = {"Static", "Kinematic", "Dynamic"};
+        const char *currentBodyTypeString = bodyTypeStrings[(int)components.Type];
+
+        if (ImGui::BeginCombo("Body Type", currentBodyTypeString)) {
+          for (int i = 0; i < 3; i++) {
+            bool isSelected = currentBodyTypeString == bodyTypeStrings[i];
+            if (ImGui::Selectable(bodyTypeStrings[i], isSelected)) {
+              currentBodyTypeString = bodyTypeStrings[i];
+              components.Type = (RigidBody3DComponent::BodyType)i;
+            }
+            if (isSelected) ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndCombo();
+        }
+
+        ImGui::DragFloat("Mass", &components.Mass, 0.1f, 0.0f, 10000.0f);
+        ImGui::DragFloat("Linear Damping", &components.LinearDamping, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Angular Damping", &components.AngularDamping, 0.01f, 0.0f, 1.0f);
+        ImGui::Checkbox("Is Sensor", &components.IsSensor);
+        
+        ImGui::Text("Allowed Degrees of Freedom");
+        ImGui::Checkbox("Trans X", &components.AllowedDOFs[0]); ImGui::SameLine();
+        ImGui::Checkbox("Trans Y", &components.AllowedDOFs[1]); ImGui::SameLine();
+        ImGui::Checkbox("Trans Z", &components.AllowedDOFs[2]);
+        ImGui::Checkbox("Rot X", &components.AllowedDOFs[3]); ImGui::SameLine();
+        ImGui::Checkbox("Rot Y", &components.AllowedDOFs[4]); ImGui::SameLine();
+        ImGui::Checkbox("Rot Z", &components.AllowedDOFs[5]);
+      });
+
+  ::UHE::DrawComponents<BoxCollider3DComponent>(
+      "Box Collider 3D", entity, [](auto &components) {
+        DrawVec3Control("Offset", components.Offset);
+        DrawVec3Control("Half Extent", components.HalfExtent);
+        ImGui::DragFloat("Friction", &components.Friction, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Restitution", &components.Restitution, 0.01f, 0.0f, 1.0f);
+      });
+
+  ::UHE::DrawComponents<SphereCollider3DComponent>(
+      "Sphere Collider 3D", entity, [](auto &components) {
+        DrawVec3Control("Offset", components.Offset);
+        ImGui::DragFloat("Radius", &components.Radius, 0.01f, 0.0f, 100.0f);
+        ImGui::DragFloat("Friction", &components.Friction, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Restitution", &components.Restitution, 0.01f, 0.0f, 1.0f);
+      });
+
+  ::UHE::DrawComponents<CapsuleCollider3DComponent>(
+      "Capsule Collider 3D", entity, [](auto &components) {
+        DrawVec3Control("Offset", components.Offset);
+        ImGui::DragFloat("Radius", &components.Radius, 0.01f, 0.0f, 100.0f);
+        ImGui::DragFloat("Half Height", &components.HalfHeight, 0.01f, 0.0f, 100.0f);
+        ImGui::DragFloat("Friction", &components.Friction, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Restitution", &components.Restitution, 0.01f, 0.0f, 1.0f);
       });
 
   ::UHE::DrawComponents<CameraComponent>(

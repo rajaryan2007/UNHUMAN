@@ -61,6 +61,16 @@ add_subdirectory(UHE/vendor/yaml-cpp)
 add_subdirectory(UHE/vendor/box2d)
 add_subdirectory(UHE/vendor/fastgltf)
 
+# Disable Jolt Physics tests and viewers to drastically reduce compile times
+set(TARGET_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(TARGET_HELLO_WORLD OFF CACHE BOOL "" FORCE)
+set(TARGET_PERFORMANCE_TEST OFF CACHE BOOL "" FORCE)
+set(TARGET_SAMPLES OFF CACHE BOOL "" FORCE)
+set(TARGET_VIEWER OFF CACHE BOOL "" FORCE)
+set(USE_SSE4_2 ON CACHE BOOL "" FORCE) # Fast SIMD physics
+set(USE_AVX2 OFF CACHE BOOL "" FORCE)  # Keep off for broader compatibility
+set(USE_AVX512 OFF CACHE BOOL "" FORCE)
+add_subdirectory(UHE/vendor/jolt/Build)
 #Tracy Profiler
 set(TRACY_STATIC ON CACHE BOOL "" FORCE)
 set(TRACY_ENABLE ${VG_PROFILE} CACHE BOOL "" FORCE)
@@ -77,3 +87,10 @@ get_property(all_targets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYS
 foreach(t ${all_targets})
   auto_group(${t})
 endforeach()
+
+# Add 'make format' target
+add_custom_target(format
+    COMMAND find ${CMAKE_SOURCE_DIR}/UHE/src ${CMAKE_SOURCE_DIR}/UHE_EDITOR/src -type f \\( -name "*.cpp" -o -name "*.h" \\) -exec clang-format -i {} +
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Formatting source files with clang-format"
+)

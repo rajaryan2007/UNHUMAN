@@ -122,12 +122,101 @@ static void SerializeEntity(YAML::Emitter& out, Entity entity)
         out << YAML::EndMap;
     }
 
+    // RigidBody3D
+    if (entity.HasComponent<RigidBody3DComponent>())
+    {
+        auto& rb3d = entity.GetComponent<RigidBody3DComponent>();
+
+        out << YAML::Key << "RigidBody3DComponent" << YAML::BeginMap;
+        out << YAML::Key << "BodyType" << YAML::Value << (int)rb3d.Type;
+        out << YAML::Key << "Mass" << YAML::Value << rb3d.Mass;
+        out << YAML::Key << "LinearDamping" << YAML::Value << rb3d.LinearDamping;
+        out << YAML::Key << "AngularDamping" << YAML::Value << rb3d.AngularDamping;
+        out << YAML::Key << "IsSensor" << YAML::Value << rb3d.IsSensor;
+        out << YAML::Key << "AllowedDOFs" << YAML::BeginSeq;
+        for (int i = 0; i < 6; i++) out << rb3d.AllowedDOFs[i];
+        out << YAML::EndSeq;
+        out << YAML::EndMap;
+    }
+
+    // BoxCollider3D
+    if (entity.HasComponent<BoxCollider3DComponent>())
+    {
+        auto& bc3d = entity.GetComponent<BoxCollider3DComponent>();
+
+        out << YAML::Key << "BoxCollider3DComponent" << YAML::BeginMap;
+        out << YAML::Key << "Offset" << YAML::Value << bc3d.Offset;
+        out << YAML::Key << "HalfExtent" << YAML::Value << bc3d.HalfExtent;
+        out << YAML::Key << "Friction" << YAML::Value << bc3d.Friction;
+        out << YAML::Key << "Restitution" << YAML::Value << bc3d.Restitution;
+        out << YAML::EndMap;
+    }
+
+    // SphereCollider3D
+    if (entity.HasComponent<SphereCollider3DComponent>())
+    {
+        auto& sc3d = entity.GetComponent<SphereCollider3DComponent>();
+
+        out << YAML::Key << "SphereCollider3DComponent" << YAML::BeginMap;
+        out << YAML::Key << "Offset" << YAML::Value << sc3d.Offset;
+        out << YAML::Key << "Radius" << YAML::Value << sc3d.Radius;
+        out << YAML::Key << "Friction" << YAML::Value << sc3d.Friction;
+        out << YAML::Key << "Restitution" << YAML::Value << sc3d.Restitution;
+        out << YAML::EndMap;
+    }
+
+    // CapsuleCollider3D
+    if (entity.HasComponent<CapsuleCollider3DComponent>())
+    {
+        auto& cc3d = entity.GetComponent<CapsuleCollider3DComponent>();
+
+        out << YAML::Key << "CapsuleCollider3DComponent" << YAML::BeginMap;
+        out << YAML::Key << "Offset" << YAML::Value << cc3d.Offset;
+        out << YAML::Key << "Radius" << YAML::Value << cc3d.Radius;
+        out << YAML::Key << "HalfHeight" << YAML::Value << cc3d.HalfHeight;
+        out << YAML::Key << "Friction" << YAML::Value << cc3d.Friction;
+        out << YAML::Key << "Restitution" << YAML::Value << cc3d.Restitution;
+        out << YAML::EndMap;
+    }
+
     // Model3D
     if (entity.HasComponent<Model3DComponent>())
     {
         out << YAML::Key << "Model3DComponent" << YAML::BeginMap;
         auto& mc = entity.GetComponent<Model3DComponent>();
         out << YAML::Key << "ModelPath" << YAML::Value << mc.ModelPath;
+        out << YAML::EndMap;
+    }
+
+    // Animator
+    if (entity.HasComponent<AnimatorComponent>())
+    {
+        auto& ac = entity.GetComponent<AnimatorComponent>();
+        out << YAML::Key << "AnimatorComponent" << YAML::BeginMap;
+        out << YAML::Key << "CurrentAnimationName" << YAML::Value << ac.CurrentAnimationName;
+        out << YAML::Key << "PlaybackSpeed" << YAML::Value << ac.PlaybackSpeed;
+        out << YAML::Key << "IsPlaying" << YAML::Value << ac.IsPlaying;
+        out << YAML::EndMap;
+    }
+
+    // DirectionalLight
+    if (entity.HasComponent<DirectionalLightComponent>())
+    {
+        auto& dlc = entity.GetComponent<DirectionalLightComponent>();
+        out << YAML::Key << "DirectionalLightComponent" << YAML::BeginMap;
+        out << YAML::Key << "Color" << YAML::Value << dlc.Color;
+        out << YAML::Key << "Intensity" << YAML::Value << dlc.Intensity;
+        out << YAML::EndMap;
+    }
+
+    // PointLight
+    if (entity.HasComponent<PointLightComponent>())
+    {
+        auto& plc = entity.GetComponent<PointLightComponent>();
+        out << YAML::Key << "PointLightComponent" << YAML::BeginMap;
+        out << YAML::Key << "Color" << YAML::Value << plc.Color;
+        out << YAML::Key << "Intensity" << YAML::Value << plc.Intensity;
+        out << YAML::Key << "Radius" << YAML::Value << plc.Radius;
         out << YAML::EndMap;
     }
 
@@ -281,6 +370,59 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
             if (bc2dNode["RestitutionThreshold"])
                 bc2d.RestitutionThreshold = bc2dNode["RestitutionThreshold"].as<float>();
         }
+
+        // RigidBody3D
+        auto rb3dNode = entityNode["RigidBody3DComponent"];
+        if (rb3dNode)
+        {
+            auto& rb3d = entity.AddComponent<RigidBody3DComponent>();
+            rb3d.Type = (RigidBody3DComponent::BodyType)rb3dNode["BodyType"].as<int>();
+            if (rb3dNode["Mass"]) rb3d.Mass = rb3dNode["Mass"].as<float>();
+            if (rb3dNode["LinearDamping"]) rb3d.LinearDamping = rb3dNode["LinearDamping"].as<float>();
+            if (rb3dNode["AngularDamping"]) rb3d.AngularDamping = rb3dNode["AngularDamping"].as<float>();
+            if (rb3dNode["IsSensor"]) rb3d.IsSensor = rb3dNode["IsSensor"].as<bool>();
+            if (rb3dNode["AllowedDOFs"] && rb3dNode["AllowedDOFs"].IsSequence())
+            {
+                auto seq = rb3dNode["AllowedDOFs"];
+                for (int i = 0; i < 6 && i < seq.size(); i++)
+                    rb3d.AllowedDOFs[i] = seq[i].as<bool>();
+            }
+        }
+
+        // BoxCollider3D
+        auto bc3dNode = entityNode["BoxCollider3DComponent"];
+        if (bc3dNode)
+        {
+            auto& bc3d = entity.AddComponent<BoxCollider3DComponent>();
+            bc3d.Offset = bc3dNode["Offset"].as<glm::vec3>();
+            bc3d.HalfExtent = bc3dNode["HalfExtent"].as<glm::vec3>();
+            bc3d.Friction = bc3dNode["Friction"].as<float>();
+            bc3d.Restitution = bc3dNode["Restitution"].as<float>();
+        }
+
+        // SphereCollider3D
+        auto sc3dNode = entityNode["SphereCollider3DComponent"];
+        if (sc3dNode)
+        {
+            auto& sc3d = entity.AddComponent<SphereCollider3DComponent>();
+            sc3d.Offset = sc3dNode["Offset"].as<glm::vec3>();
+            sc3d.Radius = sc3dNode["Radius"].as<float>();
+            sc3d.Friction = sc3dNode["Friction"].as<float>();
+            sc3d.Restitution = sc3dNode["Restitution"].as<float>();
+        }
+
+        // CapsuleCollider3D
+        auto cc3dNode = entityNode["CapsuleCollider3DComponent"];
+        if (cc3dNode)
+        {
+            auto& cc3d = entity.AddComponent<CapsuleCollider3DComponent>();
+            cc3d.Offset = cc3dNode["Offset"].as<glm::vec3>();
+            cc3d.Radius = cc3dNode["Radius"].as<float>();
+            cc3d.HalfHeight = cc3dNode["HalfHeight"].as<float>();
+            cc3d.Friction = cc3dNode["Friction"].as<float>();
+            cc3d.Restitution = cc3dNode["Restitution"].as<float>();
+        }
+
         // Model3D
         auto modelNode = entityNode["Model3DComponent"];
         if (modelNode)
@@ -291,6 +433,45 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
             {
                 mc.IsLoaded = mc.ModelData->loadModel(mc.ModelPath);
             }
+        }
+
+        // Animator
+        auto acNode = entityNode["AnimatorComponent"];
+        if (acNode)
+        {
+            auto& ac = entity.AddComponent<AnimatorComponent>();
+            ac.CurrentAnimationName = acNode["CurrentAnimationName"].as<std::string>();
+            ac.PlaybackSpeed = acNode["PlaybackSpeed"].as<float>();
+            ac.IsPlaying = acNode["IsPlaying"].as<bool>();
+            if (entity.HasComponent<Model3DComponent>())
+            {
+                auto& mc = entity.GetComponent<Model3DComponent>();
+                if (mc.IsLoaded && mc.ModelData)
+                {
+                    ac.Animator = CreateRef<RD3d::Animator>(mc.ModelData);
+                    if (!ac.CurrentAnimationName.empty())
+                        ac.Animator->PlayAnimation(ac.CurrentAnimationName);
+                }
+            }
+        }
+
+        // DirectionalLight
+        auto dlcNode = entityNode["DirectionalLightComponent"];
+        if (dlcNode)
+        {
+            auto& dlc = entity.AddComponent<DirectionalLightComponent>();
+            dlc.Color = dlcNode["Color"].as<glm::vec3>();
+            dlc.Intensity = dlcNode["Intensity"].as<float>();
+        }
+
+        // PointLight
+        auto plcNode = entityNode["PointLightComponent"];
+        if (plcNode)
+        {
+            auto& plc = entity.AddComponent<PointLightComponent>();
+            plc.Color = plcNode["Color"].as<glm::vec3>();
+            plc.Intensity = plcNode["Intensity"].as<float>();
+            plc.Radius = plcNode["Radius"].as<float>();
         }
     }
 
