@@ -1,71 +1,127 @@
 #include "uhepch.h"
 #include "VulkanPhysicalDevice.h"
+#include <stdexcept>
+#include <vulkan/vulkan_raii.hpp>
+#include "vulkan/vulkan.hpp"
 
+namespace UHE::RHI::VULKAN
+{
+void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance& m_Vkinstance)
+{
+    auto const& m_instance = m_Vkinstance.getInstance();
+    std::vector<vk::raii::PhysicalDevice> devices = m_instance.enumeratePhysicalDevices();
+    if (devices.empty())
+    {
+        throw std::runtime_error("Failed to find a GPU with Vulkan support!");
+    }
+    auto bestDevice = devices.end();
+    i32 bestScore = -1;
 
+    for (auto it = devices.begin(); it != devices.end(); ++it)
+    {
+        bool suitable = IsDeviceSuitable(*it);
+        if (!suitable)
+            continue;
 
-namespace UHE::RHI::VULKAN {
-void VulkanPhysicalDevice::initPhysicalDevice(VulkanInstance &m_Vkinstance) 
-  {
-  auto const &m_instance = m_Vkinstance.getInstance();
-     std::vector<vk::raii::PhysicalDevice> devices =   m_instance.enumeratePhysicalDevices();
-     if (devices.empty()) {
-         throw std::runtime_error("Failed to find a GPU with Vulkan support!");
-     }
-     m_physicalDevice = devices[0];
-
-      const auto deviter = std::ranges::find_if(devices,
-        [&](auto const &device) 
+        i32 score = RateDevice(*it);
+        if (score > bestScore)
         {
-             bool supportsVulkan1_3 =device.getProperties().apiVersion >= VK_API_VERSION_1_3;
-             auto queueFamilies = device.getQueueFamilyProperties();
-             bool supportsGraphics = false;
-             int i = 0;
-             for (const auto& qfp : queueFamilies) {
-                 if (qfp.queueFlags & vk::QueueFlagBits::eGraphics) {
-                     supportsGraphics = true;
-                 }
-                 i++;
-             }
+            bestScore = score;
+            bestDevice = it;
+        }
+    }
 
-             auto availableExtensions = device.enumerateDeviceExtensionProperties();
-             bool supportsAllRequiredExtensions =
-                 std::ranges::all_of(
-                     requiredDeviceExtension,
-                     [availableExtensions](const char* requiredDeviceExtension) {
-                       return std::ranges::any_of(availableExtensions,
-                           [requiredDeviceExtension](const auto &extensionProperties) 
-                                { return strcmp(extensionProperties.extensionName,requiredDeviceExtension) == 0;});
+    if (bestDevice == devices.end())
+    {
+        throw std::runtime_error("Failed to find suitable GPU with Vulkan support!");
+    }
 
-                });
+    m_physicalDevice = *bestDevice;
 
-              auto features = device.template getFeatures2< vk::PhysicalDeviceFeatures2,vk::PhysicalDeviceVulkan13Features,vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
+    auto props = m_physicalDevice.getProperties();
+    UHE_CORE_INFO("Selected GPU: {}", props.deviceName.data());
+    UHE_CORE_INFO("Vendor ID: {}", props.vendorID);
+    UHE_CORE_INFO("API Version: {}.{}.{}", VK_API_VERSION_MAJOR(props.apiVersion),
+                  VK_API_VERSION_MINOR(props.apiVersion), VK_API_VERSION_PATCH(props.apiVersion));
 
-              bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
-                                           features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState;
+    // Populate m_queueFamilyIndices for the chosen device
+    auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
+    int i = 0;
+    for (const auto& qfp : queueFamilies)
+    {
+        if (qfp.queueFlags & vk::QueueFlagBits::eGraphics)
+        {
+            m_queueFamilyIndices.graphicsFamily = i;
+            break; // Found a graphics family
+        }
+        i++;
+    }
+}
 
-              return supportsVulkan1_3 && supportsGraphics &&  supportsAllRequiredExtensions && supportsRequiredFeatures;
+bool VulkanPhysicalDevice::IsDeviceSuitable(const vk::raii::PhysicalDevice& device) const
+{
+    bool supportsVulkan1_3 = device.getProperties().apiVersion >= VK_API_VERSION_1_3;
+    auto queueFamilies = device.getQueueFamilyProperties();
+    bool supportsGraphics = false;
+    for (const auto& qfp : queueFamilies)
+    {
+        if (qfp.queueFlags & vk::QueueFlagBits::eGraphics)
+        {
+            supportsGraphics = true;
+            break;
+        }
+    }
 
+    auto availableExtensions = device.enumerateDeviceExtensionProperties();
+    bool supportsAllRequiredExtensions = std::ranges::all_of(
+        requiredDeviceExtension,
+        [&availableExtensions](const char* requiredDeviceExtensionName)
+        {
+            return std::ranges::any_of(
+                availableExtensions, [&requiredDeviceExtensionName](const auto& extensionProperties)
+                { return strcmp(extensionProperties.extensionName, requiredDeviceExtensionName) == 0; });
         });
-     if (deviter != devices.end()) 
-     {
-       m_physicalDevice = *deviter;
-       
-       // Populate m_queueFamilyIndices for the chosen device
-       auto queueFamilies = m_physicalDevice.getQueueFamilyProperties();
-       int i = 0;
-       for (const auto& qfp : queueFamilies) {
-           if (qfp.queueFlags & vk::QueueFlagBits::eGraphics) {
-               m_queueFamilyIndices.graphicsFamily = i;
-               break; // Found a graphics family
-           }
-           i++;
-       }
-     }
-     else
-     {
-       throw std::runtime_error("Failed to find suitable GPU with Vulkan support!");
-     }
-  }
+
+    auto features = device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features,
+                                        vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
+
+    bool supportsRequiredFeatures =
+        features.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
+        features.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState;
+
+    return supportsVulkan1_3 && supportsGraphics && supportsAllRequiredExtensions && supportsRequiredFeatures;
+}
+
+i32 VulkanPhysicalDevice::RateDevice(const vk::raii::PhysicalDevice& device) const
+{
+    auto Props = device.getProperties();
+    int score = 0;
+
+    switch (Props.deviceType)
+    {
+        case vk::PhysicalDeviceType::eDiscreteGpu:
+            score += 10000;
+            break;
+        case vk::PhysicalDeviceType::eIntegratedGpu:
+            score += 5000;
+            break;
+        case vk::PhysicalDeviceType::eVirtualGpu:
+            score += 1000;
+            break;
+        default:
+            break;
+    }
+
+    auto memoryProps = device.getMemoryProperties();
+    // may this not even need but just for choose GPU that have more VRAM
+    for (const auto& heap : memoryProps.memoryHeaps)
+    {
+        if (heap.flags & vk::MemoryHeapFlagBits::eDeviceLocal)
+        {
+            score += static_cast<i32>(heap.size / (1024 * 1024 * 1024)); // GB
+        }
+    }
+    return score;
+}
+
 } // namespace UHE::RHI::VULKAN
-
-

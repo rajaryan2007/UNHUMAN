@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
 # Make RPATH/RUNPATH relative to the executable using $ORIGIN
 set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -70,6 +74,7 @@ set(TARGET_VIEWER OFF CACHE BOOL "" FORCE)
 set(USE_SSE4_2 ON CACHE BOOL "" FORCE) # Fast SIMD physics
 set(USE_AVX2 OFF CACHE BOOL "" FORCE)  # Keep off for broader compatibility
 set(USE_AVX512 OFF CACHE BOOL "" FORCE)
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE) # Force Jolt to use /MD instead of /MT
 add_subdirectory(UHE/vendor/jolt/Build)
 #Tracy Profiler
 set(TRACY_STATIC ON CACHE BOOL "" FORCE)

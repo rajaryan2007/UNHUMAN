@@ -1,7 +1,8 @@
 #pragma once
+#include <optional>
 #include <vulkan/vulkan_raii.hpp>
 #include "VulkanInstance.h"
-#include <optional>
+#include "vulkan/vulkan.hpp"
 
 namespace UHE::RHI::VULKAN
 {
@@ -21,7 +22,8 @@ public:
     void initPhysicalDevice(VulkanInstance& instance);
     [[nodiscard]] vk::raii::PhysicalDevice& getPhysicalDevice() { return m_physicalDevice; }
     [[nodiscard]] const QueueFamilyIndices& getQueueFamilyIndices() const { return m_queueFamilyIndices; }
-
+    [[nodiscard]] i32 RateDevice(const vk::raii::PhysicalDevice& device) const;
+    [[nodiscard]] bool IsDeviceSuitable(const vk::raii::PhysicalDevice& device) const;
     void GetLogicalDeviceInfo(u32& vendorID, u32& deviceID) const
     {
         vendorID = m_physicalDevice.getProperties().vendorID;
@@ -29,7 +31,9 @@ public:
     }
 
 private:
+    vk::PhysicalDevice FindPhysicalDevice();
 
+private:
     vk::raii::PhysicalDevice m_physicalDevice = nullptr;
     QueueFamilyIndices m_queueFamilyIndices;
     std::vector<const char*> requiredDeviceExtension = {
