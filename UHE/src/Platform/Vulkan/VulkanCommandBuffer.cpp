@@ -21,10 +21,11 @@ namespace UHE::RHI::VULKAN
 
 void VulkanCommandBuffer::Allocate(const vk::raii::Device& device, VulkanCommandPool& pool, bool isPrimary)
 {
-    vk::CommandBufferAllocateInfo allocInfo{};
-    allocInfo.commandPool = *pool.GetHandle();
-    allocInfo.level = isPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary;
-    allocInfo.commandBufferCount = 1;
+    vk::CommandBufferAllocateInfo allocInfo{
+        .commandPool = *pool.GetHandle(),
+        .level = isPrimary ? vk::CommandBufferLevel::ePrimary : vk::CommandBufferLevel::eSecondary,
+        .commandBufferCount = 1
+    };
 
     vk::raii::CommandBuffers cmdBuffers(device, allocInfo);
     m_CommandBuffer = std::move(cmdBuffers[0]);
@@ -37,8 +38,9 @@ void VulkanCommandBuffer::Free()
 
 void VulkanCommandBuffer::BeginCommandBuffer(vk::CommandBufferUsageFlags flags)
 {
-    vk::CommandBufferBeginInfo beginInfo{};
-    beginInfo.flags = flags;
+    vk::CommandBufferBeginInfo beginInfo{
+        .flags = flags
+    };
     m_CommandBuffer.begin(beginInfo);
 }
 
@@ -83,29 +85,36 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
         vk::Image image = swapChain.GetImages()[index];
         vk::ImageView imageView = *swapChain.GetImageView(index);
 
-        vk::RenderingAttachmentInfo colorAttachment{};
-        colorAttachment.imageView = imageView;
-        colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-        colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-        colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-        colorAttachment.clearValue.color = vk::ClearColorValue{std::array<f32, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+        vk::RenderingAttachmentInfo colorAttachment{
+            .imageView = imageView,
+            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .resolveMode = {},
+            .resolveImageView = {},
+            .resolveImageLayout = {},
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eStore,
+            .clearValue = vk::ClearValue{vk::ClearColorValue{std::array<f32, 4>{0.0f, 0.0f, 0.0f, 1.0f}}}
+        };
 
         colorAttachments.push_back(colorAttachment);
         renderExtent = swapChain.GetExtent();
 
-        vk::ImageMemoryBarrier barrier{};
-        barrier.oldLayout = vk::ImageLayout::eUndefined;
-        barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
-        barrier.srcAccessMask = vk::AccessFlags{};
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+        vk::ImageMemoryBarrier barrier{
+            .srcAccessMask = vk::AccessFlags{},
+            .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            }
+        };
         barriers.push_back(barrier);
     } else {
         renderExtent = vk::Extent2D{desc.renderWidth, desc.renderHeight};
@@ -117,11 +126,15 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
             vk::Image image = texture->GetImage();
             vk::ImageView imageView = *texture->GetImageView();
 
-            vk::RenderingAttachmentInfo colorAttachment{};
-            colorAttachment.imageView = imageView;
-            colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-            colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
+            vk::RenderingAttachmentInfo colorAttachment{
+                .imageView = imageView,
+                .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .resolveMode = {},
+                .resolveImageView = {},
+                .resolveImageLayout = {},
+                .loadOp = vk::AttachmentLoadOp::eClear,
+                .storeOp = vk::AttachmentStoreOp::eStore
+            };
             
             if (texture->GetDesc().format == RHI::TextureFormat::R32_SINT) {
                 colorAttachment.clearValue.color = vk::ClearColorValue{
@@ -134,19 +147,22 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
             
             colorAttachments.push_back(colorAttachment);
 
-            vk::ImageMemoryBarrier barrier{};
-            barrier.oldLayout = vk::ImageLayout::eUndefined;
-            barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = image;
-            barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
-            barrier.srcAccessMask = vk::AccessFlags{};
-            barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+            vk::ImageMemoryBarrier barrier{
+                .srcAccessMask = vk::AccessFlags{},
+                .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+                .oldLayout = vk::ImageLayout::eUndefined,
+                .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1
+                }
+            };
             barriers.push_back(barrier);
         }
     }
@@ -156,11 +172,16 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
         auto* depthTex = reinterpret_cast<VulkanTexture*>(desc.depthAttachment.texture);
         vk::Image image = depthTex->GetImage();
         
-        depthAttachmentInfo.imageView = *depthTex->GetImageView();
-        depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-        depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
-        depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-        depthAttachmentInfo.clearValue.depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+        depthAttachmentInfo = vk::RenderingAttachmentInfo{
+            .imageView = *depthTex->GetImageView(),
+            .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+            .resolveMode = {},
+            .resolveImageView = {},
+            .resolveImageLayout = {},
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eStore,
+            .clearValue = vk::ClearValue{vk::ClearDepthStencilValue{1.0f, 0}}
+        };
 
         vk::ImageMemoryBarrier barrier{};
         barrier.oldLayout = vk::ImageLayout::eUndefined;
@@ -184,12 +205,16 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
                                         vk::DependencyFlags{}, nullptr, nullptr, barriers);
     }
 
-    vk::RenderingInfo renderingInfo{};
-    renderingInfo.renderArea.offset = vk::Offset2D{0, 0};
-    renderingInfo.renderArea.extent = renderExtent;
-    renderingInfo.layerCount = 1;
-    renderingInfo.colorAttachmentCount = static_cast<u32>(colorAttachments.size());
-    renderingInfo.pColorAttachments = colorAttachments.empty() ? nullptr : colorAttachments.data();
+    vk::RenderingInfo renderingInfo{
+        .flags = {},
+        .renderArea = { vk::Offset2D{0, 0}, renderExtent },
+        .layerCount = 1,
+        .viewMask = 0,
+        .colorAttachmentCount = static_cast<u32>(colorAttachments.size()),
+        .pColorAttachments = colorAttachments.empty() ? nullptr : colorAttachments.data(),
+        .pDepthAttachment = nullptr,
+        .pStencilAttachment = nullptr
+    };
     if (desc.hasDepth && desc.depthAttachment.texture) {
         renderingInfo.pDepthAttachment = &depthAttachmentInfo;
         renderingInfo.pStencilAttachment = &depthAttachmentInfo;
@@ -211,19 +236,22 @@ void VulkanCommandBuffer::EndRenderPass()
         u32 index = vulkanDevice.ImageIndex();
         vk::Image image = swapChain.GetImages()[index];
 
-        vk::ImageMemoryBarrier barrier{};
-        barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
-        barrier.newLayout = vk::ImageLayout::ePresentSrcKHR;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
-        barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-        barrier.dstAccessMask = vk::AccessFlags{};
+        vk::ImageMemoryBarrier barrier{
+            .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+            .dstAccessMask = vk::AccessFlags{},
+            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            }
+        };
         barriers.push_back(barrier);
     } else {
         for (u32 i = 0; i < m_CurrentRenderPassDesc.colorAttachmentCount; i++) {
@@ -232,19 +260,22 @@ void VulkanCommandBuffer::EndRenderPass()
 
             vk::Image image = texture->GetImage();
 
-            vk::ImageMemoryBarrier barrier{};
-            barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
-            barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal; // To read in ImGui
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = image;
-            barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
-            barrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+            vk::ImageMemoryBarrier barrier{
+                .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+                .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal, // To read in ImGui
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eColor,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1
+                }
+            };
             barriers.push_back(barrier);
         }
 
@@ -252,19 +283,22 @@ void VulkanCommandBuffer::EndRenderPass()
             auto* depthTex = reinterpret_cast<VulkanTexture*>(m_CurrentRenderPassDesc.depthAttachment.texture);
             vk::Image image = depthTex->GetImage();
 
-            vk::ImageMemoryBarrier barrier{};
-            barrier.oldLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-            barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = image;
-            barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
-            barrier.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+            vk::ImageMemoryBarrier barrier{
+                .srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+                .oldLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = image,
+                .subresourceRange = {
+                    .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1
+                }
+            };
             barriers.push_back(barrier);
         }
     }
@@ -316,21 +350,23 @@ void VulkanCommandBuffer::BindTexture(u32 slot, TextureHandle handle)
 
 void VulkanCommandBuffer::SetViewport(float x, float y, float width, float height)
 {
-    vk::Viewport viewPort{};
-    viewPort.x = x;
-    viewPort.y = y;
-    viewPort.width = width;
-    viewPort.height = height;
-    viewPort.minDepth = 0.0f;
-    viewPort.maxDepth = 1.0f;
+    vk::Viewport viewPort{
+        .x = x,
+        .y = y,
+        .width = width,
+        .height = height,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
     m_CommandBuffer.setViewport(0, viewPort);
 }
 
 void VulkanCommandBuffer::SetScissor(i32 x, i32 y, u32 width, u32 height)
 {
-    vk::Rect2D scissor{};
-    scissor.offset = vk::Offset2D{x, y};
-    scissor.extent = vk::Extent2D{width, height};
+    vk::Rect2D scissor{
+        .offset = vk::Offset2D{x, y},
+        .extent = vk::Extent2D{width, height}
+    };
     m_CommandBuffer.setScissor(0, scissor);
 }
 

@@ -56,32 +56,46 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
     vulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
     float queuePriority = 1.0f;
-    vk::DeviceQueueCreateInfo deviceQueueCreateInfo{};
-    deviceQueueCreateInfo.queueFamilyIndex = m_graphicsQueueFamilyIndex; // Use the index of the graphics
-    deviceQueueCreateInfo.queueCount = 1;
-    deviceQueueCreateInfo.pQueuePriorities = &queuePriority;
+    vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
+        .flags = {},
+        .queueFamilyIndex = m_graphicsQueueFamilyIndex,
+        .queueCount = 1,
+        .pQueuePriorities = &queuePriority
+    };
 
-    vk::DeviceCreateInfo deviceCreateInfo{};
-    deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();
-    deviceCreateInfo.queueCreateInfoCount = 1;
-    deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
-    deviceCreateInfo.enabledExtensionCount = static_cast<u32>(requiredDeviceExtension.size());
-    deviceCreateInfo.ppEnabledExtensionNames = requiredDeviceExtension.data();
+    vk::DeviceCreateInfo deviceCreateInfo{
+        .pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
+        .flags = {},
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &deviceQueueCreateInfo,
+        .enabledLayerCount = 0,
+        .ppEnabledLayerNames = nullptr,
+        .enabledExtensionCount = static_cast<u32>(requiredDeviceExtension.size()),
+        .ppEnabledExtensionNames = requiredDeviceExtension.data(),
+        .pEnabledFeatures = nullptr
+    };
 
     m_logicalDevice = vk::raii::Device(phyDevice, deviceCreateInfo);
     volkLoadDevice(*m_logicalDevice);
     m_graphicsQueue = vk::raii::Queue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0);
 
-    VmaVulkanFunctions vulkanFunctions{};
-    vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-    vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+    VmaVulkanFunctions vulkanFunctions{
+        .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+        .vkGetDeviceProcAddr = vkGetDeviceProcAddr
+    };
 
-    VmaAllocatorCreateInfo allocatorCreateInfo = {};
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
-    allocatorCreateInfo.physicalDevice = *physicalDevice.getPhysicalDevice();
-    allocatorCreateInfo.device = *m_logicalDevice;
-    allocatorCreateInfo.instance = *instance.getInstance();
-    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+    VmaAllocatorCreateInfo allocatorCreateInfo{
+        .flags = 0,
+        .physicalDevice = *physicalDevice.getPhysicalDevice(),
+        .device = *m_logicalDevice,
+        .preferredLargeHeapBlockSize = 0,
+        .pAllocationCallbacks = nullptr,
+        .pDeviceMemoryCallbacks = nullptr,
+        .pHeapSizeLimit = nullptr,
+        .pVulkanFunctions = &vulkanFunctions,
+        .instance = *instance.getInstance(),
+        .vulkanApiVersion = VK_API_VERSION_1_3
+    };
 
     if (vmaCreateAllocator(&allocatorCreateInfo, &m_allocator) != VK_SUCCESS)
     {

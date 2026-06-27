@@ -12,9 +12,12 @@ void VulkanFrameContext::Init(vk::raii::Device& device, u32 queueFamilyIndex)
     commandPool.Init(device, queueFamilyIndex, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     commandBuffer.Allocate(device, commandPool, true);
 
-    vk::SemaphoreCreateInfo semaphoreInfo{};
-    vk::FenceCreateInfo fenceInfo{};
-    fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+    vk::SemaphoreCreateInfo semaphoreInfo{
+        .flags = {}
+    };
+    vk::FenceCreateInfo fenceInfo{
+        .flags = vk::FenceCreateFlagBits::eSignaled
+    };
 
     imageAvailableSemaphore = vk::raii::Semaphore(device, semaphoreInfo);
     inFlightFence = vk::raii::Fence(device, fenceInfo);

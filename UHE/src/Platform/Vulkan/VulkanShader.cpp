@@ -10,9 +10,11 @@ void VulkanShader::Create(const vk::raii::Device& device, const ShaderDesc& desc
     m_Stage = desc.stage;
     m_EntryPoint = desc.entryPoint;
 
-    vk::ShaderModuleCreateInfo createInfo{};
-    createInfo.codeSize = desc.spirvSize;
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(desc.spirvData);
+    vk::ShaderModuleCreateInfo createInfo{
+        .flags = {},
+        .codeSize = desc.spirvSize,
+        .pCode = reinterpret_cast<const uint32_t*>(desc.spirvData)
+    };
 
     try
     {

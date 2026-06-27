@@ -16,29 +16,32 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
         vk::DescriptorPoolSize{vk::DescriptorType::eStorageBuffer, MAX_BINDLESS_RESOURCES},
         vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_RESOURCES}};
 
-    vk::DescriptorPoolCreateInfo poolInfo{};
-    poolInfo.flags =
-        vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind | vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // alllow updating descriptors after they've been bound
-    poolInfo.maxSets = 2;
-    // poolInfo.maxSets = MAX_BINDLESS_RESOURCES * 2;          // max number of descriptor sets
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.pNext = nullptr;
+    vk::DescriptorPoolCreateInfo poolInfo{
+        .flags = vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind | vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, // alllow updating descriptors after they've been bound
+        .maxSets = 2,
+        // poolInfo.maxSets = MAX_BINDLESS_RESOURCES * 2;          // max number of descriptor sets
+        .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+        .pPoolSizes = poolSizes.data()
+    };
 
     m_DescriptorPool = vk::raii::DescriptorPool(logicaldevice, poolInfo);
 
     // create a descriptor set layout with update after-bind flags
-    vk::DescriptorSetLayoutBinding storageBufferBinding{};
-    storageBufferBinding.binding = 0;
-    storageBufferBinding.descriptorType = vk::DescriptorType::eStorageBuffer;
-    storageBufferBinding.descriptorCount = MAX_BINDLESS_RESOURCES;
-    storageBufferBinding.stageFlags = vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute;
+    vk::DescriptorSetLayoutBinding storageBufferBinding{
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = MAX_BINDLESS_RESOURCES,
+        .stageFlags = vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute,
+        .pImmutableSamplers = nullptr
+    };
 
-    vk::DescriptorSetLayoutBinding textureBinding{};
-    textureBinding.binding = 1;
-    textureBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-    textureBinding.descriptorCount = MAX_BINDLESS_RESOURCES;
-    textureBinding.stageFlags = vk::ShaderStageFlagBits::eAllGraphics;
+    vk::DescriptorSetLayoutBinding textureBinding{
+        .binding = 1,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = MAX_BINDLESS_RESOURCES,
+        .stageFlags = vk::ShaderStageFlagBits::eAllGraphics,
+        .pImmutableSamplers = nullptr
+    };
 
     std::array<vk::DescriptorSetLayoutBinding, 2> bindings = {storageBufferBinding, textureBinding};
 
@@ -46,21 +49,24 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
         vk::DescriptorBindingFlagBits::eUpdateAfterBind | vk::DescriptorBindingFlagBits::ePartiallyBound,
         vk::DescriptorBindingFlagBits::eUpdateAfterBind | vk::DescriptorBindingFlagBits::ePartiallyBound};
 
-    vk::DescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{};
-    extendedInfo.bindingCount = static_cast<uint32_t>(bindingFlags.size());
-    extendedInfo.pBindingFlags = bindingFlags.data();
+    vk::DescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{
+        .bindingCount = static_cast<uint32_t>(bindingFlags.size()),
+        .pBindingFlags = bindingFlags.data()
+    };
 
-    vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
-    layoutInfo.pNext = &extendedInfo;
+    vk::DescriptorSetLayoutCreateInfo layoutInfo{
+        .pNext = &extendedInfo,
+        .flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
+        .bindingCount = static_cast<uint32_t>(bindings.size()),
+        .pBindings = bindings.data()
+    };
     m_DescriptorSetLayout = vk::raii::DescriptorSetLayout(logicaldevice, layoutInfo);
 
-    vk::DescriptorSetAllocateInfo allocInfo{};
-    allocInfo.descriptorPool = *m_DescriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &(*m_DescriptorSetLayout);
+    vk::DescriptorSetAllocateInfo allocInfo{
+        .descriptorPool = *m_DescriptorPool,
+        .descriptorSetCount = 1,
+        .pSetLayouts = &(*m_DescriptorSetLayout)
+    };
 
     vk::raii::DescriptorSets sets(logicaldevice, allocInfo);
     m_GlobalDescriptorSet = std::move(sets.front());
@@ -71,13 +77,16 @@ u32 VulkanDescriptorManager::RegisterBuffer(vk::raii::Device& device, vk::Buffer
     u32 bindingIndex = m_NextBufferIndex++;
 
     vk::DescriptorBufferInfo bufferInfo{buffer, 0, size};
-    vk::WriteDescriptorSet descriptorWrite{};
-    descriptorWrite.dstSet = *m_GlobalDescriptorSet;
-    descriptorWrite.dstBinding = 0;                 // binding for storage buffers
-    descriptorWrite.dstArrayElement = bindingIndex; // next available array element
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
-    descriptorWrite.pBufferInfo = &bufferInfo;
+    vk::WriteDescriptorSet descriptorWrite{
+        .dstSet = *m_GlobalDescriptorSet,
+        .dstBinding = 0,                 // binding for storage buffers
+        .dstArrayElement = bindingIndex, // next available array element
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .pImageInfo = nullptr,
+        .pBufferInfo = &bufferInfo,
+        .pTexelBufferView = nullptr
+    };
 
     std::array<vk::WriteDescriptorSet, 1> writes = {descriptorWrite};
     device.updateDescriptorSets({descriptorWrite}, nullptr);
@@ -88,18 +97,22 @@ u32 VulkanDescriptorManager::BindTexture(vk::raii::Device& device, vk::ImageView
 {
     u32 slot = m_NextTextureIndex++;
 
-    vk::DescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = sampler;
+    vk::DescriptorImageInfo imageInfo{
+        .sampler = sampler,
+        .imageView = imageView,
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+    };
 
-    vk::WriteDescriptorSet descriptorWrite{};
-    descriptorWrite.dstSet = *m_GlobalDescriptorSet;
-    descriptorWrite.dstBinding = 1;
-    descriptorWrite.dstArrayElement = slot;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-    descriptorWrite.pImageInfo = &imageInfo;
+    vk::WriteDescriptorSet descriptorWrite{
+        .dstSet = *m_GlobalDescriptorSet,
+        .dstBinding = 1,
+        .dstArrayElement = slot,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .pImageInfo = &imageInfo,
+        .pBufferInfo = nullptr,
+        .pTexelBufferView = nullptr
+    };
     device.updateDescriptorSets({descriptorWrite}, nullptr);
     
     return slot;

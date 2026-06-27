@@ -37,12 +37,11 @@ void VulkanImGuiLayer::OnAttach()
                                          {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
     vk::DescriptorPoolCreateInfo poolInfo{
-        .flags = {},
+        .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         .maxSets = static_cast<uint32_t>(1000 * IM_ARRAYSIZE(pool_sizes)),
         .poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes)),
         .pPoolSizes = reinterpret_cast<vk::DescriptorPoolSize*>(pool_sizes)
     };
-    poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
     m_DescriptorPool = std::make_unique<vk::raii::DescriptorPool>(m_Device->getLogicalDevClass().getLogicalDevice(), poolInfo);
 
     ImGui_ImplVulkan_InitInfo init_info = {};
@@ -104,36 +103,47 @@ void VulkanImGuiLayer::End()
     vk::Extent2D extent = swapchain.GetExtent();
 
     
-    vk::ImageMemoryBarrier barrier{};
-    barrier.oldLayout = vk::ImageLayout::eUndefined;
-    barrier.newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = {};
-    barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead;
+    vk::ImageMemoryBarrier barrier{
+        .srcAccessMask = {},
+        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead,
+        .oldLayout = vk::ImageLayout::eUndefined,
+        .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .image = swapchainImage,
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
 
     cmd.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput, {}, nullptr, nullptr, barrier);
 
     
-    vk::RenderingAttachmentInfo colorAttachment{};
-    colorAttachment.imageView = *swapchainImageView;
-    colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-    colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-    colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-    colorAttachment.clearValue.color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+    vk::RenderingAttachmentInfo colorAttachment{
+        .imageView = *swapchainImageView,
+        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        .resolveMode = {},
+        .resolveImageView = {},
+        .resolveImageLayout = {},
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eStore,
+        .clearValue = vk::ClearValue{vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}}}
+    };
 
-    vk::RenderingInfo renderingInfo{};
-    renderingInfo.renderArea.offset = vk::Offset2D{0, 0};
-    renderingInfo.renderArea.extent = extent;
-    renderingInfo.layerCount = 1;
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachments = &colorAttachment;
+    vk::RenderingInfo renderingInfo{
+        .flags = {},
+        .renderArea = { vk::Offset2D{0, 0}, extent },
+        .layerCount = 1,
+        .viewMask = 0,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &colorAttachment,
+        .pDepthAttachment = nullptr,
+        .pStencilAttachment = nullptr
+    };
 
     cmd.beginRendering(renderingInfo);
 

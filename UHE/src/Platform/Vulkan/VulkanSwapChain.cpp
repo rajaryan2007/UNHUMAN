@@ -11,19 +11,24 @@ void VulkanSwapChain::createSwapChain(vk::raii::Device& device, vk::raii::Physic
     swapChainSurfaceFormat = chooseSwapSurfaceFormat(physicalDevice.getSurfaceFormatsKHR(*surface));
     auto SurfaceFormats = physicalDevice.getSurfaceFormatsKHR(*surface);
 
-    vk::SwapchainCreateInfoKHR swapChainCreateInfo{};
-    swapChainCreateInfo.surface = *surface;
-    swapChainCreateInfo.minImageCount = chooseSwapMinImageCount(SurfaceCapabilities);
-    swapChainCreateInfo.imageFormat = swapChainSurfaceFormat.format;
-    swapChainCreateInfo.imageColorSpace = swapChainSurfaceFormat.colorSpace;
-    swapChainCreateInfo.imageExtent = swapChainExtent;
-    swapChainCreateInfo.imageArrayLayers = 1;
-    swapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-    swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
-    swapChainCreateInfo.preTransform = SurfaceCapabilities.currentTransform;
-    swapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-    swapChainCreateInfo.presentMode = chooseSwapPresentMode(physicalDevice.getSurfacePresentModesKHR(*surface));
-    swapChainCreateInfo.clipped = VK_TRUE;
+    vk::SwapchainCreateInfoKHR swapChainCreateInfo{
+        .flags = {},
+        .surface = *surface,
+        .minImageCount = chooseSwapMinImageCount(SurfaceCapabilities),
+        .imageFormat = swapChainSurfaceFormat.format,
+        .imageColorSpace = swapChainSurfaceFormat.colorSpace,
+        .imageExtent = swapChainExtent,
+        .imageArrayLayers = 1,
+        .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+        .imageSharingMode = vk::SharingMode::eExclusive,
+        .queueFamilyIndexCount = {},
+        .pQueueFamilyIndices = {},
+        .preTransform = SurfaceCapabilities.currentTransform,
+        .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+        .presentMode = chooseSwapPresentMode(physicalDevice.getSurfacePresentModesKHR(*surface)),
+        .clipped = VK_TRUE,
+        .oldSwapchain = {}
+    };
 
     swapChain = vk::raii::SwapchainKHR(device, swapChainCreateInfo);
     swapChainImages = swapChain.getImages();

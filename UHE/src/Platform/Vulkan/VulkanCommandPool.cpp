@@ -8,9 +8,10 @@ namespace UHE::RHI::VULKAN
 {
 void VulkanCommandPool::Init(vk::raii::Device& device, u32 queueFamilyIndex, vk::CommandPoolCreateFlags flags)
 {
-    vk::CommandPoolCreateInfo poolInfo{};
-    poolInfo.queueFamilyIndex = queueFamilyIndex;
-    poolInfo.flags = flags;
+    vk::CommandPoolCreateInfo poolInfo{
+        .flags = flags,
+        .queueFamilyIndex = queueFamilyIndex
+    };
 
     m_CommandPool = vk::raii::CommandPool(device, poolInfo);
 }
