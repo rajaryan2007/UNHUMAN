@@ -3,5 +3,5 @@
 
 namespace UHE::RD3d
 {
-
-}
+void SSAO::init() {}
+} // namespace UHE::RD3d

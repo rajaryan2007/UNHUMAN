@@ -405,7 +405,7 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
             barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
 
             cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
-                                vk::DependencyFlags(), nullptr, nullptr, barrier);
+                                vk::DependencyFlags{}, nullptr, nullptr, barrier);
 
             // 4. Copy image to buffer
             vk::BufferImageCopy region{};
@@ -416,8 +416,8 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
             region.imageSubresource.mipLevel = 0;
             region.imageSubresource.baseArrayLayer = 0;
             region.imageSubresource.layerCount = 1;
-            region.imageOffset = vk::Offset3D(x, y, 0);
-            region.imageExtent = vk::Extent3D(1, 1, 1);
+            region.imageOffset = vk::Offset3D{x, y, 0};
+            region.imageExtent = vk::Extent3D{1, 1, 1};
 
             cmd.copyImageToBuffer(image, vk::ImageLayout::eTransferSrcOptimal, stagingBuffer, region);
 
@@ -428,7 +428,7 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
             barrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
 
             cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
-                                vk::DependencyFlags(), nullptr, nullptr, barrier);
+                                vk::DependencyFlags{}, nullptr, nullptr, barrier);
         });
 
     // 7. Map memory and read

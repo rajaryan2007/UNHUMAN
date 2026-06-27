@@ -36,7 +36,12 @@ void VulkanImGuiLayer::OnAttach()
                                          {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
                                          {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
-    vk::DescriptorPoolCreateInfo poolInfo({}, 1000 * IM_ARRAYSIZE(pool_sizes), IM_ARRAYSIZE(pool_sizes), reinterpret_cast<vk::DescriptorPoolSize*>(pool_sizes));
+    vk::DescriptorPoolCreateInfo poolInfo{
+        .flags = {},
+        .maxSets = static_cast<uint32_t>(1000 * IM_ARRAYSIZE(pool_sizes)),
+        .poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes)),
+        .pPoolSizes = reinterpret_cast<vk::DescriptorPoolSize*>(pool_sizes)
+    };
     poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
     m_DescriptorPool = std::make_unique<vk::raii::DescriptorPool>(m_Device->getLogicalDevClass().getLogicalDevice(), poolInfo);
 

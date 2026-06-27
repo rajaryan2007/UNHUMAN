@@ -13,8 +13,8 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
     const uint32_t MAX_BINDLESS_RESOURCES = 10000;
 
     std::array<vk::DescriptorPoolSize, 2> poolSizes = {
-        vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, MAX_BINDLESS_RESOURCES),
-        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_RESOURCES)};
+        vk::DescriptorPoolSize{vk::DescriptorType::eStorageBuffer, MAX_BINDLESS_RESOURCES},
+        vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_RESOURCES}};
 
     vk::DescriptorPoolCreateInfo poolInfo{};
     poolInfo.flags =

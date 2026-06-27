@@ -32,19 +32,25 @@ void VulkanSwapChain::createSwapChain(vk::raii::Device& device, vk::raii::Physic
     swapChainImageViews.reserve(swapChainImages.size());
     for (auto image : swapChainImages)
     {
-        vk::ImageViewCreateInfo createInfo{};
-        createInfo.image = image;
-        createInfo.viewType = vk::ImageViewType::e2D;
-        createInfo.format = swapChainSurfaceFormat.format;
-        createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
+        vk::ImageViewCreateInfo createInfo{
+            .flags = {},
+            .image = image,
+            .viewType = vk::ImageViewType::e2D,
+            .format = swapChainSurfaceFormat.format,
+            .components = {
+                .r = vk::ComponentSwizzle::eIdentity,
+                .g = vk::ComponentSwizzle::eIdentity,
+                .b = vk::ComponentSwizzle::eIdentity,
+                .a = vk::ComponentSwizzle::eIdentity
+            },
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            }
+        };
         swapChainImageViews.emplace_back(device, createInfo);
     }
 }
@@ -59,10 +65,10 @@ vk::Extent2D VulkanSwapChain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR&
 
     glfwGetFramebufferSize(window, &width, &height);
 
-    return vk::Extent2D(
+    return vk::Extent2D{
         std::clamp(static_cast<uint32_t>(width), capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
         std::clamp(static_cast<uint32_t>(height), capabilities.minImageExtent.height,
-                   capabilities.maxImageExtent.height));
+                   capabilities.maxImageExtent.height)};
 }
 
 u32 VulkanSwapChain::chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const& surfaceCapablities)

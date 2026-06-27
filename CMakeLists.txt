@@ -17,6 +17,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN")
 
 
 add_compile_definitions(ENTT_STANDARD_CPP)
+add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

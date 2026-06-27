@@ -44,7 +44,7 @@ void VulkanCommandBuffer::BeginCommandBuffer(vk::CommandBufferUsageFlags flags)
 
 void VulkanCommandBuffer::Reset(vk::CommandBufferUsageFlags flags)
 {
-    m_CommandBuffer.reset(vk::CommandBufferResetFlags(static_cast<VkCommandBufferResetFlags>(flags)));
+    m_CommandBuffer.reset(vk::CommandBufferResetFlags{static_cast<VkCommandBufferResetFlags>(flags)});
 }
 
 void VulkanCommandBuffer::EndCommandBuffer()
@@ -88,7 +88,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
         colorAttachment.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
         colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-        colorAttachment.clearValue.color = vk::ClearColorValue(std::array<f32, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+        colorAttachment.clearValue.color = vk::ClearColorValue{std::array<f32, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
 
         colorAttachments.push_back(colorAttachment);
         renderExtent = swapChain.GetExtent();
@@ -124,12 +124,12 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
             colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
             
             if (texture->GetDesc().format == RHI::TextureFormat::R32_SINT) {
-                colorAttachment.clearValue.color = vk::ClearColorValue(
-                    std::array<int32_t, 4>{(int32_t)desc.colorAttachments[i].clearColor.r, 0, 0, 0});
+                colorAttachment.clearValue.color = vk::ClearColorValue{
+                    std::array<int32_t, 4>{(int32_t)desc.colorAttachments[i].clearColor.r, 0, 0, 0}};
             } else {
-                colorAttachment.clearValue.color = vk::ClearColorValue(
+                colorAttachment.clearValue.color = vk::ClearColorValue{
                     std::array<f32, 4>{desc.colorAttachments[i].clearColor.r, desc.colorAttachments[i].clearColor.g,
-                                       desc.colorAttachments[i].clearColor.b, desc.colorAttachments[i].clearColor.a});
+                                       desc.colorAttachments[i].clearColor.b, desc.colorAttachments[i].clearColor.a}};
             }
             
             colorAttachments.push_back(colorAttachment);
@@ -160,7 +160,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
         depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
         depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
         depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-        depthAttachmentInfo.clearValue.depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
+        depthAttachmentInfo.clearValue.depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
 
         vk::ImageMemoryBarrier barrier{};
         barrier.oldLayout = vk::ImageLayout::eUndefined;

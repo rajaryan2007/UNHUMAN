@@ -8,7 +8,6 @@ public:
     SSAO() = default;
     ~SSAO();
     void init();
-    void Start();
 
 private:
 };

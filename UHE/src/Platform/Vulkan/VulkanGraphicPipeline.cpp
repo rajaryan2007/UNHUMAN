@@ -26,8 +26,20 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
     auto vertModule = reinterpret_cast<VulkanShader*>(desc.vertexShader)->GetModule();
     auto fragModule = reinterpret_cast<VulkanShader*>(desc.fragmentShader)->GetModule();
 
-    vk::PipelineShaderStageCreateInfo shaderStages[] = {{{}, vk::ShaderStageFlagBits::eVertex, vertModule, "main"},
-                                                        {{}, vk::ShaderStageFlagBits::eFragment, fragModule, "main"}};
+    vk::PipelineShaderStageCreateInfo shaderStages[] = {
+        {
+            .flags = {},
+            .stage = vk::ShaderStageFlagBits::eVertex,
+            .module = vertModule,
+            .pName = "main"
+        },
+        {
+            .flags = {},
+            .stage = vk::ShaderStageFlagBits::eFragment,
+            .module = fragModule,
+            .pName = "main"
+        }
+    };
 
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = CreateVertexInputState(desc.vertexLayout);
 
@@ -162,7 +174,7 @@ vk::PipelineVertexInputStateCreateInfo VulkanGraphicPipeline::CreateVertexInputS
 
     if (layout.GetElements().empty())
     {
-        return vk::PipelineVertexInputStateCreateInfo({}, 0, nullptr, 0, nullptr);
+        return vk::PipelineVertexInputStateCreateInfo{};
     }
 
     vk::VertexInputBindingDescription bindingDesc{};
