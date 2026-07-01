@@ -59,7 +59,6 @@ public:
     [[nodiscard]] VulkanDescriptorManager* GetDescriptorManager() { return &m_DescriptorManager; }
     void ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function);
 
-
 private:
     void InitVulkan(const SwapchainDesc& swapDesc);
     void CleanupVulkan();
