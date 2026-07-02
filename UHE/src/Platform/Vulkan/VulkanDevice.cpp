@@ -55,21 +55,15 @@ void VulkanDevice::InitVulkan(const SwapchainDesc& swapDesc)
     m_RenderFinishedSemaphores.clear();
     for (size_t i = 0; i < m_SwapChain.GetImages().size(); i++)
     {
-        vk::SemaphoreCreateInfo semaphoreInfo{
-            .flags = {}
-        };
+        vk::SemaphoreCreateInfo semaphoreInfo{.flags = {}};
         m_RenderFinishedSemaphores.emplace_back(m_LogicalDevice.getLogicalDevice(), semaphoreInfo);
     }
 
-    vk::CommandPoolCreateInfo uploadPoolInfo{
-        .flags = {},
-        .queueFamilyIndex = m_LogicalDevice.getGraphicsQueueFamilyIndex()
-    };
+    vk::CommandPoolCreateInfo uploadPoolInfo{.flags = {},
+                                             .queueFamilyIndex = m_LogicalDevice.getGraphicsQueueFamilyIndex()};
     m_UploadCommandPool = vk::raii::CommandPool(m_LogicalDevice.getLogicalDevice(), uploadPoolInfo);
 
-    vk::FenceCreateInfo fenceInfo{
-        .flags = {}
-    };
+    vk::FenceCreateInfo fenceInfo{.flags = {}};
     m_UploadFence = vk::raii::Fence(m_LogicalDevice.getLogicalDevice(), fenceInfo);
 
     m_DescriptorManager.init(*this);
@@ -121,9 +115,7 @@ void VulkanDevice::RecreateSwapchain()
     m_RenderFinishedSemaphores.clear();
     for (size_t i = 0; i < m_SwapChain.GetImages().size(); i++)
     {
-        vk::SemaphoreCreateInfo semaphoreInfo{
-            .flags = {}
-        };
+        vk::SemaphoreCreateInfo semaphoreInfo{.flags = {}};
         m_RenderFinishedSemaphores.emplace_back(m_LogicalDevice.getLogicalDevice(), semaphoreInfo);
     }
 }
@@ -163,26 +155,28 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc)
 
 u32 VulkanDevice::GetBufferBindlessIndex(BufferHandle handle)
 {
-    if (!handle) return 0;
+    if (!handle)
+        return 0;
     auto* buffer = reinterpret_cast<VulkanBuffer*>(handle);
-    return m_DescriptorManager.RegisterBuffer(m_LogicalDevice.getLogicalDevice(), buffer->GetHandle(), buffer->GetSize());
+    return m_DescriptorManager.RegisterBuffer(m_LogicalDevice.getLogicalDevice(), buffer->GetHandle(),
+                                              buffer->GetSize());
 }
 
 TextureHandle VulkanDevice::CreateTexture(const TextureDesc& desc)
 {
-    VulkanTexture* texture = new VulkanTexture();
+    auto* texture = new VulkanTexture();
     texture->Init(*this, desc);
     return reinterpret_cast<TextureHandle>(texture);
 }
 ShaderHandle VulkanDevice::CreateShader(const ShaderDesc& desc)
 {
-    VulkanShader* shader = new VulkanShader();
+    auto* shader = new VulkanShader();
     shader->Create(m_LogicalDevice.getLogicalDevice(), desc);
     return reinterpret_cast<ShaderHandle>(shader);
 }
 PipelineHandle VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
 {
-    VulkanGraphicPipeline* pipeline = new VulkanGraphicPipeline();
+    auto* pipeline = new VulkanGraphicPipeline();
     pipeline->createGraphicsPipeline(m_LogicalDevice, m_DescriptorManager, desc);
     return reinterpret_cast<PipelineHandle>(pipeline);
 }
@@ -279,27 +273,23 @@ void VulkanDevice::End()
     cmd.end();
 
     vk::PipelineStageFlags waitResult[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-    vk::SubmitInfo submitInfo{
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &(*m_Frames[m_CurrentFrame].GetimageAvailableSemaphore()),
-        .pWaitDstStageMask = waitResult,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &(*cmd),
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &(*m_RenderFinishedSemaphores[m_ImageIndex])
-    };
+    vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1,
+                              .pWaitSemaphores = &(*m_Frames[m_CurrentFrame].GetimageAvailableSemaphore()),
+                              .pWaitDstStageMask = waitResult,
+                              .commandBufferCount = 1,
+                              .pCommandBuffers = &(*cmd),
+                              .signalSemaphoreCount = 1,
+                              .pSignalSemaphores = &(*m_RenderFinishedSemaphores[m_ImageIndex])};
 
     vk::raii::Queue& m_graphicsQueue = m_LogicalDevice.getGraphicsQueue();
     m_graphicsQueue.submit(submitInfo, *m_Frames[m_CurrentFrame].GetInFlightFence());
 
-    vk::PresentInfoKHR presentInfo{
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &(*m_RenderFinishedSemaphores[m_ImageIndex]),
-        .swapchainCount = 1,
-        .pSwapchains = &(*m_SwapChain.GetSwapchain()),
-        .pImageIndices = &m_ImageIndex,
-        .pResults = nullptr
-    };
+    vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
+                                   .pWaitSemaphores = &(*m_RenderFinishedSemaphores[m_ImageIndex]),
+                                   .swapchainCount = 1,
+                                   .pSwapchains = &(*m_SwapChain.GetSwapchain()),
+                                   .pImageIndices = &m_ImageIndex,
+                                   .pResults = nullptr};
 
     try
     {
@@ -327,27 +317,19 @@ RHICommandBuffer& VulkanDevice::GetCurrentCommandBuffer()
 void VulkanDevice::ImmediateSubmit(std::function<void(vk::raii::CommandBuffer& cmd)>&& function)
 {
     vk::CommandBufferAllocateInfo allocInfo{
-        .commandPool = *m_UploadCommandPool,
-        .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = 1
-    };
+        .commandPool = *m_UploadCommandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
 
     vk::raii::CommandBuffers cmdBuffers(m_LogicalDevice.getLogicalDevice(), allocInfo);
     vk::raii::CommandBuffer cmd = std::move(cmdBuffers[0]);
 
-    vk::CommandBufferBeginInfo beginInfo{
-        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
-    };
+    vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
     cmd.begin(beginInfo);
 
     function(cmd);
 
     cmd.end();
 
-    vk::SubmitInfo submitInfo{
-        .commandBufferCount = 1,
-        .pCommandBuffers = &(*cmd)
-    };
+    vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &(*cmd)};
 
     vk::raii::Queue& m_graphicsQueue = m_LogicalDevice.getGraphicsQueue();
     m_graphicsQueue.submit(submitInfo, *m_UploadFence);
@@ -382,27 +364,23 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
     VkBuffer stagingBuffer;
     VmaAllocation stagingAlloc;
 
-    VkBufferCreateInfo bufferInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .size = 4, // Read 4 bytes
-        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr
-    };
+    VkBufferCreateInfo bufferInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                  .pNext = nullptr,
+                                  .flags = 0,
+                                  .size = 4, // Read 4 bytes
+                                  .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                  .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                                  .queueFamilyIndexCount = 0,
+                                  .pQueueFamilyIndices = nullptr};
 
-    VmaAllocationCreateInfo allocInfo{
-        .flags = 0,
-        .usage = VMA_MEMORY_USAGE_GPU_TO_CPU,
-        .requiredFlags = 0,
-        .preferredFlags = 0,
-        .memoryTypeBits = 0,
-        .pool = VK_NULL_HANDLE,
-        .pUserData = nullptr,
-        .priority = 0.0f
-    };
+    VmaAllocationCreateInfo allocInfo{.flags = 0,
+                                      .usage = VMA_MEMORY_USAGE_GPU_TO_CPU,
+                                      .requiredFlags = 0,
+                                      .preferredFlags = 0,
+                                      .memoryTypeBits = 0,
+                                      .pool = VK_NULL_HANDLE,
+                                      .pUserData = nullptr,
+                                      .priority = 0.0f};
 
     VkResult res = vmaCreateBuffer(m_Allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAlloc, nullptr);
     if (res != VK_SUCCESS)
@@ -413,48 +391,41 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
 
     // 2. Allocate and begin command buffer
     vk::CommandBufferAllocateInfo allocInfoCmd{
-        .commandPool = {}, // Note: immediate submit overrides this inside, but we provide it here if needed or let default init. Wait, ImmediateSubmit creates its own pool? Yes, ImmediateSubmit doesn't take allocInfoCmd. It's unused!
+        .commandPool = {}, // Note: immediate submit overrides this inside, but we provide it here if needed or let
+                           // default init. Wait, ImmediateSubmit creates its own pool? Yes, ImmediateSubmit doesn't
+                           // take allocInfoCmd. It's unused!
         .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = 1
-    };
+        .commandBufferCount = 1};
     ImmediateSubmit(
         [&](vk::raii::CommandBuffer& cmd)
         {
             // 3. Transition image layout to TRANSFER_SRC_OPTIMAL
-            vk::ImageMemoryBarrier barrier{
-                .srcAccessMask = vk::AccessFlagBits::eMemoryRead,
-                .dstAccessMask = vk::AccessFlagBits::eTransferRead,
-                .oldLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-                .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image = image,
-                .subresourceRange = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1
-                }
-            };
+            vk::ImageMemoryBarrier barrier{.srcAccessMask = vk::AccessFlagBits::eMemoryRead,
+                                           .dstAccessMask = vk::AccessFlagBits::eTransferRead,
+                                           .oldLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                                           .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+                                           .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                           .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                           .image = image,
+                                           .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                                                .baseMipLevel = 0,
+                                                                .levelCount = 1,
+                                                                .baseArrayLayer = 0,
+                                                                .layerCount = 1}};
 
             cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
                                 vk::DependencyFlags{}, nullptr, nullptr, barrier);
 
             // 4. Copy image to buffer
-            vk::BufferImageCopy region{
-                .bufferOffset = 0,
-                .bufferRowLength = 0,
-                .bufferImageHeight = 0,
-                .imageSubresource = {
-                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-                    .mipLevel = 0,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1
-                },
-                .imageOffset = vk::Offset3D{x, y, 0},
-                .imageExtent = vk::Extent3D{1, 1, 1}
-            };
+            vk::BufferImageCopy region{.bufferOffset = 0,
+                                       .bufferRowLength = 0,
+                                       .bufferImageHeight = 0,
+                                       .imageSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                                            .mipLevel = 0,
+                                                            .baseArrayLayer = 0,
+                                                            .layerCount = 1},
+                                       .imageOffset = vk::Offset3D{x, y, 0},
+                                       .imageExtent = vk::Extent3D{1, 1, 1}};
 
             cmd.copyImageToBuffer(image, vk::ImageLayout::eTransferSrcOptimal, stagingBuffer, region);
 
@@ -477,6 +448,13 @@ void VulkanDevice::ReadPixel(TextureHandle handle, int x, int y, void* outData)
     }
 
     vmaDestroyBuffer(m_Allocator, stagingBuffer, stagingAlloc);
+}
+
+void VulkanDevice::SetVulkanObjectName(uint64_t objectHandle, vk::ObjectType objectType, const char* name)
+{
+    vk::DebugUtilsObjectNameInfoEXT nameInfo{
+        .objectType = objectType, .objectHandle = objectHandle, .pObjectName = name};
+    m_LogicalDevice.getLogicalDevice().setDebugUtilsObjectNameEXT(nameInfo);
 }
 
 } // namespace UHE::RHI::VULKAN
