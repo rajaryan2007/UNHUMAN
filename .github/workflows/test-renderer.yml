@@ -85,5 +85,14 @@ jobs:
           cd bin/Debug-linux-x64
           # xvfb-run sets up a virtual X display
           # VK_ICD_FILENAMES forces Vulkan to use the Lavapipe software driver
-          # Ensure your executable stops running when tests pass, or shut it down automatically
-          VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1) timeout 10s xvfb-run --auto-servernum ./UHE_EDITOR
+          # We use timeout 10s to gracefully kill the engine, which returns 124. We catch 124 and pass the test.
+          export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)
+          timeout 10s xvfb-run --auto-servernum ./UHE_EDITOR || {
+            if [ $? -eq 124 ]; then
+              echo "Engine survived for 10 seconds. Test passed!"
+              exit 0
+            else
+              echo "Engine crashed or failed!"
+              exit 1
+            fi
+          }

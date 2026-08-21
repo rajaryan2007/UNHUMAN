@@ -59,6 +59,7 @@ struct VulkanExtensionIsEnableCheck
     bool HasVkHostImageCopy = false;                       // VK_EXT_host_image_copy / Core 1.4
     bool HasVkDynamicRenderingLocalRead = false;           // VK_KHR_dynamic_rendering_local_read / Core 1.4
     bool HasVkAccelerationStructure = false;               // VK_KHR_acceleration_structure
+    bool HasVkDeferredHostOperations = false;              // VK_KHR_deferred_host_operations
     bool HasVkRayTracingPipeline = false;                  // VK_KHR_ray_tracing_pipeline
     bool HasVkRayQuery = false;                            // VK_KHR_ray_query
     bool HasVkfragment_shading_rate = false;               // VK_KHR_fragment_shading_rate

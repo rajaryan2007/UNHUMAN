@@ -114,7 +114,11 @@ std::vector<const char*> VulkanExtensionCheck::GetEnabledDeviceExtensions() cons
     if (m_extensionCheck.HasVkDedicatedAllocation)
         extensions.emplace_back("VK_KHR_dedicated_allocation");
     if (m_extensionCheck.HasVkAccelerationStructure)
+    {
         extensions.emplace_back("VK_KHR_acceleration_structure");
+        if (m_extensionCheck.HasVkDeferredHostOperations)
+            extensions.emplace_back("VK_KHR_deferred_host_operations");
+    }
     if (m_extensionCheck.HasVkRayTracingPipeline)
         extensions.emplace_back("VK_KHR_ray_tracing_pipeline");
     if (m_extensionCheck.HasVkRayQuery)
@@ -400,6 +404,8 @@ void VulkanExtensionCheck::TickTheAvailableExtension(const vk::raii::PhysicalDev
             m_extensionCheck.HasVkDedicatedAllocation = true;
         else if (name == "VK_KHR_acceleration_structure")
             m_extensionCheck.HasVkAccelerationStructure = true;
+        else if (name == "VK_KHR_deferred_host_operations")
+            m_extensionCheck.HasVkDeferredHostOperations = true;
         else if (name == "VK_KHR_ray_tracing_pipeline")
             m_extensionCheck.HasVkRayTracingPipeline = true;
         else if (name == "VK_KHR_ray_query")
