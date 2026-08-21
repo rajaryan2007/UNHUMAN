@@ -25,6 +25,29 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 option(VG_PROFILE "Enable Tracy profiling" ON)
 
+option(UHE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
+option(UHE_ENABLE_MSAN "Enable MemorySanitizer" OFF)
+
+if(UHE_ENABLE_ASAN AND UHE_ENABLE_MSAN)
+    message(FATAL_ERROR "AddressSanitizer and MemorySanitizer cannot be enabled simultaneously.")
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    if (UHE_ENABLE_ASAN)
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address)
+    endif()
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if (UHE_ENABLE_MSAN)
+        add_compile_options(-fsanitize=memory -fno-omit-frame-pointer -fPIE)
+        add_link_options(-fsanitize=memory -pie)
+    endif()
+elseif(UHE_ENABLE_MSAN)
+    message(FATAL_ERROR "MemorySanitizer is only supported with upstream Clang.")
+endif()
+
 set(ARCH x64)
 string(TOLOWER ${CMAKE_SYSTEM_NAME} SYS_NAME)
 if(CMAKE_BUILD_TYPE)
