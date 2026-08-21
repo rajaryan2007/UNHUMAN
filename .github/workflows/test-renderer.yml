@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -85,4 +86,4 @@ jobs:
           # xvfb-run sets up a virtual X display
           # VK_ICD_FILENAMES forces Vulkan to use the Lavapipe software driver
           # Ensure your executable stops running when tests pass, or shut it down automatically
-          VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json xvfb-run --auto-servernum ./UHE_EDITOR
+          VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1) timeout 10s xvfb-run --auto-servernum ./UHE_EDITOR
