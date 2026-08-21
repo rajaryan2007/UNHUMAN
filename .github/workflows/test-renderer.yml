@@ -1,0 +1,88 @@
+name: Test Renderer (ASAN)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test-asan:
+    name: Build & Test (ASAN)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxi-dev libwayland-dev libxkbcommon-dev \
+            mesa-vulkan-drivers xvfb
+
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          source /etc/os-release
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${VERSION_CODENAME}.list http://packages.lunarg.com/vulkan/lunarg-vulkan-${VERSION_CODENAME}.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Run Setup Script (download Slang etc.)
+        run: python script/Setup.py
+
+      - name: Patch Vendor CMakeLists (Fix Platform Detection)
+        run: |
+          cat << 'EOF' > UHE/vendor/imgui/CMakeLists.txt
+          cmake_minimum_required(VERSION 3.16)
+          project(ImGui)
+          set(CMAKE_CXX_STANDARD 17)
+          set(CMAKE_CXX_STANDARD_REQUIRED ON)
+          add_library(ImGui STATIC imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp imgui_demo.cpp imgui.h imgui_internal.h imconfig.h imstb_rectpack.h imstb_textedit.h imstb_truetype.h)
+          set_target_properties(ImGui PROPERTIES POSITION_INDEPENDENT_CODE ON)
+          if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+              target_compile_definitions(ImGui PRIVATE IMGUI_API=__declspec\(dllexport\))
+          elseif(UNIX)
+              target_compile_definitions(ImGui PRIVATE IMGUI_API=__attribute__\(\(visibility\(\"default\"\)\)\))
+          endif()
+          target_include_directories(ImGui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+          if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+              target_compile_options(ImGui PRIVATE $<$<CONFIG:Release>:/MT>)
+              target_compile_options(ImGui PRIVATE /utf-8)
+              target_compile_options(ImGui PRIVATE $<$<CONFIG:Debug>:/Zi>)
+              target_compile_options(ImGui PRIVATE $<$<CONFIG:Release>:/O2>)
+          endif()
+          set_target_properties(ImGui PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR}/VEGA ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR}/VEGA LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR}/VEGA)
+          EOF
+          sed -i 's/if(WIN32)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows")/g' UHE/vendor/imGuizmo/CMakeLists.txt
+          sed -i 's/if(MSVC)/if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")/g' UHE/vendor/imGuizmo/CMakeLists.txt
+
+      - name: Configure CMake (ASAN Enabled)
+        run: >
+          cmake -B build
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DUHE_ENABLE_ASAN=ON
+          -DVG_PROFILE=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run Tests (Headless + Lavapipe)
+        run: |
+          cd bin/Debug-linux-x64
+          # xvfb-run sets up a virtual X display
+          # VK_ICD_FILENAMES forces Vulkan to use the Lavapipe software driver
+          # Ensure your executable stops running when tests pass, or shut it down automatically
+          VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json xvfb-run --auto-servernum ./UHE_EDITOR
