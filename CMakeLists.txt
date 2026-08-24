@@ -110,6 +110,7 @@ add_subdirectory(UHE)
 #sandbox
 add_subdirectory(sandbox)
 add_subdirectory(UHE_EDITOR)
+add_subdirectory(UHEGAME)
 
 
 get_property(all_targets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)

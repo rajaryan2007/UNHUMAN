@@ -1,6 +1,6 @@
 
-[] add descriptor set binding for fallback
-[] add sync of 1.1 for fallback so it can in andirod
+[x] add descriptor set binding for fallback
+[] add sync of 1.1 for fallback so it can in android
 [] add compute feature
 [] add gc and reuse like feature
 [] add pipeline state caches for renderpass and fallbacks 

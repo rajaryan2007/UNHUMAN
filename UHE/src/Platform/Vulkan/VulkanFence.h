@@ -11,6 +11,7 @@ public:
     VulkanFence operator=(VulkanFence) = delete;
 
     void Init();
+    void ShutDown();
 
 private:
 };

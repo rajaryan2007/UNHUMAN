@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkan/vulkan_raii.hpp>
 
 namespace UHE::RHI::VULKAN
 {
@@ -11,8 +12,10 @@ public:
     VulkanSemaphore operator=(VulkanSemaphore&) = delete;
 
     void Init();
+    void ShutDown();
 
 private:
+    vk::raii::Semaphore m_Semaphore = nullptr;
 };
 
 } // namespace UHE::RHI::VULKAN
