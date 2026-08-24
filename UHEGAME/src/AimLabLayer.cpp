@@ -100,7 +100,12 @@ void AimLabLayer::OnAttach()
     m_LastMousePos = {UHE::Input::GetMouseX(), UHE::Input::GetMouseY()};
 }
 
-void AimLabLayer::OnDetach() {}
+void AimLabLayer::OnDetach() {
+    if (m_CursorLocked) {
+        UHE::Application::Get().GetWindow().SetCursorLocked(false);
+        m_CursorLocked = false;
+    }
+}
 
 void AimLabLayer::OnUpdate(UHE::Timestep ts)
 {
@@ -257,7 +262,7 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
                                m_Camera.GetRightDirection() * s_GunOffsetPos.z;
 
     // Decay recoil smoothly back to zero
-    m_RecoilOffset = glm::mix(m_RecoilOffset, 0.0f, 10.0f * static_cast<f32>(ts));
+    m_RecoilOffset = glm::mix(m_RecoilOffset, 0.0f, glm::clamp(10.0f * static_cast<f32>(ts), 0.0f, 1.0f));
 
     glm::mat4 viewInverse = glm::inverse(m_Camera.GetViewMatrix());
     glm::quat camOrientation = glm::quat_cast(viewInverse);
