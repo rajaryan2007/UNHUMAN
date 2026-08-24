@@ -174,4 +174,9 @@ void WindowsWindow::SetVSync(bool enabled) {
 
 bool WindowsWindow::IsVSync() const { return m_Data.VSync; }
 
+void WindowsWindow::SetCursorLocked(bool locked) {
+  glfwSetInputMode(m_Window, GLFW_CURSOR,
+                   locked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+
 } // namespace UHE

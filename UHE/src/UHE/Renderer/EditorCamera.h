@@ -34,6 +34,8 @@ namespace UHE {
 
 		float GetPitch() const { return m_Pitch; }
 		float GetYaw() const { return m_Yaw; }
+		inline void SetPitch(float pitch) { m_Pitch = pitch; }
+		inline void SetYaw(float yaw) { m_Yaw = yaw; }
 	private:
 		void UpdateProjection();
 		void UpdateView();

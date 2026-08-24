@@ -129,7 +129,7 @@ void VulkanImGuiLayer::End()
         .clearValue = vk::ClearValue{vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}}}};
 
     vk::RenderingInfo renderingInfo{.flags = {},
-                                    .renderArea = {vk::Offset2D{0, 0}, extent},
+                                    .renderArea = {.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent},
                                     .layerCount = 1,
                                     .viewMask = 0,
                                     .colorAttachmentCount = 1,
