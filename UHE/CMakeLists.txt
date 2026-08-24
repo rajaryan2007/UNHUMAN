@@ -58,6 +58,7 @@ target_include_directories(UHE PUBLIC
     "vendor/slang/include"
     "vendor/box2d/include"
     "vendor/jolt"
+    "vendor/miniaudio"
 )
 
 target_sources(UHE PRIVATE

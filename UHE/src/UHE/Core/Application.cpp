@@ -9,6 +9,7 @@
 #include "UHE/Core/Log.h"
 #include "UHE/Physics/PhysicsSystem3D.h"
 #include "input.h"
+#include "UHE/Audio/AudioEngine.h"
 
 #include <GLFW/glfw3.h>
 
@@ -35,6 +36,7 @@ namespace UHE{
 		Renderer2D::Init();
 		Renderer3D::Init();
 		Physics::PhysicsSystem3D::Init();
+		Audio::AudioEngine::Init();
 
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushOverlay(m_ImGuiLayer);		
@@ -45,6 +47,7 @@ namespace UHE{
 		Renderer::GetDevice().WaitIdle();
 		Renderer::GetDevice().ResetCommandBuffers();
 		m_LayerStack.Clear();
+		Audio::AudioEngine::Shutdown();
 		Physics::PhysicsSystem3D::Shutdown();
 		Renderer3D::Shutdown();
 		Renderer2D::Shutdown();
@@ -120,6 +123,8 @@ namespace UHE{
 				timestep = 0.25f;
 
 			if (!m_Minimized) {
+				Audio::AudioEngine::Update();
+				
 				Renderer::GetDevice().Begin();
 
 				for (Layer* layer : m_LayerStack)
