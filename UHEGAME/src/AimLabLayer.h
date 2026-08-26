@@ -5,6 +5,7 @@
 #include <UHE/Renderer3D/Animator.h>
 #include <UHE/Scene/Entity.h>
 #include <vector>
+#include <string>
 
 class AimLabLayer : public UHE::Layer
 {
@@ -54,4 +55,5 @@ private:
     bool m_CursorLocked = false;
     bool m_EscapeWasPressed = false;
     bool m_SkipMouseDelta = false;
+    std::string m_GameAssetsPath;
 };

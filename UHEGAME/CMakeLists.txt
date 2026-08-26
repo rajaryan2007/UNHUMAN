@@ -32,3 +32,11 @@ endif()
 if(MSVC)
     target_compile_options(UHEGAME PRIVATE /utf-8)
 endif()
+
+# Copy the UHEGAME assets folder to the executable directory
+add_custom_command(TARGET UHEGAME POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+        "$<TARGET_FILE_DIR:UHEGAME>/assets"
+    COMMENT "Copying UHEGAME assets to output directory"
+)

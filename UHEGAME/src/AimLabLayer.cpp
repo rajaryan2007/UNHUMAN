@@ -39,12 +39,19 @@ void AimLabLayer::OnAttach()
     lightEntity.GetComponent<UHE::TransformComponent>().Rotation =
         glm::vec3(glm::radians(45.0f), glm::radians(45.0f), 0.0f);
 
-    auto rootPath = UHE::FileSystem::Get().GetRootPath().parent_path();
+    auto rootPath = UHE::FileSystem::Get().GetRootPath();
+    if (fs::exists(rootPath / "UHEGAME" / "assets")) {
+        // Dev environment (rootPath is UHE_EDITOR, parent is repo root)
+        m_GameAssetsPath = (rootPath.parent_path() / "UHEGAME" / "assets").string();
+    } else {
+        // Standalone release environment (assets folder pasted next to executable)
+        m_GameAssetsPath = (rootPath / "assets").string();
+    }
 
     // Gun model (animated pistol with fire/reload animations)
     m_GunEntity = m_ActiveScene->CreateEntity("Gun");
     auto& gunModel = m_GunEntity.AddComponent<UHE::Model3DComponent>();
-    gunModel.ModelPath = (rootPath / "UHEGAME/assets/models/pistol_animations_blender.glb").string();
+    gunModel.ModelPath = (fs::path(m_GameAssetsPath) / "models/pistol_animations_blender.glb").string();
     gunModel.IsLoaded = gunModel.ModelData->loadModel(gunModel.ModelPath);
     if (!gunModel.IsLoaded)
         UHE_ERROR("Failed to load animated Gun model");
@@ -76,7 +83,7 @@ void AimLabLayer::OnAttach()
     {
         m_Targets[i] = m_ActiveScene->CreateEntity("Target_" + std::to_string(i));
         auto& model = m_Targets[i].AddComponent<UHE::Model3DComponent>();
-        model.ModelPath = (rootPath / "UHEGAME/assets/models/Sphere.glb").string();
+        model.ModelPath = (fs::path(m_GameAssetsPath) / "models/Sphere.glb").string();
         model.IsLoaded = model.ModelData->loadModel(model.ModelPath);
         if (!model.IsLoaded)
             UHE_ERROR("Failed to load target Box model");
@@ -170,8 +177,7 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
         m_ReloadTimer = m_ReloadDuration;
         m_GunAnimator->PlayAnimation("Reload_Complete");
         
-        auto rootPath = UHE::FileSystem::Get().GetRootPath().parent_path();
-        UHE::Audio::AudioEngine::PlaySound3D((rootPath / "UHEGAME/assets/audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
+        UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
     }
 
     // Only shoot on click (not hold); crosshair is fixed at screen center
@@ -186,8 +192,7 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
         m_FireAnimTimer = m_FireAnimDuration;
 
         // Play 3D Audio
-        auto rootPath = UHE::FileSystem::Get().GetRootPath().parent_path();
-        UHE::Audio::AudioEngine::PlaySound3D((rootPath / "UHEGAME/assets/audio/gunshot.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
+        UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/gunshot.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
         
         // Add a kick to the gun's pitch for recoil
         m_RecoilOffset = 6.0f; 
@@ -217,8 +222,7 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             m_ReloadTimer = m_ReloadDuration;
             m_GunAnimator->PlayAnimation("Reload_Complete");
 
-            auto rootPath = UHE::FileSystem::Get().GetRootPath().parent_path();
-            UHE::Audio::AudioEngine::PlaySound3D((rootPath / "UHEGAME/assets/audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
+            UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
         }
     }
     m_MouseWasPressed = mouseDown;
