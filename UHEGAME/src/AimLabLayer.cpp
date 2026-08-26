@@ -53,27 +53,27 @@ void AimLabLayer::OnAttach()
     auto& gunModel = m_GunEntity.AddComponent<UHE::Model3DComponent>();
     gunModel.ModelPath = (fs::path(m_GameAssetsPath) / "models/pistol_animations_blender.glb").string();
     gunModel.IsLoaded = gunModel.ModelData->loadModel(gunModel.ModelPath);
-    if (!gunModel.IsLoaded)
-        UHE_ERROR("Failed to load animated Gun model");
-    
-    // Set up the Animator for skeletal animation
-    m_GunAnimator = UHE::CreateRef<UHE::RD3d::Animator>(gunModel.ModelData);
-    
-    // Log available animations and read their durations
-    const auto& animations = gunModel.ModelData->GetAnimations();
-    UHE_INFO("Gun model has {} animations:", animations.size());
-    for (size_t i = 0; i < animations.size(); i++)
-    {
-        UHE_INFO("  [{}] {} (duration: {:.2f}s)", i, animations[i].Name, animations[i].Duration);
-        // Read actual durations for fire and reload
-        if (animations[i].Name == "Fire")
-            m_FireAnimDuration = animations[i].Duration;
-        else if (animations[i].Name == "Reload_Complete")
-            m_ReloadDuration = animations[i].Duration;
+    if (!gunModel.IsLoaded) {
+        UHE_ERROR("Failed to load animated Gun model from path: {0}", gunModel.ModelPath);
+    } else {
+        // Set up the Animator for skeletal animation
+        m_GunAnimator = UHE::CreateRef<UHE::RD3d::Animator>(gunModel.ModelData);
+        
+        // Log available animations and read their durations
+        const auto& animations = gunModel.ModelData->GetAnimations();
+        UHE_INFO("Gun model has {} animations:", animations.size());
+        for (size_t i = 0; i < animations.size(); i++)
+        {
+            UHE_INFO("  [{}] {} (duration: {:.2f}s)", i, animations[i].Name, animations[i].Duration);
+            // Read actual durations for fire and reload
+            if (animations[i].Name == "Fire")
+                m_FireAnimDuration = animations[i].Duration;
+            else if (animations[i].Name == "Reload_Complete")
+                m_ReloadDuration = animations[i].Duration;
+        }
+        
+        m_GunAnimator->PlayAnimation("Idle");
     }
-    
-    // Start with Idle animation
-    m_GunAnimator->PlayAnimation("Idle");
     
     m_GunEntity.GetComponent<UHE::TransformComponent>().Scale = glm::vec3(0.05f);
 
@@ -151,7 +151,7 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             m_IsReloading = false;
             m_Ammo = MAX_AMMO;
             // Go back to Idle after reload completes
-            m_GunAnimator->PlayAnimation("Idle");
+            if (m_GunAnimator) m_GunAnimator->PlayAnimation("Idle");
         }
     }
 
@@ -163,14 +163,13 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
         {
             m_IsFireAnimPlaying = false;
             // Return to Idle after fire animation finishes (unless reloading)
-            if (!m_IsReloading)
+            if (!m_IsReloading && m_GunAnimator)
                 m_GunAnimator->PlayAnimation("Idle");
         }
     }
 
     // === Manual reload with R key ===
-    bool rPressed = UHE::Input::IsKeyPressed(UHE::Key::R);
-    if (rPressed && !m_IsReloading && m_Ammo < MAX_AMMO)
+    if (UHE::Input::IsKeyPressed(UHE::Key::R) && m_Ammo < MAX_AMMO && !m_IsReloading && m_GunAnimator)
     {
         m_IsReloading = true;
         m_IsFireAnimPlaying = false;
@@ -187,7 +186,9 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
         m_Ammo--;
         
         // Play fire animation as a one-shot
-        m_GunAnimator->PlayAnimation("Fire");
+        if (m_GunAnimator) {
+            m_GunAnimator->PlayAnimation("Fire");
+        }
         m_IsFireAnimPlaying = true;
         m_FireAnimTimer = m_FireAnimDuration;
 
@@ -220,7 +221,9 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             m_IsReloading = true;
             m_IsFireAnimPlaying = false;
             m_ReloadTimer = m_ReloadDuration;
-            m_GunAnimator->PlayAnimation("Reload_Complete");
+            if (m_GunAnimator) {
+                m_GunAnimator->PlayAnimation("Reload_Complete");
+            }
 
             UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
         }
@@ -228,7 +231,8 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
     m_MouseWasPressed = mouseDown;
 
     // === Update gun animation ===
-    m_GunAnimator->UpdateAnimation(static_cast<f32>(ts));
+    if (m_GunAnimator)
+        m_GunAnimator->UpdateAnimation(static_cast<f32>(ts));
 
     // === Mouse look (crosshair stays centered, view follows the mouse) ===
     if (m_CursorLocked && !altHeld)
