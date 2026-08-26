@@ -31,6 +31,15 @@ namespace UHE {
         else
         {
             UHE_CORE_ERROR("Failed to load image: {0}", path);
+            
+            // Fallback to a 1x1 white texture to prevent crashes
+            m_Width = 1;
+            m_Height = 1;
+            m_VulkanTexture = CreateRef<RHI::VULKAN::VulkanTexture>();
+            auto& rhiDevice = Renderer::GetDevice();
+            auto* vulkanDevice = static_cast<RHI::VULKAN::VulkanDevice*>(&rhiDevice);
+            u32 whiteData = 0xffffffff;
+            m_VulkanTexture->CreateTexture(*vulkanDevice, &whiteData, m_Width, m_Height, 4);
         }
     }
 
@@ -57,6 +66,15 @@ namespace UHE {
         else
         {
             UHE_CORE_ERROR("Failed to load image from memory!");
+            
+            // Fallback to a 1x1 white texture to prevent crashes
+            m_Width = 1;
+            m_Height = 1;
+            m_VulkanTexture = CreateRef<RHI::VULKAN::VulkanTexture>();
+            auto& rhiDevice = Renderer::GetDevice();
+            auto* vulkanDevice = static_cast<RHI::VULKAN::VulkanDevice*>(&rhiDevice);
+            u32 whiteData = 0xffffffff;
+            m_VulkanTexture->CreateTexture(*vulkanDevice, &whiteData, m_Width, m_Height, 4);
         }
     }
 
