@@ -32,6 +32,7 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
     }
 
     CheckExtens.TickTheAvailableExtension(phyDevice);
+    CheckExtens.QuerySupportedFeatures(phyDevice);
     auto deviceExtensions = CheckExtens.GetEnabledDeviceExtensions();
 
     float queuePriority = 1.0f;
@@ -52,6 +53,7 @@ void VulkanLogicalDevice::initialize(VulkanPhysicalDevice& physicalDevice, VkSur
 
     m_logicalDevice = vk::raii::Device(phyDevice, deviceCreateInfo);
     volkLoadDevice(*m_logicalDevice);
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance.getInstance(), *m_logicalDevice);
     m_graphicsQueue = vk::raii::Queue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0);
 
     VmaVulkanFunctions vulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,

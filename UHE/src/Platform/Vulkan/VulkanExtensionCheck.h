@@ -95,6 +95,7 @@ public:
     [[nodiscard]] std::vector<const char*> GetEnabledDeviceExtensions() const;
     [[nodiscard]] vk::PhysicalDeviceFeatures2* BuildDeviceFeatureChain();
     void TickTheAvailableExtension(const vk::raii::PhysicalDevice& PhysicalDevice);
+    void QuerySupportedFeatures(const vk::raii::PhysicalDevice& PhysicalDevice);
 
 private:
     VulkanExtensionIsEnableCheck m_extensionCheck;
@@ -112,6 +113,7 @@ private:
     vk::PhysicalDeviceRayTracingPipelineFeaturesKHR m_rayTracingPipelineFeatures;
     vk::PhysicalDeviceRayQueryFeaturesKHR m_rayQueryFeatures;
     vk::PhysicalDeviceFragmentShadingRateFeaturesKHR m_fragmentShadingRateFeatures;
+    vk::PhysicalDeviceFragmentShadingRateFeaturesKHR m_supportedFragmentShadingRateFeatures;
     vk::PhysicalDeviceCooperativeMatrixFeaturesKHR m_cooperativeMatrixFeatures;
     vk::PhysicalDeviceRobustness2FeaturesEXT m_robustness2Features;
     vk::PhysicalDeviceMemoryPriorityFeaturesEXT m_memoryPriorityFeatures;

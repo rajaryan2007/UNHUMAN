@@ -7,6 +7,7 @@
 #include "UHE/RHI/RHIDevice.h"
 #include "UHE/Renderer/Renderer.h"
 #include "UHE/Renderer/SlangCompiler.h"
+#include "UHE/Renderer/Font.h"
 #include "UHE/Scene/Components.h"
 
 namespace UHE
@@ -171,6 +172,7 @@ void Renderer2D::Shutdown()
 {
     UHE_PROFILE_FUNCTION();
     auto& device = Renderer::GetDevice();
+    Font2D::Shutdown();
     delete[] s_Data.QuadVertexBufferBase;
     device.DestroyGraphicsPipeline(s_Data.QuadPipeline);
     device.DestroyShader(s_Data.QuadVertexShader);
