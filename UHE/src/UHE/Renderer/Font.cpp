@@ -30,8 +30,8 @@ struct Font2D::Impl
 };
 
 template <typename T, typename S, int N, msdf_atlas::GeneratorFunction<S, N> GenFunc>
-static RHI::TextureHandle CreateAtlasTexture(const std::vector<msdf_atlas::GlyphGeometry>& glyphs, uint32_t width,
-                                             uint32_t height)
+static RHI::TextureHandle CreateAtlasTexture(const std::vector<msdf_atlas::GlyphGeometry>& glyphs, u32 width,
+                                             u32 height)
 {
     msdf_atlas::GeneratorAttributes attributes;
     attributes.config.overlapSupport = true;
@@ -39,9 +39,9 @@ static RHI::TextureHandle CreateAtlasTexture(const std::vector<msdf_atlas::Glyph
 
     msdf_atlas::ImmediateAtlasGenerator<S, N, GenFunc, msdf_atlas::BitmapAtlasStorage<T, N>> generator(width, height);
     generator.setAttributes(attributes);
-    unsigned hwThreads = std::thread::hardware_concurrency();
-    generator.setThreadCount((int)std::max(1u, std::min(8u, hwThreads ? hwThreads : 1u)));
-    generator.generate(glyphs.data(), (int)glyphs.size());
+    u32 hwThreads = std::thread::hardware_concurrency();
+    generator.setThreadCount((i32)std::max(1u, std::min(8u, hwThreads ? hwThreads : 1u)));
+    generator.generate(glyphs.data(), (i32)glyphs.size());
 
     msdfgen::BitmapConstSection<T, N> bitmap = (msdfgen::BitmapConstSection<T, N>)generator.atlasStorage();
 
@@ -76,7 +76,7 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
 
     struct CharsetRange
     {
-        uint32_t Begin, End;
+        u32 Begin, End;
     };
 
     static const CharsetRange charsetRanges[] = {{0x0020, 0x00FF}};
@@ -84,12 +84,12 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
     msdf_atlas::Charset charset;
     for (CharsetRange range : charsetRanges)
     {
-        for (uint32_t c = range.Begin; c <= range.End; c++)
+        for (u32 c = range.Begin; c <= range.End; c++)
             charset.add(c);
     }
 
     double fontScale = 1.0;
-    int glyphsLoaded = m_Impl->FontGeometry.loadCharset(font, fontScale, charset);
+    i32 glyphsLoaded = m_Impl->FontGeometry.loadCharset(font, fontScale, charset);
     UHE_CORE_INFO("Loaded {} glyphs from font (out of {})", glyphsLoaded, charset.size());
     if (glyphsLoaded <= 0)
     {
@@ -105,7 +105,7 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
     atlasPacker.setPixelRange(m_PixelRange);
     atlasPacker.setMiterLimit(1.0);
     atlasPacker.setScale(emSize);
-    int remaining = atlasPacker.pack(m_Impl->Glyphs.data(), (int)m_Impl->Glyphs.size());
+    i32 remaining = atlasPacker.pack(m_Impl->Glyphs.data(), (i32)m_Impl->Glyphs.size());
     if (remaining != 0)
     {
         UHE_CORE_ERROR("Atlas packing failed for font {}: {} glyphs did not fit", m_Path, remaining);
@@ -114,22 +114,22 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
         return;
     }
 
-    int width, height;
+    i32 width, height;
     atlasPacker.getDimensions(width, height);
     m_AtlasWidth = (u32)width;
     m_AtlasHeight = (u32)height;
 
     constexpr double DEFAULT_ANGLE_THRESHOLD = 3.0;
-    constexpr unsigned long long LCG_MULTIPLIER = 6364136223846793005ull;
-    constexpr unsigned long long LCG_INCREMENT = 1442695040888963407ull;
-    unsigned long long glyphSeed = 0;
+    constexpr u64 LCG_MULTIPLIER = 6364136223846793005ull;
+    constexpr u64 LCG_INCREMENT = 1442695040888963407ull;
+    u64 glyphSeed = 0;
     for (msdf_atlas::GlyphGeometry& glyph : m_Impl->Glyphs)
     {
         glyphSeed = glyphSeed * LCG_MULTIPLIER + LCG_INCREMENT;
         glyph.edgeColoring(msdfgen::edgeColoringInkTrap, DEFAULT_ANGLE_THRESHOLD, glyphSeed);
     }
 
-    m_Atlas = CreateAtlasTexture<uint8_t, float, 4, msdf_atlas::mtsdfGenerator>(m_Impl->Glyphs, width, height);
+    m_Atlas = CreateAtlasTexture<u8, f32, 4, msdf_atlas::mtsdfGenerator>(m_Impl->Glyphs, width, height);
     if (!m_Atlas)
     {
         UHE_CORE_ERROR("Failed to create MSDF atlas for font: {}", m_Path);
@@ -144,7 +144,7 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
 
     for (const msdf_atlas::GlyphGeometry& glyph : m_Impl->Glyphs)
     {
-        int codepoint = glyph.getIdentifier(msdf_atlas::GlyphIdentifierType::UNICODE_CODEPOINT);
+        i32 codepoint = glyph.getIdentifier(msdf_atlas::GlyphIdentifierType::UNICODE_CODEPOINT);
         if (codepoint < 0)
             continue;
 
