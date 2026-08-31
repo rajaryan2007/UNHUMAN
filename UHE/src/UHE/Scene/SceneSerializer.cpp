@@ -76,6 +76,20 @@ static void SerializeEntity(YAML::Emitter& out, Entity entity)
         out << YAML::EndMap;
     }
 
+    // TextComponent
+    if (entity.HasComponent<TextComponent>())
+    {
+        auto& tc = entity.GetComponent<TextComponent>();
+
+        out << YAML::Key << "TextComponent" << YAML::BeginMap;
+        out << YAML::Key << "TextString" << YAML::Value << tc.TextString;
+        out << YAML::Key << "Color" << YAML::Value << tc.Color;
+        out << YAML::Key << "Kerning" << YAML::Value << tc.Kerning;
+        out << YAML::Key << "LineSpacing" << YAML::Value << tc.LineSpacing;
+        out << YAML::EndMap;
+    }
+
+
     // Sprite Animation
     if (entity.HasComponent<SpriteAnimationComponent>())
     {

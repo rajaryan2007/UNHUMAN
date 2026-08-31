@@ -5,6 +5,7 @@
 #include "UHE/Renderer/EditorCamera.h"
 #include "UHE/Renderer/Texture.h"
 #include "UHE/Renderer2D/SubTexture2D.h"
+#include "UHE/Renderer/Font.h"
 #include "UHE/RHI/RHIDevice.h"
 #include <glm/glm.hpp>
 
@@ -32,6 +33,8 @@ namespace UHE {
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, float tilingFactor = 1.0f, const glm::vec4& tintColor = glm::vec4(1.0f), int entityID = -1);
 
 		static void DrawSprite(const glm::mat4& transform, class SpriteRendererComponent& src, int entityID);
+
+		static void DrawString(const std::string& text, Ref<Font2D> font, const glm::mat4& transform, const glm::vec4& color, int entityID = -1);
 
 		// Stats
 		struct Statistics

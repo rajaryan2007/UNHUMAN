@@ -1,13 +1,14 @@
 #pragma once
 #include "uhepch.h"
-#include "UHE/Core/Core.h"
-#include "UHE/RHI/RHITypes.h"
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include "UHE/Core/Core.h"
+#include "UHE/RHI/RHITypes.h"
 
-namespace UHE {
+namespace UHE
+{
 
 struct UHE_API FontGlyph
 {

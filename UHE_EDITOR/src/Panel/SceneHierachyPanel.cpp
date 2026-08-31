@@ -283,6 +283,11 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
       m_SelectionContext.AddComponent<SpriteRendererComponent>();
       ImGui::CloseCurrentPopup();
     }
+    if (ImGui::MenuItem("  Text Node")) {
+      m_SelectionContext.AddComponent<TextComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+
     if (ImGui::MenuItem("  Sprite Animation")) {
       m_SelectionContext.AddComponent<SpriteAnimationComponent>();
       ImGui::CloseCurrentPopup();
@@ -337,6 +342,22 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         DrawVec3Control("Rotation", rotation);
         components.Rotation = glm::radians(rotation);
         DrawVec3Control("Scale", components.Scale, 1.0f);
+      });
+
+
+  ::UHE::DrawComponents<TextComponent>(
+      "Text Node", entity, [](TextComponent &tc) {
+        ImGui::ColorEdit4("Color", glm::value_ptr(tc.Color));
+        
+        char buffer[256];
+        memset(buffer, 0, sizeof(buffer));
+        strncpy(buffer, tc.TextString.c_str(), sizeof(buffer) - 1);
+        if (ImGui::InputTextMultiline("Text", buffer, sizeof(buffer), ImVec2(0, 0))) {
+            tc.TextString = std::string(buffer);
+        }
+        
+        ImGui::DragFloat("Kerning", &tc.Kerning, 0.025f);
+        ImGui::DragFloat("Line Spacing", &tc.LineSpacing, 0.025f);
       });
 
   ::UHE::DrawComponents<RigidBody2DComponent>(

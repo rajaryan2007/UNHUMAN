@@ -11,6 +11,7 @@
 #include "UHE/Renderer3D/Animator.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "UHE/Renderer/Font.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -58,6 +59,18 @@ struct UHE_API SpriteRendererComponent
     SpriteRendererComponent() = default;
     SpriteRendererComponent(const SpriteRendererComponent&) = default;
     SpriteRendererComponent(const glm::vec4& color) : Color(color) {}
+};
+
+struct UHE_API TextComponent
+{
+    std::string TextString = "Text Node";
+    Ref<Font2D> FontAsset = Font2D::GetDefault();
+    glm::vec4 Color{1.0f};
+    f32 Kerning = 0.0f;
+    f32 LineSpacing = 0.0f;
+
+    TextComponent() = default;
+    TextComponent(const TextComponent&) = default;
 };
 
 struct UHE_API TagComponent

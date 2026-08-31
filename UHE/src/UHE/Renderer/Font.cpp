@@ -1,32 +1,24 @@
 #include "uhepch.h"
 #include "Font.h"
-
-#include "UHE/Renderer/Renderer.h"
-#include "UHE/RHI/RHIDevice.h"
-#include "UHE/RHI/RHICommadBuffer.h"
 #include "UHE/AssestsManager/VfsSystem.h"
-
-#include "msdf-atlas-gen/msdf-atlas-gen.h"
+#include "UHE/RHI/RHICommadBuffer.h"
+#include "UHE/RHI/RHIDevice.h"
+#include "UHE/Renderer/Renderer.h"
 #include "msdf-atlas-gen/FontGeometry.h"
 #include "msdf-atlas-gen/GlyphGeometry.h"
-
-#include "msdfgen.h"
+#include "msdf-atlas-gen/msdf-atlas-gen.h"
 #include "msdfgen-ext.h"
+#include "msdfgen.h"
 
-#include <algorithm>
-#include <thread>
-
-namespace UHE {
+namespace UHE
+{
 
 struct Font2D::Impl
 {
     std::vector<msdf_atlas::GlyphGeometry> Glyphs;
     msdf_atlas::FontGeometry FontGeometry;
 
-    Impl()
-        : FontGeometry(&Glyphs)
-    {
-    }
+    Impl() : FontGeometry(&Glyphs) {}
 };
 
 template <typename T, typename S, int N, msdf_atlas::GeneratorFunction<S, N> GenFunc>
@@ -39,11 +31,29 @@ static RHI::TextureHandle CreateAtlasTexture(const std::vector<msdf_atlas::Glyph
 
     msdf_atlas::ImmediateAtlasGenerator<S, N, GenFunc, msdf_atlas::BitmapAtlasStorage<T, N>> generator(width, height);
     generator.setAttributes(attributes);
-    u32 hwThreads = std::thread::hardware_concurrency();
-    generator.setThreadCount((i32)std::max(1u, std::min(8u, hwThreads ? hwThreads : 1u)));
-    generator.generate(glyphs.data(), (i32)glyphs.size());
+    // Force single-threaded generation to align with the rest of the engine.
+    // This avoids spawning uncontrolled threads until a proper Job System is added.
+    generator.setThreadCount(1);
+    generator.generate(glyphs.data(), static_cast<i32>(glyphs.size()));
 
-    msdfgen::BitmapConstSection<T, N> bitmap = (msdfgen::BitmapConstSection<T, N>)generator.atlasStorage();
+    msdfgen::BitmapConstSection<T, N> bitmap = static_cast<msdfgen::BitmapConstSection<T, N>>(generator.atlasStorage());
+
+    bool allZeros = true;
+    for (size_t i = 0; i < width * height * N; i++) {
+        if (reinterpret_cast<const u8*>(bitmap.pixels)[i] != 0) {
+            allZeros = false;
+            break;
+        }
+    }
+    if (allZeros) {
+        UHE_CORE_ERROR("MSDF ATLAS IS COMPLETELY BLACK!!!");
+    } else {
+        UHE_CORE_INFO("MSDF Atlas generated successfully. First few bytes: {}, {}, {}, {}", 
+            reinterpret_cast<const u8*>(bitmap.pixels)[0],
+            reinterpret_cast<const u8*>(bitmap.pixels)[1],
+            reinterpret_cast<const u8*>(bitmap.pixels)[2],
+            reinterpret_cast<const u8*>(bitmap.pixels)[3]);
+    }
 
     auto& device = Renderer::GetDevice();
     RHI::TextureDesc texDesc{};
@@ -52,7 +62,8 @@ static RHI::TextureHandle CreateAtlasTexture(const std::vector<msdf_atlas::Glyph
     texDesc.format = RHI::TextureFormat::RGBA8_UNORM;
     texDesc.usage = RHI::TextureUsage::Sampled | RHI::TextureUsage::TransferDst;
     RHI::TextureHandle texture = device.CreateTexture(texDesc);
-    device.GetCurrentCommandBuffer().UpdateTexture(texture, (void*)bitmap.pixels, width * height * N);
+    device.GetCurrentCommandBuffer().UpdateTexture(
+        texture, const_cast<void*>(reinterpret_cast<const void*>(bitmap.pixels)), width * height * N);
     return texture;
 }
 
@@ -88,7 +99,7 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
             charset.add(c);
     }
 
-    double fontScale = 1.0;
+    f64 fontScale = 1.0;
     i32 glyphsLoaded = m_Impl->FontGeometry.loadCharset(font, fontScale, charset);
     UHE_CORE_INFO("Loaded {} glyphs from font (out of {})", glyphsLoaded, charset.size());
     if (glyphsLoaded <= 0)
@@ -99,13 +110,13 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
         return;
     }
 
-    double emSize = (double)m_GenSizePx;
+    f64 emSize = static_cast<f64>(m_GenSizePx);
 
     msdf_atlas::TightAtlasPacker atlasPacker;
     atlasPacker.setPixelRange(m_PixelRange);
     atlasPacker.setMiterLimit(1.0);
     atlasPacker.setScale(emSize);
-    i32 remaining = atlasPacker.pack(m_Impl->Glyphs.data(), (i32)m_Impl->Glyphs.size());
+    i32 remaining = atlasPacker.pack(m_Impl->Glyphs.data(), static_cast<i32>(m_Impl->Glyphs.size()));
     if (remaining != 0)
     {
         UHE_CORE_ERROR("Atlas packing failed for font {}: {} glyphs did not fit", m_Path, remaining);
@@ -116,10 +127,10 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
 
     i32 width, height;
     atlasPacker.getDimensions(width, height);
-    m_AtlasWidth = (u32)width;
-    m_AtlasHeight = (u32)height;
+    m_AtlasWidth = static_cast<u32>(width);
+    m_AtlasHeight = static_cast<u32>(height);
 
-    constexpr double DEFAULT_ANGLE_THRESHOLD = 3.0;
+    constexpr f64 DEFAULT_ANGLE_THRESHOLD = 3.0;
     constexpr u64 LCG_MULTIPLIER = 6364136223846793005ull;
     constexpr u64 LCG_INCREMENT = 1442695040888963407ull;
     u64 glyphSeed = 0;
@@ -139,8 +150,8 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
     }
 
     const msdfgen::FontMetrics& metrics = m_Impl->FontGeometry.getMetrics();
-    m_Ascent = (f32)metrics.ascenderY;
-    m_LineHeight = (f32)metrics.lineHeight;
+    m_Ascent = static_cast<f32>(metrics.ascenderY);
+    m_LineHeight = static_cast<f32>(metrics.lineHeight);
 
     for (const msdf_atlas::GlyphGeometry& glyph : m_Impl->Glyphs)
     {
@@ -154,18 +165,20 @@ Font2D::Font2D(const std::string& ttfPath, u32 genSizePx, f32 pixelRange)
         glyph.getQuadAtlasBounds(atlasL, atlasB, atlasR, atlasT);
 
         FontGlyph fontGlyph;
-        fontGlyph.PlaneBoundsMin = {(f32)planeL, (f32)planeB};
-        fontGlyph.PlaneBoundsMax = {(f32)planeR, (f32)planeT};
-        fontGlyph.UVMin = {(f32)atlasL / (f32)m_AtlasWidth, 1.0f - (f32)atlasT / (f32)m_AtlasHeight};
-        fontGlyph.UVMax = {(f32)atlasR / (f32)m_AtlasWidth, 1.0f - (f32)atlasB / (f32)m_AtlasHeight};
-        fontGlyph.Advance = (f32)glyph.getAdvance();
+        fontGlyph.PlaneBoundsMin = {static_cast<f32>(planeL), static_cast<f32>(planeB)};
+        fontGlyph.PlaneBoundsMax = {static_cast<f32>(planeR), static_cast<f32>(planeT)};
+        fontGlyph.UVMin = {static_cast<f32>(atlasL) / static_cast<f32>(m_AtlasWidth),
+                           static_cast<f32>(atlasT) / static_cast<f32>(m_AtlasHeight)};
+        fontGlyph.UVMax = {static_cast<f32>(atlasR) / static_cast<f32>(m_AtlasWidth),
+                           static_cast<f32>(atlasB) / static_cast<f32>(m_AtlasHeight)};
+        fontGlyph.Advance = static_cast<f32>(glyph.getAdvance());
 
-        m_Glyphs.emplace((u32)codepoint, fontGlyph);
+        m_Glyphs.emplace(static_cast<u32>(codepoint), fontGlyph);
     }
 
     m_Valid = true;
 
-    UHE_CORE_INFO("Font loaded: {}, {} glyphs, atlas {}x{}", m_Path, (u32)m_Glyphs.size(), m_AtlasWidth,
+    UHE_CORE_INFO("Font loaded: {}, {} glyphs, atlas {}x{}", m_Path, static_cast<u32>(m_Glyphs.size()), m_AtlasWidth,
                   m_AtlasHeight);
 
     msdfgen::destroyFont(font);
@@ -200,7 +213,7 @@ Ref<Font2D> Font2D::GetDefault()
 {
     if (!s_DefaultFont)
     {
-        s_DefaultFont = Get((FileSystem::Get().GetRootPath() / "assets/fonts/Inter_18pt-Bold.ttf").string());
+        s_DefaultFont = Get((FileSystem::Get().GetRootPath() / "assets/Inter/static/Inter_18pt-Bold.ttf").string());
     }
     return s_DefaultFont;
 }

@@ -82,12 +82,20 @@ FragmentOutput fragmentMain(VertexOutput input) {
         case 31: texColor = u_Textures[pc.textureIndices[31]].Sample(input.v_TexCoord); break;
         default: discard;
     }
+    
+    float2 pxRange = float2(2.0, 2.0); // Matches m_PixelRange in Font.cpp
+    float2 unitRange = pxRange / float2(1024.0, 1024.0);
+    float2 screenTexSize = float2(1.0) / fwidth(input.v_TexCoord);
+    float screenPxRange = max(0.5 * dot(unitRange, screenTexSize), 1.0);
+    
     float sigDist = median(texColor.r, texColor.g, texColor.b) - 0.5;
-    float distWidth = fwidth(sigDist);
-    float alpha = distWidth > 0.0 ? clamp(sigDist / distWidth + 0.5, 0.0, 1.0) : (sigDist > 0.0 ? 1.0 : 0.0);
-    float4 finalColor = float4(input.v_Color.rgb, input.v_Color.a * alpha);
-    output.color = finalColor;
+    float alpha = clamp(sigDist * screenPxRange + 0.5, 0.0, 1.0);
+    
+    if (alpha < 0.01) {
+        discard;
+    }
+    
+    output.color = input.v_Color * float4(1.0, 1.0, 1.0, alpha);
     output.entityID = (int)round(input.v_EntityID);
-    if (finalColor.a < 0.01) discard;
     return output;
 }
