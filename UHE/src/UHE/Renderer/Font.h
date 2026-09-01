@@ -38,6 +38,7 @@ public:
     f32 GetAscent() const { return m_Ascent; }
     f32 GetLineHeight() const { return m_LineHeight; }
     f32 GetPixelRange() const { return m_PixelRange; }
+    const std::string& GetPath() const { return m_Path; }
 
     RHI::TextureHandle GetAtlas() const { return m_Atlas; }
     u32 GetAtlasWidth() const { return m_AtlasWidth; }

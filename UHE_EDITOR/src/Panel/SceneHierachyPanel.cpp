@@ -2,6 +2,8 @@
 #include "glm/trigonometric.hpp"
 #include "imgui/imgui_internal.h"
 #include <imgui/imgui.h>
+#include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -349,12 +351,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
       "Text Node", entity, [](TextComponent &tc) {
         ImGui::ColorEdit4("Color", glm::value_ptr(tc.Color));
         
-        char buffer[256];
-        memset(buffer, 0, sizeof(buffer));
-        strncpy(buffer, tc.TextString.c_str(), sizeof(buffer) - 1);
-        if (ImGui::InputTextMultiline("Text", buffer, sizeof(buffer), ImVec2(0, 0))) {
-            tc.TextString = std::string(buffer);
-        }
+        ImGui::InputTextMultiline("Text", &tc.TextString, ImVec2(0, 0));
         
         ImGui::DragFloat("Kerning", &tc.Kerning, 0.025f);
         ImGui::DragFloat("Line Spacing", &tc.LineSpacing, 0.025f);

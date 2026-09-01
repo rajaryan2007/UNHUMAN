@@ -277,7 +277,7 @@ void Scene::OnViewportResize(u32 width, u32 height)
 void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
 {
     m_registry.view<NativeScriptComponent>().each(
-        [=](auto entity, auto& nsc)
+        [=, this](auto entity, auto& nsc)
         {
             if (!nsc.Instance)
             {
@@ -333,7 +333,7 @@ void Scene::RenderSprites(Timestep ts)
     for (auto entityID : textView)
     {
         auto [transform, text] = textView.get<TransformComponent, TextComponent>(entityID);
-        Renderer2D::DrawString(text.TextString, text.FontAsset, transform.GetTransform(), text.Color, (i32)entityID);
+        Renderer2D::DrawString(text.TextString, text.FontAsset, transform.GetTransform(), text.Color, text.Kerning, text.LineSpacing, (i32)entityID);
     }
 
     auto animOnlyView = m_registry.view<TransformComponent, SpriteAnimationComponent>();
@@ -423,7 +423,7 @@ void Scene::OnUpdateRuntime(Timestep ts)
 
     {
         m_registry.view<NativeScriptComponent>().each(
-            [=](auto entity, auto& nsc)
+            [=, this](auto entity, auto& nsc)
             {
                 if (!nsc.Instance)
                 {

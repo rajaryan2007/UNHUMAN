@@ -133,15 +133,14 @@ void Renderer2D::Init()
     s_Data.TextVertexBufferBase = new TextVertex[s_Data.MaxVertices];
 
 
-    uint32_t whiteTextureData = 0xffffffff;
     RHI::TextureDesc whiteTexDesc{};
     whiteTexDesc.width = 1;
     whiteTexDesc.height = 1;
     whiteTexDesc.format = RHI::TextureFormat::RGBA8_UNORM;
     whiteTexDesc.usage = RHI::TextureUsage::Sampled | RHI::TextureUsage::TransferDst;
     s_Data.WhiteTexture = device.CreateTexture(whiteTexDesc);
-
-    device.GetCurrentCommandBuffer().UpdateTexture(s_Data.WhiteTexture, &whiteTextureData, sizeof(uint32_t));
+    u32 whiteTextureData = 0xffffffff;
+    device.GetCurrentCommandBuffer().UpdateTexture(s_Data.WhiteTexture, std::span<const u8>(reinterpret_cast<const u8*>(&whiteTextureData), sizeof(u32)));
     s_Data.TextureSlots[0] = reinterpret_cast<RHI::RHITexture*>(s_Data.WhiteTexture)->GetTextureIndex();
 
     // Compile Shader
@@ -517,7 +516,7 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& s
 }
 
 
-void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm::mat4& transform, const glm::vec4& color, int entityID)
+void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm::mat4& transform, const glm::vec4& color, f32 kerning, f32 lineSpacing, i32 entityID)
 {
     UHE_PROFILE_FUNCTION();
     if (!font || !font->IsValid()) return;
@@ -525,16 +524,13 @@ void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm
     const auto& fontGeometry = font->GetAtlas();
     if (!fontGeometry) return;
 
-    if (s_Data.TextIndexCount >= Renderer2DData::MaxIndices)
-        NextBatch();
-
-    float textureIndex = 0.0f;
-    uint32_t globalTexIndex = reinterpret_cast<RHI::RHITexture*>(fontGeometry)->GetTextureIndex();
-    for (uint32_t i = 1; i < s_Data.TextureSlotIndex; i++)
+    f32 textureIndex = 0.0f;
+    u32 globalTexIndex = reinterpret_cast<RHI::RHITexture*>(fontGeometry)->GetTextureIndex();
+    for (u32 i = 1; i < s_Data.TextureSlotIndex; i++)
     {
         if (s_Data.TextureSlots[i] == globalTexIndex)
         {
-            textureIndex = (float)i;
+            textureIndex = (f32)i;
             break;
         }
     }
@@ -544,24 +540,49 @@ void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm
         if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
             NextBatch();
 
-        textureIndex = (float)s_Data.TextureSlotIndex;
+        textureIndex = (f32)s_Data.TextureSlotIndex;
         s_Data.TextureSlots[s_Data.TextureSlotIndex] = globalTexIndex;
         s_Data.TextureSlotIndex++;
     }
 
-    double x = 0.0;
-    double y = 0.0;
+    f64 x = 0.0;
+    f64 y = 0.0;
     
-    // We expect font size of around 1.0 to fit well within transform scale, adjust down because genSizePx might be 64
-    double scale = 1.0 / (double)font->GetLineHeight();
+    f64 scale = 1.0 / (f64)font->GetLineHeight();
 
     for (size_t i = 0; i < text.size(); i++)
     {
-        char32_t character = text[i];
+        if (s_Data.TextIndexCount >= Renderer2DData::MaxIndices)
+        {
+            NextBatch();
+            
+            // Re-resolve texture index as NextBatch resets texture slots
+            textureIndex = 0.0f;
+            for (u32 j = 1; j < s_Data.TextureSlotIndex; j++)
+            {
+                if (s_Data.TextureSlots[j] == globalTexIndex)
+                {
+                    textureIndex = (f32)j;
+                    break;
+                }
+            }
+
+            if (textureIndex == 0.0f)
+            {
+                if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
+                    NextBatch();
+
+                textureIndex = (f32)s_Data.TextureSlotIndex;
+                s_Data.TextureSlots[s_Data.TextureSlotIndex] = globalTexIndex;
+                s_Data.TextureSlotIndex++;
+            }
+        }
+
+        char32_t character = (char32_t)(unsigned char)text[i];
         if (character == '\n')
         {
             x = 0.0;
-            y -= 1.0;
+            y -= 1.0 + lineSpacing;
             continue;
         }
 
@@ -569,10 +590,10 @@ void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm
         if (!glyph)
             continue;
 
-        float planeL = (float)(glyph->PlaneBoundsMin.x * scale + x);
-        float planeB = (float)(glyph->PlaneBoundsMin.y * scale + y);
-        float planeR = (float)(glyph->PlaneBoundsMax.x * scale + x);
-        float planeT = (float)(glyph->PlaneBoundsMax.y * scale + y);
+        f32 planeL = (f32)(glyph->PlaneBoundsMin.x * scale + x);
+        f32 planeB = (f32)(glyph->PlaneBoundsMin.y * scale + y);
+        f32 planeR = (f32)(glyph->PlaneBoundsMax.x * scale + x);
+        f32 planeT = (f32)(glyph->PlaneBoundsMax.y * scale + y);
 
         glm::vec2 texCoords[4] = {
             {glyph->UVMin.x, glyph->UVMax.y}, // Bottom Left
@@ -588,20 +609,20 @@ void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm
             {planeL, planeT, 0.0f, 1.0f}
         };
 
-        for (int v = 0; v < 4; v++)
+        for (i32 v = 0; v < 4; v++)
         {
             s_Data.TextVertexBufferPtr->Position = transform * vertexPositions[v];
             s_Data.TextVertexBufferPtr->Color = color;
             s_Data.TextVertexBufferPtr->TexCoord = texCoords[v];
             s_Data.TextVertexBufferPtr->TexIndex = textureIndex;
-            s_Data.TextVertexBufferPtr->EntityID = (float)entityID;
+            s_Data.TextVertexBufferPtr->EntityID = (f32)entityID;
             s_Data.TextVertexBufferPtr++;
         }
 
         s_Data.TextIndexCount += 6;
         s_Data.Stats.QuadCount++;
-        
-        x += glyph->Advance * scale; // No kerning implementation yet
+
+        x += (glyph->Advance * scale) + kerning;
     }
 }
 

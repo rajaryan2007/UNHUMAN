@@ -263,14 +263,16 @@ void VulkanTexture::GenerateMipmaps(VulkanDevice& device, vk::Image image, vk::F
     });
 }
 
-void VulkanTexture::UpdateTexture(const void* data, size_t size)
+void VulkanTexture::UpdateTexture(std::span<const u8> data)
 {
     if (!m_Device) return;
+    if (data.empty()) return;
 
     m_allocator = GetVulkanContext().allocator;
 
+    size_t size = data.size();
     StagingBuffer staging = CreateStagingBuffer(size);
-    StagingBufferCopy(staging, data, size);
+    StagingBufferCopy(staging, data.data(), size);
 
     ExecuteCopyCommand(*m_Device, staging.buffer, textureImage, m_Width, m_Height, m_MipLevels);
     DestroyStagingBuffer(staging);

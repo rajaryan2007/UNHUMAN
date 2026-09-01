@@ -90,6 +90,7 @@ add_library(ImGui STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_tables.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_widgets.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_demo.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/misc/cpp/imgui_stdlib.cpp
 )
 if(MSVC)
     target_compile_definitions(ImGui PRIVATE IMGUI_API=__declspec\(dllexport\))

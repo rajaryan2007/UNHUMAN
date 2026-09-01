@@ -63,7 +63,7 @@ static RHI::TextureHandle CreateAtlasTexture(const std::vector<msdf_atlas::Glyph
     texDesc.usage = RHI::TextureUsage::Sampled | RHI::TextureUsage::TransferDst;
     RHI::TextureHandle texture = device.CreateTexture(texDesc);
     device.GetCurrentCommandBuffer().UpdateTexture(
-        texture, const_cast<void*>(reinterpret_cast<const void*>(bitmap.pixels)), width * height * N);
+        texture, std::span<const u8>(reinterpret_cast<const u8*>(bitmap.pixels), (size_t)width * height * N));
     return texture;
 }
 
