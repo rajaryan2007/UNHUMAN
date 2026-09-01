@@ -84,7 +84,7 @@ add_subdirectory(UHE/vendor/GLFW)
 # ImGui is built here instead of add_subdirectory(UHE/vendor/imgui): the vendored
 # fork's CMakeLists.txt defines IMGUI_API=__declspec(dllexport) unconditionally,
 # which breaks GCC/Linux builds
-add_library(ImGui STATIC
+add_library(ImGui OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_draw.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_tables.cpp
