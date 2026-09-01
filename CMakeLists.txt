@@ -109,6 +109,7 @@ set(MSDF_ATLAS_USE_VCPKG OFF        CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_USE_SKIA  OFF        CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_BUILD_STANDALONE OFF CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_NO_ARTERY_FONT ON    CACHE BOOL "" FORCE)
+set(MSDF_ATLAS_DYNAMIC_RUNTIME ON   CACHE BOOL "" FORCE)
 add_subdirectory(UHE/vendor/msdf-atlas-gen)
 
 # Disable Jolt Physics tests and viewers to drastically reduce compile times

@@ -578,7 +578,32 @@ void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm
             }
         }
 
-        char32_t character = (char32_t)(unsigned char)text[i];
+        unsigned char c0 = text[i];
+        char32_t character = 0;
+        int seqLen = 1;
+
+        if ((c0 & 0x80) == 0) {
+            character = c0;
+        } else if ((c0 & 0xE0) == 0xC0) {
+            if (i + 1 < text.length()) {
+                character = ((c0 & 0x1F) << 6) | (text[i + 1] & 0x3F);
+                seqLen = 2;
+            } else { character = 0xFFFD; }
+        } else if ((c0 & 0xF0) == 0xE0) {
+            if (i + 2 < text.length()) {
+                character = ((c0 & 0x0F) << 12) | ((text[i + 1] & 0x3F) << 6) | (text[i + 2] & 0x3F);
+                seqLen = 3;
+            } else { character = 0xFFFD; }
+        } else if ((c0 & 0xF8) == 0xF0) {
+            if (i + 3 < text.length()) {
+                character = ((c0 & 0x07) << 18) | ((text[i + 1] & 0x3F) << 12) | ((text[i + 2] & 0x3F) << 6) | (text[i + 3] & 0x3F);
+                seqLen = 4;
+            } else { character = 0xFFFD; }
+        } else {
+            character = 0xFFFD; // Invalid byte, use replacement character
+        }
+
+        i += seqLen - 1;
         if (character == '\n')
         {
             x = 0.0;
