@@ -76,6 +76,22 @@ static void SerializeEntity(YAML::Emitter& out, Entity entity)
         out << YAML::EndMap;
     }
 
+    // TextComponent
+    if (entity.HasComponent<TextComponent>())
+    {
+        auto& tc = entity.GetComponent<TextComponent>();
+
+        out << YAML::Key << "TextComponent" << YAML::BeginMap;
+        out << YAML::Key << "TextString" << YAML::Value << tc.TextString;
+        if (tc.FontAsset && tc.FontAsset->IsValid())
+            out << YAML::Key << "FontAssetPath" << YAML::Value << tc.FontAsset->GetPath();
+        out << YAML::Key << "Color" << YAML::Value << tc.Color;
+        out << YAML::Key << "Kerning" << YAML::Value << tc.Kerning;
+        out << YAML::Key << "LineSpacing" << YAML::Value << tc.LineSpacing;
+        out << YAML::EndMap;
+    }
+
+
     // Sprite Animation
     if (entity.HasComponent<SpriteAnimationComponent>())
     {
@@ -324,6 +340,25 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
                 src.SubTextureCoords = spriteNode["SubTextureCoords"].as<glm::vec2>();
                 src.SubTextureCellSize = spriteNode["SubTextureCellSize"].as<glm::vec2>();
                 src.SubTextureSpriteSize = spriteNode["SubTextureSpriteSize"].as<glm::vec2>();
+            }
+        }
+
+        auto textNode = entityNode["TextComponent"];
+        if (textNode)
+        {
+            auto& tc = entity.AddComponent<TextComponent>();
+            tc.TextString = textNode["TextString"].as<std::string>();
+            tc.Color = textNode["Color"].as<glm::vec4>();
+            tc.Kerning = textNode["Kerning"].as<float>();
+            tc.LineSpacing = textNode["LineSpacing"].as<float>();
+
+            if (textNode["FontAssetPath"])
+            {
+                std::string fontPath = textNode["FontAssetPath"].as<std::string>();
+                if (!fontPath.empty())
+                {
+                    tc.FontAsset = Font2D::Get(fontPath);
+                }
             }
         }
 

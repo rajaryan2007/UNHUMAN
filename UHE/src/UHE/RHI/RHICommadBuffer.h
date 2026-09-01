@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <span>
 #include "RHITypes.h"
 
 namespace UHE::RHI {
@@ -31,8 +33,7 @@ public:
                              u32 offset = 0) = 0;
   virtual void UpdateBuffer(BufferHandle handle, const void *data, u64 size,
                             u64 offset = 0) = 0;
-  virtual void UpdateTexture(TextureHandle handle, const void *data,
-                             u64 size) = 0;
+  virtual void UpdateTexture(TextureHandle handle, std::span<const u8> data) = 0;
 
   // ─── Action Commands ───
   virtual void Draw(u32 vertexCount, u32 firstVertex = 0) = 0;

@@ -54,7 +54,7 @@ public:
     // ─── Inline Data Paths ───
     void PushConstants(ShaderStage stage, const void* data, u32 size, u32 offset = 0) override;
     void UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset = 0) override;
-    void UpdateTexture(TextureHandle handle, const void* data, u64 size) override;
+    void UpdateTexture(TextureHandle handle, std::span<const u8> data) override;
 
     // ─── Action Commands ───
     void Draw(u32 vertexCount, u32 firstVertex = 0) override;

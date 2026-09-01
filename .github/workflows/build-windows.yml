@@ -49,12 +49,17 @@ jobs:
         with:
           arch: x64
 
+      - name: Install FreeType
+        shell: pwsh
+        run: vcpkg install freetype:x64-windows
+
       - name: Configure CMake
         run: >
           cmake -B build
           -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DVG_PROFILE=OFF
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
       - name: Build
         run: cmake --build build --parallel

@@ -433,10 +433,10 @@ void VulkanCommandBuffer::UpdateBuffer(BufferHandle handle, const void* data, u6
     buffer->UploadData(data, size);
 }
 
-void VulkanCommandBuffer::UpdateTexture(TextureHandle handle, const void* data, u64 size)
+void VulkanCommandBuffer::UpdateTexture(TextureHandle handle, std::span<const u8> data)
 {
-    auto* Texture = reinterpret_cast<VulkanTexture*>(handle);
-    Texture->UpdateTexture(data, size);
+    VulkanTexture* Texture = reinterpret_cast<VulkanTexture*>(handle);
+    Texture->UpdateTexture(data);
 }
 
 // ─── Action Commands ────────────────────────────────────────────

@@ -1,11 +1,11 @@
 #include "uhepch.h"
 #include "Renderer3D.h"
-#include "UHE/Renderer/Renderer.h"
-#include "UHE/RHI/RHIDevice.h"
-#include "UHE/RHI/RHICommadBuffer.h"
-#include "UHE/Renderer/SlangCompiler.h"
-#include "UHE/AssestsManager/VfsSystem.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include "UHE/AssestsManager/VfsSystem.h"
+#include "UHE/RHI/RHICommadBuffer.h"
+#include "UHE/RHI/RHIDevice.h"
+#include "UHE/Renderer/Renderer.h"
+#include "UHE/Renderer/SlangCompiler.h"
 
 namespace UHE
 {
@@ -15,23 +15,23 @@ struct Renderer3DData
     RHI::ShaderHandle VertexShader;
     RHI::ShaderHandle FragmentShader;
     RHI::PipelineHandle ModelPipeline;
-    
+
     RHI::ShaderHandle GridVertexShader;
     RHI::ShaderHandle GridFragmentShader;
     RHI::PipelineHandle GridPipeline;
-    
+
     glm::mat4 ViewProjection;
     glm::vec3 CameraPosition;
     std::vector<RD3d::LightData> CurrentLights;
     Ref<Texture2D> WhiteTexture;
-    
+
     RHI::BufferHandle LightStorageBufferHandle = nullptr;
     uint32_t LightStorageBufferIndex = 0;
-    
+
     RHI::BufferHandle BoneStorageBufferHandle = nullptr;
     uint32_t BoneStorageBufferIndex = 0;
     uint32_t BoneBufferOffset = 0; // In number of matrices
-    
+
     bool EnableLighting = true;
 };
 
@@ -40,7 +40,7 @@ static Renderer3DData s_Data3D;
 void Renderer3D::Init()
 {
     auto& device = Renderer::GetDevice();
-    
+
     std::string shaderPath = (FileSystem::Get().GetRootPath() / "assets/shaders/Basic3D.slang").string();
     auto compiledShaders = SlangCompiler::CompileToSPIRV(shaderPath);
 
@@ -65,14 +65,12 @@ void Renderer3D::Init()
     RHI::GraphicsPipelineDesc pipeDesc{};
     pipeDesc.vertexShader = s_Data3D.VertexShader;
     pipeDesc.fragmentShader = s_Data3D.FragmentShader;
-    pipeDesc.vertexLayout = {
-        {RHI::ShaderDataType::Float3, "a_Position"},
-        {RHI::ShaderDataType::Float3, "a_Normal"},
-        {RHI::ShaderDataType::Float2, "a_TexCoord"},
-        {RHI::ShaderDataType::Int4, "a_Joints"},
-        {RHI::ShaderDataType::Float4, "a_Weights"}
-    };
-    
+    pipeDesc.vertexLayout = {{RHI::ShaderDataType::Float3, "a_Position"},
+                             {RHI::ShaderDataType::Float3, "a_Normal"},
+                             {RHI::ShaderDataType::Float2, "a_TexCoord"},
+                             {RHI::ShaderDataType::Int4, "a_Joints"},
+                             {RHI::ShaderDataType::Float4, "a_Weights"}};
+
     pipeDesc.pushConstantSize = 192;
     pipeDesc.blendMode = RHI::BlendMode::Alpha;
     pipeDesc.depthTest = true;
@@ -110,7 +108,7 @@ void Renderer3D::Init()
     gridPipeDesc.vertexShader = s_Data3D.GridVertexShader;
     gridPipeDesc.fragmentShader = s_Data3D.GridFragmentShader;
     gridPipeDesc.vertexLayout = {}; // Empty vertex layout, using gl_VertexIndex
-    
+
     gridPipeDesc.pushConstantSize = sizeof(glm::mat4) * 2; // viewProj + inverseViewProj
     gridPipeDesc.blendMode = RHI::BlendMode::Alpha;
     gridPipeDesc.depthTest = true;
@@ -130,7 +128,7 @@ void Renderer3D::Init()
     desc.hostVisible = true;
     s_Data3D.LightStorageBufferHandle = device.CreateBuffer(desc);
     s_Data3D.LightStorageBufferIndex = device.GetBufferBindlessIndex(s_Data3D.LightStorageBufferHandle);
-    
+
     RHI::BufferDesc boneBufferDesc{};
     boneBufferDesc.size = sizeof(glm::mat4) * 4096; // Support up to 4096 bones per frame
     boneBufferDesc.usage = RHI::BufferUsage::Storage;
@@ -145,14 +143,14 @@ void Renderer3D::Shutdown()
     device.DestroyGraphicsPipeline(s_Data3D.ModelPipeline);
     device.DestroyShader(s_Data3D.VertexShader);
     device.DestroyShader(s_Data3D.FragmentShader);
-    
+
     device.DestroyGraphicsPipeline(s_Data3D.GridPipeline);
     device.DestroyShader(s_Data3D.GridVertexShader);
     device.DestroyShader(s_Data3D.GridFragmentShader);
-    
+
     device.DestroyBuffer(s_Data3D.LightStorageBufferHandle);
     device.DestroyBuffer(s_Data3D.BoneStorageBufferHandle);
-    
+
     s_Data3D.WhiteTexture.reset();
 }
 
@@ -163,31 +161,32 @@ void Renderer3D::BeginScene(const EditorCamera& camera, const std::vector<RD3d::
     s_Data3D.CurrentLights = lights;
     if (!lights.empty())
     {
-        Renderer::GetDevice().GetCurrentCommandBuffer().UpdateBuffer(s_Data3D.LightStorageBufferHandle, lights.data(), lights.size() * sizeof(RD3d::LightData));
+        Renderer::GetDevice().GetCurrentCommandBuffer().UpdateBuffer(s_Data3D.LightStorageBufferHandle, lights.data(),
+                                                                     lights.size() * sizeof(RD3d::LightData));
     }
     s_Data3D.BoneBufferOffset = 0;
 }
 
-void Renderer3D::BeginScene(const Camera& camera, const glm::mat4& transform, const std::vector<RD3d::LightData>& lights)
+void Renderer3D::BeginScene(const Camera& camera, const glm::mat4& transform,
+                            const std::vector<RD3d::LightData>& lights)
 {
     s_Data3D.ViewProjection = camera.GetProjection() * glm::inverse(transform);
     s_Data3D.CameraPosition = glm::vec3(transform[3]);
     s_Data3D.CurrentLights = lights;
     if (!lights.empty())
     {
-        Renderer::GetDevice().GetCurrentCommandBuffer().UpdateBuffer(s_Data3D.LightStorageBufferHandle, lights.data(), lights.size() * sizeof(RD3d::LightData));
+        Renderer::GetDevice().GetCurrentCommandBuffer().UpdateBuffer(s_Data3D.LightStorageBufferHandle, lights.data(),
+                                                                     lights.size() * sizeof(RD3d::LightData));
     }
     s_Data3D.BoneBufferOffset = 0;
 }
 
-void Renderer3D::EndScene()
-{
-}
+void Renderer3D::EndScene() {}
 
 void Renderer3D::DrawGrid()
 {
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
-    
+
     cmd.BindPipeline(s_Data3D.GridPipeline);
 
     struct GridPushConstants
@@ -197,17 +196,18 @@ void Renderer3D::DrawGrid()
     } pc;
     pc.viewProj = s_Data3D.ViewProjection;
     pc.inverseViewProj = glm::inverse(s_Data3D.ViewProjection);
-    
+
     cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(GridPushConstants), 0);
 
     // Draw 6 vertices for the full-screen quad (generated by SV_VertexID)
     cmd.Draw(6, 0);
 }
 
-void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID, const RD3d::Animator* animator)
+void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID,
+                             const RD3d::Animator* animator)
 {
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
-    
+
     cmd.BindPipeline(s_Data3D.ModelPipeline);
 
     struct PushConstants
@@ -241,20 +241,21 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
     pc.roughnessFactor = 1.0f;
     pc.boneBufferIndex = -1;
     pc.boneOffset = -1;
-    
+
     if (animator && animator->HasAnimation())
     {
         const auto& matrices = animator->GetFinalBoneMatrices();
         if (!matrices.empty())
         {
             uint64_t size = matrices.size() * sizeof(glm::mat4);
-            cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size, s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
+            cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size,
+                             s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
             pc.boneBufferIndex = s_Data3D.BoneStorageBufferIndex;
             pc.boneOffset = s_Data3D.BoneBufferOffset;
             s_Data3D.BoneBufferOffset += matrices.size();
         }
     }
-    
+
     // We will push constants per primitive now since textureSlot can change.
     // cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
 

@@ -34,3 +34,6 @@
 [submodule "UHE/vendor/jolt"]
 	path = UHE/vendor/jolt
 	url = https://github.com/jrouwe/JoltPhysics.git
+[submodule "UHE/vendor/msdf-atlas-gen"]
+	path = UHE/vendor/msdf-atlas-gen
+	url = https://github.com/Chlumsky/msdf-atlas-gen.git

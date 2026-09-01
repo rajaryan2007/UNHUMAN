@@ -32,6 +32,7 @@ Scene::Scene()
     m_registry.storage<TransformComponent>();
     m_registry.storage<CameraComponent>();
     m_registry.storage<SpriteRendererComponent>();
+    m_registry.storage<TextComponent>();
     m_registry.storage<SpriteAnimationComponent>();
     m_registry.storage<NativeScriptComponent>();
     m_registry.storage<RigidBody2DComponent>();
@@ -94,6 +95,19 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
             dst.SubTextureCellSize = src.SubTextureCellSize;
             dst.SubTextureSpriteSize = src.SubTextureSpriteSize;
         }
+
+        // Copy TextComponent
+        if (srcRegistry.all_of<TextComponent>(srcEntity))
+        {
+            auto& src = srcRegistry.get<TextComponent>(srcEntity);
+            auto& dst = newEntity.AddComponent<TextComponent>();
+            dst.TextString = src.TextString;
+            dst.FontAsset = src.FontAsset;
+            dst.Color = src.Color;
+            dst.Kerning = src.Kerning;
+            dst.LineSpacing = src.LineSpacing;
+        }
+
 
         // Copy SpriteAnimationComponent
         if (srcRegistry.all_of<SpriteAnimationComponent>(srcEntity))
@@ -263,7 +277,7 @@ void Scene::OnViewportResize(u32 width, u32 height)
 void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
 {
     m_registry.view<NativeScriptComponent>().each(
-        [=](auto entity, auto& nsc)
+        [=, this](auto entity, auto& nsc)
         {
             if (!nsc.Instance)
             {
@@ -313,6 +327,13 @@ void Scene::RenderSprites(Timestep ts)
         auto [transform, sprite] = spriteView.get<TransformComponent, SpriteRendererComponent>(entityID);
 
         Renderer2D::DrawSprite(transform.GetTransform(), sprite, (i32)entityID);
+    }
+
+    auto textView = m_registry.view<TransformComponent, TextComponent>();
+    for (auto entityID : textView)
+    {
+        auto [transform, text] = textView.get<TransformComponent, TextComponent>(entityID);
+        Renderer2D::DrawString(text.TextString, text.FontAsset, transform.GetTransform(), text.Color, text.Kerning, text.LineSpacing, (i32)entityID);
     }
 
     auto animOnlyView = m_registry.view<TransformComponent, SpriteAnimationComponent>();
@@ -402,7 +423,7 @@ void Scene::OnUpdateRuntime(Timestep ts)
 
     {
         m_registry.view<NativeScriptComponent>().each(
-            [=](auto entity, auto& nsc)
+            [=, this](auto entity, auto& nsc)
             {
                 if (!nsc.Instance)
                 {
@@ -670,6 +691,8 @@ template <> void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraC
 
 template <> void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& component) {}
 template <> void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& component) {}
+template <> void Scene::OnComponentAdded<TextComponent>(Entity entity, TextComponent& component) {}
+
 template <> void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent& component)
 {
 }

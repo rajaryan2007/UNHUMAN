@@ -7,6 +7,7 @@
 #include "UHE/RHI/RHIDevice.h"
 #include "UHE/Renderer/Renderer.h"
 #include "UHE/Renderer/SlangCompiler.h"
+#include "UHE/Renderer/Font.h"
 #include "UHE/Scene/Components.h"
 
 namespace UHE
@@ -21,6 +22,16 @@ struct QuadVertex
     float TilingFactor;
     float EntityID; // Changed from int to float to avoid integer attribute bugs
 };
+
+struct TextVertex
+{
+    glm::vec3 Position;
+    glm::vec4 Color;
+    glm::vec2 TexCoord;
+    float TexIndex;
+    float EntityID;
+};
+
 
 struct Renderer2DPushConstants {
     glm::mat4 viewProjection;
@@ -39,6 +50,16 @@ struct Renderer2DData
     RHI::ShaderHandle QuadFragmentShader;
     RHI::BufferHandle QuadVertexBuffers[2];
     RHI::BufferHandle QuadIndexBuffer;
+
+    RHI::PipelineHandle TextPipeline;
+    RHI::ShaderHandle TextVertexShader;
+    RHI::ShaderHandle TextFragmentShader;
+    RHI::BufferHandle TextVertexBuffers[2];
+    
+    uint32_t TextIndexCount = 0;
+    TextVertex* TextVertexBufferBase = nullptr;
+    TextVertex* TextVertexBufferPtr = nullptr;
+
 
     uint32_t QuadIndexCount = 0;
     QuadVertex* QuadVertexBufferBase = nullptr;
@@ -99,15 +120,27 @@ void Renderer2D::Init()
 
     s_Data.QuadVertexBufferBase = new QuadVertex[s_Data.MaxVertices];
 
-    uint32_t whiteTextureData = 0xffffffff;
+    // Create Vertex Buffers for Text
+    RHI::BufferDesc textVboDesc{};
+    textVboDesc.size = s_Data.MaxVertices * sizeof(TextVertex);
+    textVboDesc.usage = RHI::BufferUsage::Vertex;
+    textVboDesc.hostVisible = true;
+    textVboDesc.debugName = "TextVertexBuffer";
+    for (int i = 0; i < 2; i++)
+    {
+        s_Data.TextVertexBuffers[i] = device.CreateBuffer(textVboDesc);
+    }
+    s_Data.TextVertexBufferBase = new TextVertex[s_Data.MaxVertices];
+
+
     RHI::TextureDesc whiteTexDesc{};
     whiteTexDesc.width = 1;
     whiteTexDesc.height = 1;
     whiteTexDesc.format = RHI::TextureFormat::RGBA8_UNORM;
     whiteTexDesc.usage = RHI::TextureUsage::Sampled | RHI::TextureUsage::TransferDst;
     s_Data.WhiteTexture = device.CreateTexture(whiteTexDesc);
-
-    device.GetCurrentCommandBuffer().UpdateTexture(s_Data.WhiteTexture, &whiteTextureData, sizeof(uint32_t));
+    u32 whiteTextureData = 0xffffffff;
+    device.GetCurrentCommandBuffer().UpdateTexture(s_Data.WhiteTexture, std::span<const u8>(reinterpret_cast<const u8*>(&whiteTextureData), sizeof(u32)));
     s_Data.TextureSlots[0] = reinterpret_cast<RHI::RHITexture*>(s_Data.WhiteTexture)->GetTextureIndex();
 
     // Compile Shader
@@ -165,13 +198,67 @@ void Renderer2D::Init()
     s_Data.QuadVertexPositions[1] = {0.5f, -0.5f, 0.0f, 1.0f};
     s_Data.QuadVertexPositions[2] = {0.5f, 0.5f, 0.0f, 1.0f};
     s_Data.QuadVertexPositions[3] = {-0.5f, 0.5f, 0.0f, 1.0f};
+
+    // Compile Text Shader
+    std::string textShaderPath = (FileSystem::Get().GetRootPath() / "assets/shaders/Text.slang").string();
+    auto compiledTextShaders = SlangCompiler::CompileToSPIRV(textShaderPath);
+
+    if (compiledTextShaders.find(RHI::ShaderStage::Vertex) != compiledTextShaders.end())
+    {
+        RHI::ShaderDesc vsDesc{};
+        vsDesc.stage = RHI::ShaderStage::Vertex;
+        vsDesc.spirvData = (const uint8_t*)compiledTextShaders[RHI::ShaderStage::Vertex].data();
+        vsDesc.spirvSize = compiledTextShaders[RHI::ShaderStage::Vertex].size();
+        s_Data.TextVertexShader = device.CreateShader(vsDesc);
+        UHE_CORE_ASSERT(s_Data.TextVertexShader, "Text Vertex Shader Creation Failed!");
+    }
+
+    if (compiledTextShaders.find(RHI::ShaderStage::Fragment) != compiledTextShaders.end())
+    {
+        RHI::ShaderDesc fsDesc{};
+        fsDesc.stage = RHI::ShaderStage::Fragment;
+        fsDesc.spirvData = (const uint8_t*)compiledTextShaders[RHI::ShaderStage::Fragment].data();
+        fsDesc.spirvSize = compiledTextShaders[RHI::ShaderStage::Fragment].size();
+        s_Data.TextFragmentShader = device.CreateShader(fsDesc);
+        UHE_CORE_ASSERT(s_Data.TextFragmentShader, "Text Fragment Shader Creation Failed!");
+    }
+
+    RHI::GraphicsPipelineDesc textPipeDesc{};
+    textPipeDesc.vertexShader = s_Data.TextVertexShader;
+    textPipeDesc.fragmentShader = s_Data.TextFragmentShader;
+    textPipeDesc.vertexLayout = {{RHI::ShaderDataType::Float3, "a_Position"}, {RHI::ShaderDataType::Float4, "a_Color"},
+                                 {RHI::ShaderDataType::Float2, "a_TexCoord"}, {RHI::ShaderDataType::Float, "a_TexIndex"},
+                                 {RHI::ShaderDataType::Float, "a_EntityID"}};
+    textPipeDesc.pushConstantSize = sizeof(Renderer2DPushConstants);
+    textPipeDesc.blendMode = RHI::BlendMode::Alpha;
+    textPipeDesc.depthTest = true;
+    textPipeDesc.depthWrite = true;
+    textPipeDesc.colorAttachmentCount = 2;
+    textPipeDesc.colorFormats[0] = RHI::TextureFormat::RGBA8_SRGB;
+    textPipeDesc.colorFormats[1] = RHI::TextureFormat::R32_SINT;
+    textPipeDesc.pushConstantSize = sizeof(Renderer2DPushConstants);
+
+    s_Data.TextPipeline = device.CreateGraphicsPipeline(textPipeDesc);
+    UHE_CORE_ASSERT(s_Data.TextPipeline, "Failed to create TextPipeline!");
+
 }
 
 void Renderer2D::Shutdown()
 {
     UHE_PROFILE_FUNCTION();
     auto& device = Renderer::GetDevice();
+    Font2D::Shutdown();
     delete[] s_Data.QuadVertexBufferBase;
+
+    delete[] s_Data.TextVertexBufferBase;
+    device.DestroyGraphicsPipeline(s_Data.TextPipeline);
+    device.DestroyShader(s_Data.TextVertexShader);
+    device.DestroyShader(s_Data.TextFragmentShader);
+    for (int i = 0; i < 2; i++)
+    {
+        device.DestroyBuffer(s_Data.TextVertexBuffers[i]);
+    }
+
     device.DestroyGraphicsPipeline(s_Data.QuadPipeline);
     device.DestroyShader(s_Data.QuadVertexShader);
     device.DestroyShader(s_Data.QuadFragmentShader);
@@ -188,8 +275,7 @@ void Renderer2D::BeginScene(const Camera& camera, const glm::mat4& transform)
     UHE_PROFILE_FUNCTION();
     s_Data.ViewProjectionMatrix = camera.GetProjection() * glm::inverse(transform);
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
-    cmd.BindPipeline(s_Data.QuadPipeline);
-
+    
     StartBatch();
 }
 
@@ -198,8 +284,7 @@ void Renderer2D::BeginScene(const EditorCamera& camera)
     UHE_PROFILE_FUNCTION();
     s_Data.ViewProjectionMatrix = camera.GetViewProjection();
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
-    cmd.BindPipeline(s_Data.QuadPipeline);
-
+    
     StartBatch();
 }
 
@@ -214,35 +299,62 @@ void Renderer2D::StartBatch()
     UHE_PROFILE_FUNCTION();
     s_Data.QuadIndexCount = 0;
     s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
+
+    s_Data.TextIndexCount = 0;
+    s_Data.TextVertexBufferPtr = s_Data.TextVertexBufferBase;
+
     s_Data.TextureSlotIndex = 1;
 }
 
 void Renderer2D::Flush()
 {
     UHE_PROFILE_FUNCTION();
-    if (s_Data.QuadIndexCount == 0)
-        return; // Nothing to draw
-
-    uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexBufferPtr - (uint8_t*)s_Data.QuadVertexBufferBase);
+    if (s_Data.QuadIndexCount == 0 && s_Data.TextIndexCount == 0)
+        return;
 
     auto& device = Renderer::GetDevice();
     auto& cmd = device.GetCurrentCommandBuffer();
-
     uint32_t frameIndex = device.GetCurrentFrameIndex();
-    cmd.UpdateBuffer(s_Data.QuadVertexBuffers[frameIndex], s_Data.QuadVertexBufferBase, dataSize, 0);
 
-    cmd.BindVertexBuffer(s_Data.QuadVertexBuffers[frameIndex], 0);
-    cmd.BindIndexBuffer(s_Data.QuadIndexBuffer, 0);
-    
-    Renderer2DPushConstants pc;
-    pc.viewProjection = s_Data.ViewProjectionMatrix;
-    for (uint32_t i = 0; i < 32; i++) {
-        pc.textureIndices[i] = (i < s_Data.TextureSlotIndex) ? s_Data.TextureSlots[i] : 0;
+    if (s_Data.QuadIndexCount > 0)
+    {
+        uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexBufferPtr - (uint8_t*)s_Data.QuadVertexBufferBase);
+        cmd.UpdateBuffer(s_Data.QuadVertexBuffers[frameIndex], s_Data.QuadVertexBufferBase, dataSize, 0);
+
+        cmd.BindPipeline(s_Data.QuadPipeline);
+        cmd.BindVertexBuffer(s_Data.QuadVertexBuffers[frameIndex], 0);
+        cmd.BindIndexBuffer(s_Data.QuadIndexBuffer, 0);
+        
+        Renderer2DPushConstants pc;
+        pc.viewProjection = s_Data.ViewProjectionMatrix;
+        for (uint32_t i = 0; i < 32; i++) {
+            pc.textureIndices[i] = (i < s_Data.TextureSlotIndex) ? s_Data.TextureSlots[i] : 0;
+        }
+        cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(Renderer2DPushConstants), 0);
+
+        cmd.DrawIndexed(s_Data.QuadIndexCount, 0, 0);
+        s_Data.Stats.DrawCalls++;
     }
-    cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(Renderer2DPushConstants), 0);
 
-    cmd.DrawIndexed(s_Data.QuadIndexCount, 0, 0);
-    s_Data.Stats.DrawCalls++;
+    if (s_Data.TextIndexCount > 0)
+    {
+        uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.TextVertexBufferPtr - (uint8_t*)s_Data.TextVertexBufferBase);
+        cmd.UpdateBuffer(s_Data.TextVertexBuffers[frameIndex], s_Data.TextVertexBufferBase, dataSize, 0);
+
+        cmd.BindPipeline(s_Data.TextPipeline);
+        cmd.BindVertexBuffer(s_Data.TextVertexBuffers[frameIndex], 0);
+        cmd.BindIndexBuffer(s_Data.QuadIndexBuffer, 0);
+        
+        Renderer2DPushConstants pc;
+        pc.viewProjection = s_Data.ViewProjectionMatrix;
+        for (uint32_t i = 0; i < 32; i++) {
+            pc.textureIndices[i] = (i < s_Data.TextureSlotIndex) ? s_Data.TextureSlots[i] : 0;
+        }
+        cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(Renderer2DPushConstants), 0);
+
+        cmd.DrawIndexed(s_Data.TextIndexCount, 0, 0);
+        s_Data.Stats.DrawCalls++;
+    }
 }
 
 void Renderer2D::NextBatch()
@@ -401,6 +513,142 @@ void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& s
 
     s_Data.QuadIndexCount += 6;
     s_Data.Stats.QuadCount++;
+}
+
+
+void Renderer2D::DrawString(const std::string& text, Ref<Font2D> font, const glm::mat4& transform, const glm::vec4& color, f32 kerning, f32 lineSpacing, i32 entityID)
+{
+    UHE_PROFILE_FUNCTION();
+    if (!font || !font->IsValid()) return;
+    
+    const auto& fontGeometry = font->GetAtlas();
+    if (!fontGeometry) return;
+
+    f32 textureIndex = 0.0f;
+    u32 globalTexIndex = reinterpret_cast<RHI::RHITexture*>(fontGeometry)->GetTextureIndex();
+    for (u32 i = 1; i < s_Data.TextureSlotIndex; i++)
+    {
+        if (s_Data.TextureSlots[i] == globalTexIndex)
+        {
+            textureIndex = (f32)i;
+            break;
+        }
+    }
+
+    if (textureIndex == 0.0f)
+    {
+        if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
+            NextBatch();
+
+        textureIndex = (f32)s_Data.TextureSlotIndex;
+        s_Data.TextureSlots[s_Data.TextureSlotIndex] = globalTexIndex;
+        s_Data.TextureSlotIndex++;
+    }
+
+    f64 x = 0.0;
+    f64 y = 0.0;
+    
+    f64 scale = 1.0 / (f64)font->GetLineHeight();
+
+    for (size_t i = 0; i < text.size(); i++)
+    {
+        if (s_Data.TextIndexCount >= Renderer2DData::MaxIndices)
+        {
+            NextBatch();
+            
+            // Re-resolve texture index as NextBatch resets texture slots
+            textureIndex = 0.0f;
+            for (u32 j = 1; j < s_Data.TextureSlotIndex; j++)
+            {
+                if (s_Data.TextureSlots[j] == globalTexIndex)
+                {
+                    textureIndex = (f32)j;
+                    break;
+                }
+            }
+
+            if (textureIndex == 0.0f)
+            {
+                if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
+                    NextBatch();
+
+                textureIndex = (f32)s_Data.TextureSlotIndex;
+                s_Data.TextureSlots[s_Data.TextureSlotIndex] = globalTexIndex;
+                s_Data.TextureSlotIndex++;
+            }
+        }
+
+        unsigned char c0 = text[i];
+        char32_t character = 0;
+        int seqLen = 1;
+
+        if ((c0 & 0x80) == 0) {
+            character = c0;
+        } else if ((c0 & 0xE0) == 0xC0) {
+            if (i + 1 < text.length()) {
+                character = ((c0 & 0x1F) << 6) | (text[i + 1] & 0x3F);
+                seqLen = 2;
+            } else { character = 0xFFFD; }
+        } else if ((c0 & 0xF0) == 0xE0) {
+            if (i + 2 < text.length()) {
+                character = ((c0 & 0x0F) << 12) | ((text[i + 1] & 0x3F) << 6) | (text[i + 2] & 0x3F);
+                seqLen = 3;
+            } else { character = 0xFFFD; }
+        } else if ((c0 & 0xF8) == 0xF0) {
+            if (i + 3 < text.length()) {
+                character = ((c0 & 0x07) << 18) | ((text[i + 1] & 0x3F) << 12) | ((text[i + 2] & 0x3F) << 6) | (text[i + 3] & 0x3F);
+                seqLen = 4;
+            } else { character = 0xFFFD; }
+        } else {
+            character = 0xFFFD; // Invalid byte, use replacement character
+        }
+
+        i += seqLen - 1;
+        if (character == '\n')
+        {
+            x = 0.0;
+            y -= 1.0 + lineSpacing;
+            continue;
+        }
+
+        const FontGlyph* glyph = font->GetGlyph((u32)character);
+        if (!glyph)
+            continue;
+
+        f32 planeL = (f32)(glyph->PlaneBoundsMin.x * scale + x);
+        f32 planeB = (f32)(glyph->PlaneBoundsMin.y * scale + y);
+        f32 planeR = (f32)(glyph->PlaneBoundsMax.x * scale + x);
+        f32 planeT = (f32)(glyph->PlaneBoundsMax.y * scale + y);
+
+        glm::vec2 texCoords[4] = {
+            {glyph->UVMin.x, glyph->UVMax.y}, // Bottom Left
+            {glyph->UVMax.x, glyph->UVMax.y}, // Bottom Right
+            {glyph->UVMax.x, glyph->UVMin.y}, // Top Right
+            {glyph->UVMin.x, glyph->UVMin.y}  // Top Left
+        };
+
+        glm::vec4 vertexPositions[4] = {
+            {planeL, planeB, 0.0f, 1.0f},
+            {planeR, planeB, 0.0f, 1.0f},
+            {planeR, planeT, 0.0f, 1.0f},
+            {planeL, planeT, 0.0f, 1.0f}
+        };
+
+        for (i32 v = 0; v < 4; v++)
+        {
+            s_Data.TextVertexBufferPtr->Position = transform * vertexPositions[v];
+            s_Data.TextVertexBufferPtr->Color = color;
+            s_Data.TextVertexBufferPtr->TexCoord = texCoords[v];
+            s_Data.TextVertexBufferPtr->TexIndex = textureIndex;
+            s_Data.TextVertexBufferPtr->EntityID = (f32)entityID;
+            s_Data.TextVertexBufferPtr++;
+        }
+
+        s_Data.TextIndexCount += 6;
+        s_Data.Stats.QuadCount++;
+
+        x += (glyph->Advance * scale) + kerning;
+    }
 }
 
 void Renderer2D::DrawSprite(const glm::mat4& transform, SpriteRendererComponent& src, int entityID)

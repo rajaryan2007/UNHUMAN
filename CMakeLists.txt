@@ -81,13 +81,36 @@ endfunction()
 # all libs
 add_subdirectory(UHE/vendor/GLFW)
 
-add_subdirectory(UHE/vendor/imgui)
+# ImGui is built here instead of add_subdirectory(UHE/vendor/imgui): the vendored
+# fork's CMakeLists.txt defines IMGUI_API=__declspec(dllexport) unconditionally,
+# which breaks GCC/Linux builds
+add_library(ImGui OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_draw.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_tables.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_widgets.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/imgui_demo.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/UHE/vendor/imgui/misc/cpp/imgui_stdlib.cpp
+)
+if(MSVC)
+    target_compile_definitions(ImGui PRIVATE IMGUI_API=__declspec\(dllexport\))
+endif()
+target_include_directories(ImGui PUBLIC UHE/vendor/imgui)
+
 add_subdirectory(UHE/vendor/imGuizmo)
 add_subdirectory(UHE/vendor/volk)
 add_subdirectory(UHE/vendor/VulkanMemoryAllocator)
 add_subdirectory(UHE/vendor/yaml-cpp)
 add_subdirectory(UHE/vendor/box2d)
 add_subdirectory(UHE/vendor/fastgltf)
+
+# MSDF text rendering (msdf-atlas-gen + msdfgen)
+set(MSDF_ATLAS_USE_VCPKG OFF        CACHE BOOL "" FORCE)
+set(MSDF_ATLAS_USE_SKIA  OFF        CACHE BOOL "" FORCE)
+set(MSDF_ATLAS_BUILD_STANDALONE OFF CACHE BOOL "" FORCE)
+set(MSDF_ATLAS_NO_ARTERY_FONT ON    CACHE BOOL "" FORCE)
+set(MSDF_ATLAS_DYNAMIC_RUNTIME ON   CACHE BOOL "" FORCE)
+add_subdirectory(UHE/vendor/msdf-atlas-gen)
 
 # Disable Jolt Physics tests and viewers to drastically reduce compile times
 set(TARGET_UNIT_TESTS OFF CACHE BOOL "" FORCE)

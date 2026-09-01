@@ -14,7 +14,7 @@ public:
     VulkanRenderPass(VulkanRenderPass&) = delete;
     VulkanRenderPass operator=(VulkanRenderPass&) = delete;
     void Init(const VulkanContext& ctx, const UHE::RHI::RenderPassDesc& desc);
-    [[nodiscard]] const vk::RenderPass& GetRenderPass() { return m_RenderPass; }
+    [[nodiscard]] vk::RenderPass GetRenderPass() const { return *m_RenderPass; }
     // TODO
     // implement the RenderPass Builder Feature so it can run better in old hardware
 

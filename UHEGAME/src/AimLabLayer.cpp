@@ -1,4 +1,5 @@
 #include "AimLabLayer.h"
+#include <UHE/Audio/AudioEngine.h>
 #include <UHE/Core/Application.h>
 #include <UHE/Core/input.h>
 #include <UHE/Core/keyCodes.h>
@@ -7,7 +8,6 @@
 #include <UHE/Renderer3D/LightSystem.h>
 #include <UHE/Renderer3D/Renderer3D.h>
 #include <UHE/Scene/Components.h>
-#include <UHE/Audio/AudioEngine.h>
 #include <glm/gtx/quaternion.hpp>
 #include <imgui.h>
 #include <random>
@@ -40,10 +40,13 @@ void AimLabLayer::OnAttach()
         glm::vec3(glm::radians(45.0f), glm::radians(45.0f), 0.0f);
 
     auto rootPath = UHE::FileSystem::Get().GetRootPath();
-    if (fs::exists(rootPath / "UHEGAME" / "assets")) {
+    if (fs::exists(rootPath.parent_path() / "UHEGAME" / "assets"))
+    {
         // Dev environment (rootPath is UHE_EDITOR, parent is repo root)
         m_GameAssetsPath = (rootPath.parent_path() / "UHEGAME" / "assets").string();
-    } else {
+    }
+    else
+    {
         // Standalone release environment (assets folder pasted next to executable)
         m_GameAssetsPath = (rootPath / "assets").string();
     }
@@ -53,12 +56,15 @@ void AimLabLayer::OnAttach()
     auto& gunModel = m_GunEntity.AddComponent<UHE::Model3DComponent>();
     gunModel.ModelPath = (fs::path(m_GameAssetsPath) / "models/pistol_animations_blender.glb").string();
     gunModel.IsLoaded = gunModel.ModelData->loadModel(gunModel.ModelPath);
-    if (!gunModel.IsLoaded) {
+    if (!gunModel.IsLoaded)
+    {
         UHE_ERROR("Failed to load animated Gun model from path: {0}", gunModel.ModelPath);
-    } else {
+    }
+    else
+    {
         // Set up the Animator for skeletal animation
         m_GunAnimator = UHE::CreateRef<UHE::RD3d::Animator>(gunModel.ModelData);
-        
+
         // Log available animations and read their durations
         const auto& animations = gunModel.ModelData->GetAnimations();
         UHE_INFO("Gun model has {} animations:", animations.size());
@@ -71,10 +77,10 @@ void AimLabLayer::OnAttach()
             else if (animations[i].Name == "Reload_Complete")
                 m_ReloadDuration = animations[i].Duration;
         }
-        
+
         m_GunAnimator->PlayAnimation("Idle");
     }
-    
+
     m_GunEntity.GetComponent<UHE::TransformComponent>().Scale = glm::vec3(0.05f);
 
     // Spawn 5 targets at random positions on a "wall" at z=10
@@ -107,8 +113,10 @@ void AimLabLayer::OnAttach()
     m_LastMousePos = {UHE::Input::GetMouseX(), UHE::Input::GetMouseY()};
 }
 
-void AimLabLayer::OnDetach() {
-    if (m_CursorLocked) {
+void AimLabLayer::OnDetach()
+{
+    if (m_CursorLocked)
+    {
         UHE::Application::Get().GetWindow().SetCursorLocked(false);
         m_CursorLocked = false;
     }
@@ -151,7 +159,8 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             m_IsReloading = false;
             m_Ammo = MAX_AMMO;
             // Go back to Idle after reload completes
-            if (m_GunAnimator) m_GunAnimator->PlayAnimation("Idle");
+            if (m_GunAnimator)
+                m_GunAnimator->PlayAnimation("Idle");
         }
     }
 
@@ -175,8 +184,9 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
         m_IsFireAnimPlaying = false;
         m_ReloadTimer = m_ReloadDuration;
         m_GunAnimator->PlayAnimation("Reload_Complete");
-        
-        UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
+
+        UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(),
+                                             m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
     }
 
     // Only shoot on click (not hold); crosshair is fixed at screen center
@@ -184,19 +194,21 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
     {
         m_Shots++;
         m_Ammo--;
-        
+
         // Play fire animation as a one-shot
-        if (m_GunAnimator) {
+        if (m_GunAnimator)
+        {
             m_GunAnimator->PlayAnimation("Fire");
         }
         m_IsFireAnimPlaying = true;
         m_FireAnimTimer = m_FireAnimDuration;
 
         // Play 3D Audio
-        UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/gunshot.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
-        
+        UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/gunshot.wav").string(),
+                                             m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
+
         // Add a kick to the gun's pitch for recoil
-        m_RecoilOffset = 6.0f; 
+        m_RecoilOffset = 6.0f;
 
         f32 mx = static_cast<f32>(m_ViewportWidth) * 0.5f;
         f32 my = static_cast<f32>(m_ViewportHeight) * 0.5f;
@@ -221,11 +233,13 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             m_IsReloading = true;
             m_IsFireAnimPlaying = false;
             m_ReloadTimer = m_ReloadDuration;
-            if (m_GunAnimator) {
+            if (m_GunAnimator)
+            {
                 m_GunAnimator->PlayAnimation("Reload_Complete");
             }
 
-            UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(), m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
+            UHE::Audio::AudioEngine::PlaySound3D((fs::path(m_GameAssetsPath) / "audio/reload.wav").string(),
+                                                 m_GunEntity.GetComponent<UHE::TransformComponent>().Translation);
         }
     }
     m_MouseWasPressed = mouseDown;
@@ -249,7 +263,7 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             m_Camera.SetYaw(m_Camera.GetYaw() + yawSign * delta.x * sensitivity);
 
             f32 pitch = glm::clamp(m_Camera.GetPitch() + delta.y * sensitivity, -glm::half_pi<f32>() * 0.995f,
-                                     glm::half_pi<f32>() * 0.995f);
+                                   glm::half_pi<f32>() * 0.995f);
             m_Camera.SetPitch(pitch);
         }
         m_SkipMouseDelta = false;
@@ -259,14 +273,14 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
     m_Camera.OnUpdate(ts);
 
     // Update 3D Audio Listener
-    UHE::Audio::AudioEngine::SetListenerPosition(m_Camera.GetPosition(), m_Camera.GetForwardDirection(), m_Camera.GetUpDirection());
+    UHE::Audio::AudioEngine::SetListenerPosition(m_Camera.GetPosition(), m_Camera.GetForwardDirection(),
+                                                 m_Camera.GetUpDirection());
 
     auto& gunTransform = m_GunEntity.GetComponent<UHE::TransformComponent>();
     gunTransform.Scale = glm::vec3(s_GunScale);
 
-    gunTransform.Translation = m_Camera.GetPosition() + 
-                               m_Camera.GetForwardDirection() * s_GunOffsetPos.x +
-                               m_Camera.GetUpDirection() * s_GunOffsetPos.y + 
+    gunTransform.Translation = m_Camera.GetPosition() + m_Camera.GetForwardDirection() * s_GunOffsetPos.x +
+                               m_Camera.GetUpDirection() * s_GunOffsetPos.y +
                                m_Camera.GetRightDirection() * s_GunOffsetPos.z;
 
     // Decay recoil smoothly back to zero
@@ -277,8 +291,9 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
     // Add recoil as a pitch rotation in camera space, so it's always "up" on screen
     // regardless of the gun model's internal axis orientations
     glm::quat recoilRot = glm::angleAxis(glm::radians(m_RecoilOffset), glm::vec3(1.0f, 0.0f, 0.0f));
-    glm::quat modelFix = glm::quat(glm::vec3(glm::radians(s_GunOffsetRot.x), glm::radians(s_GunOffsetRot.y), glm::radians(s_GunOffsetRot.z)));
-    
+    glm::quat modelFix = glm::quat(
+        glm::vec3(glm::radians(s_GunOffsetRot.x), glm::radians(s_GunOffsetRot.y), glm::radians(s_GunOffsetRot.z)));
+
     gunTransform.Rotation = glm::eulerAngles(camOrientation * recoilRot * modelFix);
 
     // === Render Pass (same as Editor.cpp) ===
@@ -321,7 +336,8 @@ void AimLabLayer::OnUpdate(UHE::Timestep ts)
             const UHE::RD3d::Animator* animator = nullptr;
             if (entity == static_cast<entt::entity>(m_GunEntity) && m_GunAnimator)
                 animator = m_GunAnimator.get();
-            UHE::Renderer3D::SubmitModel(*model.ModelData, transform.GetTransform(), static_cast<i32>(entity), animator);
+            UHE::Renderer3D::SubmitModel(*model.ModelData, transform.GetTransform(), static_cast<i32>(entity),
+                                         animator);
         }
     }
 
@@ -339,7 +355,8 @@ void AimLabLayer::OnImGuiRender()
     // === Blit framebuffer to full screen ===
     void* texInfo = m_Framebuffer->GetColorAttachmentRendererID(0);
     ImGui::GetBackgroundDrawList()->AddImage(
-        texInfo, ImVec2(0, 0), ImVec2(static_cast<f32>(m_ViewportWidth), static_cast<f32>(m_ViewportHeight)), ImVec2(0, 1), ImVec2(1, 0));
+        texInfo, ImVec2(0, 0), ImVec2(static_cast<f32>(m_ViewportWidth), static_cast<f32>(m_ViewportHeight)),
+        ImVec2(0, 1), ImVec2(1, 0));
 
     // === Crosshair fixed at screen center ===
     ImVec2 crosshairPos(static_cast<f32>(m_ViewportWidth) * 0.5f, static_cast<f32>(m_ViewportHeight) * 0.5f);
