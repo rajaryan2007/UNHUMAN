@@ -95,9 +95,9 @@ endif()
 target_precompile_headers(UHE PRIVATE src/uhepch.h)
 
 target_link_libraries(UHE PUBLIC
-    glfw Vulkan::Vulkan ImGui ImGuizmo fastgltf::fastgltf
+    glfw Vulkan::Vulkan fastgltf::fastgltf
 PRIVATE
-    VulkanMemoryAllocator volk
+    VulkanMemoryAllocator volk ImGui ImGuizmo
     yaml-cpp
     TracyClient
     slang::slang

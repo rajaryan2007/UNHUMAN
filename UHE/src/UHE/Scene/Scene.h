@@ -79,6 +79,7 @@ template <> UHE_API void Scene::OnComponentAdded<TransformComponent>(Entity enti
 template <> UHE_API void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& components);
+template <> UHE_API void Scene::OnComponentAdded<TextComponent>(Entity entity, TextComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<SpriteAnimationComponent>(Entity entity, SpriteAnimationComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& components);
 template <> UHE_API void Scene::OnComponentAdded<RigidBody2DComponent>(Entity entity, RigidBody2DComponent& components);
