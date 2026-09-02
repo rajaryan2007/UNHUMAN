@@ -3,7 +3,22 @@
 
 namespace UHE::RHI::VULKAN
 {
-void VulkanFence::Init() {
-    //TODO implement fence for synchronization of command buffers
+
+void VulkanFence::Init()
+{
+    
 }
-}
+
+void Wait(u64 timeout)
+{}
+
+void Reset()
+{}
+
+void isSinaled()
+{
+    
+};
+
+void ShutDown() {};
+} // namespace UHE::RHI::VULKAN
