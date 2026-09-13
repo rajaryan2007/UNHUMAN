@@ -19,6 +19,19 @@ Thank you for your interest in contributing! To keep the codebase clean, perform
 2. **Never Break the Build**: Always ensure your code compiles locally (both Windows and Linux if possible) before submitting a PR. If CI/CD fails, fix it immediately.
 3. **No Untested Code**: If you add a complex system (like a new physics solver or memory allocator), include a sandbox test layer to prove it works and doesn't leak memory.
 
+## Documentation
+
+1. **Design docs live in `docs/`, code lives in `UHE/src/`.** Do not drop `.md` files into source
+   directories. Index: `docs/README.md`.
+2. **Every architecture doc opens with a status block** (status / related issues / where the code
+   lands), using the fixed vocabulary in `docs/ROADMAP.md`. A reader must be able to tell
+   "implemented" from "planned" in five seconds.
+3. **File names**: kebab-case ASCII, one topic per file, spelled correctly.
+4. **New work item?** Open an issue *and* add a row to `docs/ROADMAP.md`; a PR body names the
+   roadmap row it closes (e.g. `Roadmap: M1 step 2`).
+5. **`file:line` references in docs are snapshots.** Re-verify before acting on one, and update the
+   doc's status block when the referenced code changes shape.
+
 ## Commit Messages
 
 To keep the git history readable and easy to search, please prefix your commit messages with the subsystem you modified. 

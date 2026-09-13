@@ -29,6 +29,8 @@
 
 - **Modern Graphics Backend**: Fully abstracted Render Hardware Interface (RHI) running on **Vulkan**.
 - **Slang Shader Compiler**: Next-generation shading language support with dynamic compilation and SPIR-V generation.
+- **Multi-Threading**: High-performance Job System and Task Graph architecture for parallel execution.
+- **Text Rendering**: Crisp, scalable text rendering using MSDF (Multi-channel Signed Distance Fields).
 - **UHE Editor**: A robust, dockable ImGui-based editor (`UHE_EDITOR`) for scene inspection, profiling, and asset management.
 - **Entity Component System**: A fast, data-driven scene system (`entt`) supporting native script components and serialization.
 - **2D & 3D Physics**: Integrated physics handling with `Box2D and jolt(in future)`.
@@ -37,6 +39,10 @@
 
 ## Recent Updates
 
+- **Core Job System**: Implemented a robust JobSystem and TaskGraph for multi-threading.
+- **Text Rendering**: Added comprehensive MSDF text rendering capabilities within the Vulkan backend.
+- **Vulkan Enhancements**: Setup Vulkan sync2 fallback and implemented improved texture fallback safety.
+- **Engine Stability & Fixes**: Fixed MSVC linker issues, UTF-8 decoding mismatches, and asset loading for standalone distribution.
 - **Vulkan Refactor & AMD Stability**: Resolved texture dynamic indexing validation issues on AMD/RADV drivers by manually binding texture slots in Slang.
 - **Color Accuracy & Aesthetics**: Restored pure black ImGui docking themes and fixed sRGB gamma-correction bugs that were washing out linear textures.
 - **Improved UI Workflows**: Added full Drag-and-Drop payload support for textures directly into the 3D Viewport and Scene Hierarchy component inspectors.
@@ -49,6 +55,14 @@ The repository is logically split to ensure the core engine remains separate fro
 - `UHE_EDITOR/` — The standalone editor application built on top of the engine.
 - `sandbox/` — A lightweight testing application for running isolated scenes.
 - `script/Setup.py` — The automated dependency fetcher that pulls heavy OS-specific binaries (like Slang) into `UHE/vendor/bin/`.
+- `docs/` — Design docs, architecture notes and the work order. Start at [`docs/README.md`](docs/README.md); the roadmap is [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+## Documentation
+
+- [`IDEA.md`](IDEA.md) — what the engine is, why it exists, and its hard constraints.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestones, issue map and the open decision register.
+- [`docs/architecture/`](docs/architecture/) — sync/tiers, render graph, job system, assets & audio, CI/CD.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — style, workflow and commit conventions.
 
 ## Getting Started
 
