@@ -1,0 +1,121 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "default",
+      "inherits": "base",
+      "displayName": "UHE (no sanitizer, multi-config style)",
+      "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "displayName": "UHE Debug (no sanitizer)",
+      "binaryDir": "${sourceDir}/build_debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "UHE Release (no sanitizer)",
+      "binaryDir": "${sourceDir}/build-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "sanitizer",
+      "inherits": "base",
+      "displayName": "UHE Debug + toggleable sanitizer (pick with -DUHE_SANITIZER=...)",
+      "binaryDir": "${sourceDir}/build_san",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "asan",
+      "inherits": "base",
+      "displayName": "UHE Debug + AddressSanitizer",
+      "binaryDir": "${sourceDir}/build_asan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UHE_SANITIZER": "address"
+      }
+    },
+    {
+      "name": "ubsan",
+      "inherits": "base",
+      "displayName": "UHE Debug + UndefinedBehaviorSanitizer",
+      "binaryDir": "${sourceDir}/build_ubsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UHE_SANITIZER": "undefined"
+      }
+    },
+    {
+      "name": "asan-ubsan",
+      "inherits": "base",
+      "displayName": "UHE Debug + ASan + UBSan",
+      "binaryDir": "${sourceDir}/build_asan_ubsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UHE_SANITIZER": "address,undefined"
+      }
+    },
+    {
+      "name": "lsan",
+      "inherits": "base",
+      "displayName": "UHE Debug + LeakSanitizer",
+      "binaryDir": "${sourceDir}/build_lsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UHE_SANITIZER": "leak"
+      }
+    },
+    {
+      "name": "tsan",
+      "inherits": "base",
+      "displayName": "UHE Debug + ThreadSanitizer (alone!)",
+      "binaryDir": "${sourceDir}/build_tsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UHE_SANITIZER": "thread"
+      }
+    },
+    {
+      "name": "msan",
+      "inherits": "base",
+      "displayName": "UHE Debug + MemorySanitizer (Clang only, needs libc++!)",
+      "binaryDir": "${sourceDir}/build_msan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "UHE_SANITIZER": "memory",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER": "clang"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default" },
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "sanitizer", "configurePreset": "sanitizer" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "ubsan", "configurePreset": "ubsan" },
+    { "name": "asan-ubsan", "configurePreset": "asan-ubsan" },
+    { "name": "lsan", "configurePreset": "lsan" },
+    { "name": "tsan", "configurePreset": "tsan" },
+    { "name": "msan", "configurePreset": "msan" }
+  ]
+}
