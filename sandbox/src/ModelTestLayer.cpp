@@ -46,6 +46,21 @@ void ModelTestLayer::OnDetach()
 
 void ModelTestLayer::OnUpdate(UHE::Timestep ts)
 {
+    // One-time smoke-test marker for CI. Logged on the *second* OnUpdate call:
+    // by then frame 1 has been submitted AND presented (Device::End runs after
+    // all layers), so a crash during the first present prevents the marker and
+    // fails the CI wait. CI greps stdout for this line instead of a fixed
+    // wall-clock timeout.
+    static bool s_SeenFirstFrame = false;
+    if (!s_SeenFirstFrame)
+    {
+        s_SeenFirstFrame = true;
+    }
+    else
+    {
+        UHE_CORE_INFO("[SMOKE-READY] first frame rendered");
+    }
+
     m_Camera.OnUpdate(ts);
 
     // Update rotation

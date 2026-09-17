@@ -25,27 +25,148 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 option(VG_PROFILE "Enable Tracy profiling" ON)
 
-option(UHE_ENABLE_ASAN "Enable AddressSanitizer" OFF)
-option(UHE_ENABLE_MSAN "Enable MemorySanitizer" OFF)
+# ---------------------------------------------------------------------------
+# Sanitizer support (GCC / Clang) - one flag to pick them all:
+#
+#   -DUHE_SANITIZER=address            AddressSanitizer   (heap/stack/use-after-free)
+#   -DUHE_SANITIZER=thread             ThreadSanitizer    (data races / deadlocks)
+#   -DUHE_SANITIZER=undefined          UndefinedBehaviorSanitizer
+#   -DUHE_SANITIZER=leak               LeakSanitizer
+#   -DUHE_SANITIZER=memory             MemorySanitizer    (Clang only, needs instrumented libc++)
+#   -DUHE_SANITIZER=address,undefined  combos are allowed, EXCEPT tsan/msan
+#                                      which must always run alone
+#   -DUHE_SANITIZER=none               (default) no sanitizer
+#
+# Use a SEPARATE build directory per sanitizer (incremental rebuilds of a reused
+# dir would mix instrumented and non-instrumented objects). Easiest way:
+#
+#   cmake --preset tsan          &&  cmake --build --preset tsan -j
+#   cmake --preset asan          &&  cmake --build --preset asan -j
+#   cmake --preset ubsan         &&  cmake --build --preset ubsan -j
+#   cmake --preset msan          &&  cmake --build --preset msan -j
+#
+# ...or use ONE toggleable dir and switch sanitizers whenever you like:
+#
+#   cmake --preset sanitizer -DUHE_SANITIZER=address   (first time; also: thread,
+#       undefined, leak, memory, address,undefined or none)
+#   cmake --build  --preset sanitizer -j
+#
+#   cmake --preset sanitizer -DUHE_SANITIZER=thread    # same dir -> rebuilds all
+#   cmake --preset sanitizer -DUHE_SANITIZER=none      # back to a normal build
+#
+# The build detects the sanitizer change and deletes stale objects for you
+# (Ninja does NOT recompile when flags change, so this is required for
+# correctness). Binaries still land in bin/<cfg>-<sys>-x64-<sanitizers>/.
+#
+# Sanitized binaries land in bin/<cfg>-<sys>-x64-<sanitizers>/ so they never
+# overwrite a normal build.
+#
+# Handy runtime settings:
+#   ASAN_OPTIONS=detect_leaks=1:detect_stack_use_after_return=1
+#   TSAN_OPTIONS=second_deadlock_stack=1        (Vulkan ICDs may cause false
+#       positives - put a 'called_from_lib:libvulkan' style suppressions file
+#       in TSAN_OPTIONS=suppressions=tsan.supp if the driver misbehaves)
+#   UBSAN_OPTIONS=print_stacktrace=1            (errors abort via
+#       -fno-sanitize-recover=undefined, which is enabled automatically)
+#
+# NOTE: everything built by this CMake tree gets instrumented (engine, editor,
+# sandbox, vendor libs) - that is required for TSan/MSan correctness anyway.
+# ---------------------------------------------------------------------------
 
-if(UHE_ENABLE_ASAN AND UHE_ENABLE_MSAN)
-    message(FATAL_ERROR "AddressSanitizer and MemorySanitizer cannot be enabled simultaneously.")
+# Kept for backward compatibility; mapped onto UHE_SANITIZER below.
+option(UHE_ENABLE_ASAN "Enable AddressSanitizer (deprecated: use UHE_SANITIZER=address)" OFF)
+option(UHE_ENABLE_MSAN "Enable MemorySanitizer (deprecated: use UHE_SANITIZER=memory)" OFF)
+
+set(UHE_SANITIZER "" CACHE STRING "Sanitizer(s): address, thread, undefined, leak, memory, combos with commas, or none")
+set_property(CACHE UHE_SANITIZER PROPERTY STRINGS "" none address thread undefined leak memory "address,undefined")
+
+if(UHE_ENABLE_ASAN AND NOT UHE_SANITIZER)
+    set(UHE_SANITIZER "address")
+    message(STATUS "UHE_ENABLE_ASAN is deprecated - use -DUHE_SANITIZER=address")
+endif()
+if(UHE_ENABLE_MSAN AND NOT UHE_SANITIZER)
+    set(UHE_SANITIZER "memory")
+    message(STATUS "UHE_ENABLE_MSAN is deprecated - use -DUHE_SANITIZER=memory")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    if (UHE_ENABLE_ASAN)
-        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
-        add_link_options(-fsanitize=address)
+set(UHE_SANITIZER_TAG "")
+if(UHE_SANITIZER AND NOT UHE_SANITIZER STREQUAL "none")
+    string(REPLACE "," ";" UHE_SANITIZER_LIST "${UHE_SANITIZER}")
+    list(TRANSFORM UHE_SANITIZER_LIST TOLOWER)
+    list(REMOVE_DUPLICATES UHE_SANITIZER_LIST)
+
+    foreach(san IN LISTS UHE_SANITIZER_LIST)
+        if(NOT san MATCHES "^(address|thread|undefined|leak|memory)$")
+            message(FATAL_ERROR "Unknown sanitizer '${san}'. Valid: address, thread, undefined, leak, memory (or 'none').")
+        endif()
+    endforeach()
+
+    list(LENGTH UHE_SANITIZER_LIST UHE_SANITIZER_COUNT)
+    list(FIND UHE_SANITIZER_LIST "thread" UHE_HAS_TSAN)
+    list(FIND UHE_SANITIZER_LIST "memory" UHE_HAS_MSAN)
+    list(FIND UHE_SANITIZER_LIST "undefined" UHE_HAS_UBSAN)
+
+    if((UHE_HAS_TSAN GREATER -1 OR UHE_HAS_MSAN GREATER -1) AND NOT UHE_SANITIZER_COUNT EQUAL 1)
+        message(FATAL_ERROR "ThreadSanitizer and MemorySanitizer must be the ONLY sanitizer (got: ${UHE_SANITIZER_LIST}).")
     endif()
+
+    if(MSVC)
+        message(FATAL_ERROR "UHE_SANITIZER is only wired up for GCC/Clang toolchains.")
+    endif()
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        message(FATAL_ERROR "UHE_SANITIZER requires GCC or Clang (found: ${CMAKE_CXX_COMPILER_ID}).")
+    endif()
+    if(UHE_HAS_MSAN GREATER -1 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(FATAL_ERROR "MemorySanitizer requires Clang (upstream).")
+    endif()
+
+    list(JOIN UHE_SANITIZER_LIST "," UHE_SANITIZER_FLAG)
+
+    # -g: sanitized builds are useless without symbols (cheap, codegen-neutral).
+    # -fno-omit-frame-pointer: readable stacks (also helps Tracy/profilers).
+    add_compile_options(-fsanitize=${UHE_SANITIZER_FLAG} -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=${UHE_SANITIZER_FLAG})
+
+    if(UHE_HAS_MSAN GREATER -1)
+        add_compile_options(-fPIE)
+        add_link_options(-pie)
+    endif()
+
+    if(UHE_HAS_UBSAN GREATER -1)
+        # Abort on the first UB found - actionable instead of a log spam you ignore.
+        add_compile_options(-fno-sanitize-recover=undefined)
+    endif()
+
+    set(UHE_SANITIZER_TAG "-${UHE_SANITIZER_FLAG}")
+    set(UHE_SANITIZER_EFFECTIVE "${UHE_SANITIZER_FLAG}")
+    message(STATUS "Sanitizers enabled: ${UHE_SANITIZER_LIST}")
+else()
+    set(UHE_SANITIZER_EFFECTIVE "")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    if (UHE_ENABLE_MSAN)
-        add_compile_options(-fsanitize=memory -fno-omit-frame-pointer -fPIE)
-        add_link_options(-fsanitize=memory -pie)
+# Clean-slate guard for the shared toggle dir: switching the sanitizer set in the
+# same build dir must not leave behind objects built with the old flags (Ninja
+# does not recompile when compile/link options change, and link archives/libs
+# would silently keep stale members). Delete every object and depfile when the
+# set changes; CMake then relinks everything from fresh objects.
+#
+# NOTE: Ninja also detects changed compile commands and recompiles by itself,
+# but this guard additionally catches stale objects of targets/sources that no
+# longer exist (renames, disabled targets) - cheap insurance.
+if(NOT DEFINED UHE_SANITIZER_LAST)
+    set(UHE_SANITIZER_LAST "" CACHE INTERNAL "Sanitizer set of the last configure in this dir")
+endif()
+if(NOT UHE_SANITIZER_LAST STREQUAL "${UHE_SANITIZER_EFFECTIVE}")
+    if(UHE_SANITIZER_LAST)
+        file(GLOB_RECURSE UHE_STALE_OBJECTS
+            "${CMAKE_BINARY_DIR}/CMakeFiles/*.o"
+            "${CMAKE_BINARY_DIR}/CMakeFiles/*.d")
+        if(UHE_STALE_OBJECTS)
+            file(REMOVE ${UHE_STALE_OBJECTS})
+            message(STATUS "Sanitizer set changed (${UHE_SANITIZER_LAST} -> ${UHE_SANITIZER_EFFECTIVE}) - stale objects removed, everything rebuilds")
+        endif()
     endif()
-elseif(UHE_ENABLE_MSAN)
-    message(FATAL_ERROR "MemorySanitizer is only supported with upstream Clang.")
+    set(UHE_SANITIZER_LAST "${UHE_SANITIZER_EFFECTIVE}" CACHE INTERNAL "Sanitizer set of the last configure in this dir" FORCE)
 endif()
 
 set(ARCH x64)
@@ -56,15 +177,18 @@ else()
   set(OUTPUT_DIR "Debug-${SYS_NAME}-${ARCH}")
 endif()
 
+# Keep sanitized builds in their own output dir (never mixes with normal bins)
+string(APPEND OUTPUT_DIR "${UHE_SANITIZER_TAG}")
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_DIR})
 
 foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
   string(TOUPPER ${CONFIG} CONFIG_UPPER)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin/${CONFIG}-${SYS_NAME}-${ARCH})
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin/${CONFIG}-${SYS_NAME}-${ARCH})
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin/${CONFIG}-${SYS_NAME}-${ARCH})
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin/${CONFIG}-${SYS_NAME}-${ARCH}${UHE_SANITIZER_TAG})
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin/${CONFIG}-${SYS_NAME}-${ARCH}${UHE_SANITIZER_TAG})
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin/${CONFIG}-${SYS_NAME}-${ARCH}${UHE_SANITIZER_TAG})
 endforeach()
 
 
