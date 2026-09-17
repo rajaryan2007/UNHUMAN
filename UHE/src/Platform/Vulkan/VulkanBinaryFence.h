@@ -11,9 +11,10 @@ namespace UHE::RHI::VULKAN
 
     class VulkanBinarySemaphore
     {
+    public:
         VulkanBinarySemaphore() = default;
         ~VulkanBinarySemaphore() = default;
-    public:
+
     private:
     };
 

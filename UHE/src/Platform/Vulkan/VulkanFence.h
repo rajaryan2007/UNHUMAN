@@ -5,6 +5,8 @@
 
 namespace UHE::RHI::VULKAN
 {
+class VulkanContext;
+
 class VulkanFence
 {
 public:
@@ -13,12 +15,12 @@ public:
     VulkanFence(VulkanFence&) = delete;
     VulkanFence operator=(VulkanFence) = delete;
 
-    void Init();
+    void Init(bool signaled = false, VulkanContext* context = nullptr);
     void ShutDown();
 
     void Wait(u64 timeout = UINT64_MAX);
     void Reset();
-    bool IsSinaled();
+    bool IsSignaled();
 
     inline vk::Fence GetHandle() const;
 

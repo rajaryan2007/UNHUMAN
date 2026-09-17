@@ -193,7 +193,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
         barriers.push_back(barrier);
     }
 
-    if (!m_ctx->CheckExtensions->IsEnable("VK_KHR_dynamic_rendering"))
+    if (!m_ctx->CheckExtensions->Supports(Extension::DynamicRendering))
     {
 
         std::vector<vk::ImageView> fbAttachments;
@@ -267,7 +267,7 @@ void VulkanCommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
 
 void VulkanCommandBuffer::EndRenderPass()
 {
-    if (!m_ctx->CheckExtensions->IsEnable("VK_KHR_dynamic_rendering"))
+    if (!m_ctx->CheckExtensions->Supports(Extension::DynamicRendering))
     {
         m_CommandBuffer.endRenderPass();
         return;

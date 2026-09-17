@@ -87,7 +87,7 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
 {
     const auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
     mdevice = *logicaldevice;
-    m_IsBindless = device.GetVulkanContext().CheckExtensions->GetVulkanExtensionFlags().HasVkBindlessDescriptor;
+    m_IsBindless = device.GetVulkanContext().CheckExtensions->Supports(Extension::DescriptorIndexing);
 
     if (m_IsBindless)
     {

@@ -1,6 +1,6 @@
 #include "VulkanSemaphore.h"
 #include "VulkanContext.h"
-
+#include "VulkanExtensionCheck.h"
 
 namespace UHE::RHI::VULKAN
 {
@@ -8,7 +8,7 @@ namespace UHE::RHI::VULKAN
   {
     ctx = context;
     
-    m_IsTimeline = requestTimeline && ctx->CheckExtensions->IsEnable("VK_KHR_timeline_semaphore");
+    m_IsTimeline = requestTimeline && ctx->CheckExtensions->Supports(Extension::TimelineSemaphore);
 
     vk::SemaphoreTypeCreateInfo timelineInfo;
     timelineInfo.semaphoreType = m_IsTimeline ? vk::SemaphoreType::eTimeline : vk::SemaphoreType::eBinary;
@@ -17,7 +17,7 @@ namespace UHE::RHI::VULKAN
     vk::SemaphoreCreateInfo createInfo;
     createInfo.pNext = &timelineInfo;
 
-    m_Semaphore = vk::raii::Semaphore(ctx->GetDevice(), createInfo);
+    m_Semaphore = vk::raii::Semaphore(*ctx->logicalDeviceHandle, createInfo);
   }
 
     void VulkanSemaphore::ShutDown(){
@@ -34,7 +34,8 @@ namespace UHE::RHI::VULKAN
         waitInfo.pSemaphores = &m_Semaphore.operator*();
         waitInfo.pValues = &value;
     
-        ctx->GetDevice().waitSemaphores(waitInfo, UINT64_MAX);
+        const vk::Result waitResult = ctx->logicalDeviceHandle->waitSemaphores(waitInfo, UINT64_MAX);
+        (void)waitResult;
     }
 
     u64 VulkanSemaphore::GetValue()
@@ -42,7 +43,7 @@ namespace UHE::RHI::VULKAN
         if (!m_IsTimeline)
             return 0;
     
-        return ctx->GetDevice().getSemaphoreCounterValue(*m_Semaphore);
+        return m_Semaphore.getCounterValue();
     }
 
     

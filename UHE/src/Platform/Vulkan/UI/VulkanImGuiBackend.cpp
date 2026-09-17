@@ -21,7 +21,7 @@ void VulkanImGuiLayer::OnAttach()
 
     ImGuiLayer::OnAttach();
 
-    GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+    auto* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
     VkDescriptorPoolSize pool_sizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
@@ -58,7 +58,7 @@ void VulkanImGuiLayer::OnAttach()
 
     VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo = {};
     pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-    static VkFormat colorFormat = static_cast<VkFormat>(m_Device->getSwapChainClass().GetSurfaceFormat().format);
+    static auto colorFormat = static_cast<VkFormat>(m_Device->getSwapChainClass().GetSurfaceFormat().format);
     pipelineRenderingCreateInfo.colorAttachmentCount = 1;
     pipelineRenderingCreateInfo.pColorAttachmentFormats = &colorFormat;
 

@@ -94,6 +94,9 @@ void VulkanDevice::InitVulkan(const SwapchainDesc& swapDesc)
     m_Context.graphicsQueue = &m_LogicalDevice.getGraphicsQueue();
     m_Context.surface = &m_LogicalDevice.getSurface();
     m_Context.graphicsQueueFamilyIndex = m_LogicalDevice.getGraphicsQueueFamilyIndex();
+
+    UHE_CORE_INFO("Vulkan sync tier: {}", SyncTierName(m_ExtensionCheck.GetSyncTier()));
+
     g_VulkanContext = &m_Context;
 
     m_DescriptorManager.init(*this);
@@ -187,7 +190,7 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDesc& desc)
 
 u32 VulkanDevice::RegisterBuffer(VulkanBuffer* buffer)
 {
-    if (!m_ExtensionCheck.GetVulkanExtensionFlags().HasVkBindlessDescriptor)
+    if (!m_ExtensionCheck.Supports(Extension::DescriptorIndexing))
     {
         buffer->SetBindlessIndex(static_cast<u32>(-1));
         return static_cast<u32>(-1);

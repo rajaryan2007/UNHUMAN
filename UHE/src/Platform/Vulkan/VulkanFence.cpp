@@ -1,24 +1,29 @@
 #include "uhepch.h"
 #include "VulkanFence.h"
+#include "VulkanContext.h"
 
 namespace UHE::RHI::VULKAN
 {
 
-void VulkanFence::Init()
+void VulkanFence::Init(bool signaled, VulkanContext* context)
 {
     
 }
 
-void Wait(u64 timeout)
-{}
+void VulkanFence::Wait(u64 timeout)
+{
 
-void Reset()
-{}
+}
 
-void isSinaled()
+void VulkanFence::Reset()
+{
+
+}
+
+bool VulkanFence::IsSignaled()
 {
     
 };
 
-void ShutDown() {};
+void VulkanFence::ShutDown() {};
 } // namespace UHE::RHI::VULKAN
