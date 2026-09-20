@@ -7,23 +7,19 @@ namespace UHE::RHI::VULKAN
 
 void VulkanFence::Init(bool signaled, VulkanContext* context)
 {
-    
+    m_context = context;
 }
 
-void VulkanFence::Wait(u64 timeout)
-{
+void VulkanFence::Wait(u64 timeout) {}
 
-}
+void VulkanFence::Reset() {}
 
-void VulkanFence::Reset()
-{
+bool VulkanFence::IsSignaled() {
 
-}
-
-bool VulkanFence::IsSignaled()
-{
-    
 };
 
-void VulkanFence::ShutDown() {};
+void VulkanFence::ShutDown()
+{
+    m_context = nullptr;
+};
 } // namespace UHE::RHI::VULKAN

@@ -1,21 +1,31 @@
 #pragma once
 
+#include <vulkan/vulkan_raii.hpp>
 
 namespace UHE::RHI::VULKAN
 {
-    class VulkanSemaphore;
-    struct SemaphoneSubmitInfo;
-    struct SubmitDesc;
+class VulkanContext;
+struct SemaphoneSubmitInfo;
 
-    class VulkanContext;
+class VulkanBinaryFence
+{
+public:
+    VulkanBinaryFence() = default;
+    ~VulkanBinaryFence() = default; // vk::raii::Fence automatically cleans itself up!
 
-    class VulkanBinarySemaphore
-    {
-    public:
-        VulkanBinarySemaphore() = default;
-        ~VulkanBinarySemaphore() = default;
+    void Init(VulkanContext* context, bool signaled = false);
+    void Shutdown();
 
-    private:
-    };
+    void SignalOnCpuIn(VulkanContext* context, const SemaphoneSubmitInfo& submitInfo) const;
+    void WaitOnCpuIn(const SemaphoneSubmitInfo& submitInfo) const;
+    void ResetIn() const;
+
+    [[nodiscard]] bool IsSignaled() const;
+    [[nodiscard]] inline vk::Fence GetFence() const noexcept { return *m_Fence; }
+
+private:
+    VulkanContext* m_context = nullptr;
+    vk::raii::Fence m_Fence = nullptr; 
+};
 
 } // namespace UHE::RHI::VULKAN

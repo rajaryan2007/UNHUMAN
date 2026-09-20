@@ -25,6 +25,7 @@ public:
     inline vk::Fence GetHandle() const;
 
 private:
+    VulkanContext* m_context = nullptr;
     vk::raii::Fence m_Fence = nullptr;
 };
 } // namespace UHE::RHI::VULKAN
