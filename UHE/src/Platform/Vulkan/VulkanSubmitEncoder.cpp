@@ -83,11 +83,11 @@ void VulkanSubmitEncoder::Submit(vk::raii::Queue& queue, const SubmitInfo& info,
         commandInfos.push_back({.commandBuffer = commandBuffer});
 
     const vk::SubmitInfo2 submitInfo{
-        .waitSemaphoreInfoCount = static_cast<uint32_t>(waits.size()),
+        .waitSemaphoreInfoCount = static_cast<u32>(waits.size()),
         .pWaitSemaphoreInfos = waits.data(),
-        .commandBufferInfoCount = static_cast<uint32_t>(commandInfos.size()),
+        .commandBufferInfoCount = static_cast<u32>(commandInfos.size()),
         .pCommandBufferInfos = commandInfos.data(),
-        .signalSemaphoreInfoCount = static_cast<uint32_t>(signals.size()),
+        .signalSemaphoreInfoCount = static_cast<u32>(signals.size()),
         .pSignalSemaphoreInfos = signals.data(),
     };
 

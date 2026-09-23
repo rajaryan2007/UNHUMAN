@@ -12,8 +12,8 @@ class VulkanFence
 public:
     VulkanFence() = default;
     ~VulkanFence() = default;
-    VulkanFence(VulkanFence&) = delete;
-    VulkanFence operator=(VulkanFence) = delete;
+    VulkanFence(const VulkanFence&) = delete;
+    VulkanFence& operator=(const VulkanFence&) = delete;
 
     void Init(bool signaled = false, VulkanContext* context = nullptr);
     void ShutDown();
@@ -22,7 +22,7 @@ public:
     void Reset();
     bool IsSignaled();
 
-    inline vk::Fence GetHandle() const;
+    inline vk::Fence GetHandle() const { return *m_Fence; }
 
 private:
     VulkanContext* m_context = nullptr;

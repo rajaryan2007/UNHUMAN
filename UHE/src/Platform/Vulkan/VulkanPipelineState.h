@@ -11,6 +11,7 @@ public:
     VulkanPipelineState operator=(VulkanPipelineState&) = delete;
 
     void Init();
+    void Shutdown();
 
 private:
 };

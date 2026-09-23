@@ -14,13 +14,12 @@ void VulkanBinaryFence::Init(VulkanContext* context, bool signaled)
         info.flags = vk::FenceCreateFlagBits::eSignaled;
     }
 
-    // RAII Magic: This automatically calls vkCreateFence!
     m_Fence = vk::raii::Fence(*m_context->logicalDeviceHandle, info);
 }
 
 void VulkanBinaryFence::Shutdown()
 {
-    // RAII Magic: Setting to nullptr automatically calls vkDestroyFence!
+
     m_Fence = nullptr;
     m_context = nullptr;
 }
@@ -29,7 +28,7 @@ void VulkanBinaryFence::WaitOnCpuIn(const SemaphoneSubmitInfo& submitInfo) const
 {
     if (m_context && *m_Fence)
     {
-        // Wait for the fence to be signaled by the GPU
+
         (void)m_context->logicalDeviceHandle->waitForFences({*m_Fence}, VK_TRUE, UINT64_MAX);
     }
 }
@@ -46,7 +45,7 @@ bool VulkanBinaryFence::IsSignaled() const
 {
     if (!m_context || !*m_Fence)
         return false;
-    return m_context->logicalDeviceHandle->getFenceStatus(*m_Fence) == vk::Result::eSuccess;
+    return m_Fence.getStatus() == vk::Result::eSuccess;
 }
 
 } // namespace UHE::RHI::VULKAN
