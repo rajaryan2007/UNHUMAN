@@ -235,16 +235,20 @@ ShaderHandle VulkanDevice::CreateShader(const ShaderDesc& desc)
 }
 PipelineHandle VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
 {
-    auto* pipeline = new VulkanGraphicPipeline();
-    pipeline->createGraphicsPipeline(m_LogicalDevice, m_DescriptorManager, m_Context, desc);
-    return reinterpret_cast<PipelineHandle>(static_cast<VulkanPipelineState*>(pipeline));
+    return m_PipelineStateCache.Acquire(desc, [this, &desc]() {
+        auto* pipeline = new VulkanGraphicPipeline();
+        pipeline->createGraphicsPipeline(m_LogicalDevice, m_DescriptorManager, m_Context, desc);
+        return reinterpret_cast<PipelineHandle>(static_cast<VulkanPipelineState*>(pipeline));
+    });
 }
 
 PipelineHandle VulkanDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
 {
-    auto* pipeline = new VulkanComputePipeline();
-    pipeline->CreateComputePipeline(m_LogicalDevice, m_DescriptorManager, desc);
-    return reinterpret_cast<PipelineHandle>(static_cast<VulkanPipelineState*>(pipeline));
+    return m_PipelineStateCache.Acquire(desc, [this, &desc]() {
+        auto* pipeline = new VulkanComputePipeline();
+        pipeline->CreateComputePipeline(m_LogicalDevice, m_DescriptorManager, desc);
+        return reinterpret_cast<PipelineHandle>(static_cast<VulkanPipelineState*>(pipeline));
+    });
 }
 
 void VulkanDevice::DestroyBuffer(BufferHandle handle)
@@ -276,20 +280,20 @@ void VulkanDevice::DestroyShader(ShaderHandle handle)
 
 void VulkanDevice::DestroyGraphicsPipeline(PipelineHandle handle)
 {
-    if (handle)
-    {
-        auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
-        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
-    }
+    if (!handle || !m_PipelineStateCache.Release(handle))
+        return;
+
+    auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
+    m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
 }
 
 void VulkanDevice::DestroyComputePipeline(PipelineHandle handle)
 {
-    if (handle)
-    {
-        auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
-        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
-    }
+    if (!handle || !m_PipelineStateCache.Release(handle))
+        return;
+
+    auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
+    m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
 }
 
 void VulkanDevice::DeferDestruction(std::function<void()>&& function)
