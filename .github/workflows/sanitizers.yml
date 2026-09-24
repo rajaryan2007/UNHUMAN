@@ -73,6 +73,10 @@ jobs:
           cat > tsan.supp <<'EOF'
           # Races inside the Vulkan loader / software ICD are driver-internal
           called_from_lib:libvulkan
+          # Tracy rpmalloc static-init vs worker (vendor false positive)
+          race:_memory_span_cache
+          race:tracy
+          called_from_lib:libtracy
           EOF
 
       - name: Run sandbox smoke test (Lavapipe, headless)
@@ -92,7 +96,9 @@ jobs:
           if [ "${{ matrix.sanitizer }}" = "thread" ]; then
             export TSAN_OPTIONS="second_deadlock_stack=1:suppressions=$PWD/tsan.supp"
           else
-            export ASAN_OPTIONS="detect_leaks=1:detect_stack_use_after_return=1"
+            # verify_asan_link_order=0: stdbuf LD_PRELOADs libstdbuf.so, which
+            # makes libasan not the first DSO and otherwise aborts at startup.
+            export ASAN_OPTIONS="detect_leaks=1:detect_stack_use_after_return=1:verify_asan_link_order=0"
           fi
 
           # Start a virtual X server directly instead of xvfb-run, so the Sandbox
@@ -114,13 +120,20 @@ jobs:
           # buffered, so force line buffering and tee to a file we can poll.
           LOG="$PWD/smoke.log"
           rm -f "$LOG"
-          stdbuf -oL -eL ./Sandbox > >(tee "$LOG") 2>&1 &
+          # Direct file redirect (no process substitution): $! is Sandbox itself,
+          # and stdbuf -oL keeps spdlog line-buffered for the readiness grep.
+          stdbuf -oL -eL ./Sandbox >"$LOG" 2>&1 &
           APP_PID=$!
+          echo "Sandbox PID=$APP_PID log=$LOG"
 
           dump_log() {
-            echo "---------------- Sandbox output (last 100 lines) ----------------"
-            tail -n 100 "$LOG" 2>/dev/null || true
+            echo "---------------- Sandbox output (last 200 lines) ----------------"
+            tail -n 200 "$LOG" 2>/dev/null || true
             echo "-----------------------------------------------------------------"
+            if grep -qE 'ERROR: (Thread|Address)Sanitizer|SUMMARY: (Thread|Address)Sanitizer' "$LOG" 2>/dev/null; then
+              echo "Sanitizer findings (first match):"
+              grep -m1 -E 'ERROR: (Thread|Address)Sanitizer|SUMMARY: (Thread|Address)Sanitizer' "$LOG" || true
+            fi
           }
           # True unless the process is gone or a zombie (zombie => already died).
           is_alive() {
@@ -129,7 +142,11 @@ jobs:
             [ -n "$s" ] && [ "${s:0:1}" != "Z" ]
           }
           cleanup() {
-            [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null || true
+            if [ -n "$APP_PID" ] && is_alive; then
+              kill "$APP_PID" 2>/dev/null || true
+              sleep 1
+              kill -9 "$APP_PID" 2>/dev/null || true
+            fi
             [ -n "$XVFB_PID" ] && kill "$XVFB_PID" 2>/dev/null || true
             dump_log
           }
@@ -149,7 +166,12 @@ jobs:
 
           if [ "$READY" -ne 1 ]; then
             echo "Smoke test FAILED: engine did not report [SMOKE-READY] within 180s"
-            is_alive && echo "(still running)" || echo "(process exited early)"
+            if is_alive; then
+              echo "(still running)"
+              kill "$APP_PID" 2>/dev/null || true
+            else
+              echo "(process exited early, exit status unknown - see log above)"
+            fi
             exit 1
           fi
 
