@@ -101,7 +101,8 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
             vk::ShaderStageFlags(vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute),
             MAX_BINDLESS_RESOURCES, flags);
         m_GlobalDescriptorSet.AddBinding(1, vk::DescriptorType::eCombinedImageSampler,
-                                         vk::ShaderStageFlags(vk::ShaderStageFlagBits::eAllGraphics),
+                                         vk::ShaderStageFlags(vk::ShaderStageFlagBits::eAllGraphics |
+                                                              vk::ShaderStageFlagBits::eCompute),
                                          MAX_BINDLESS_RESOURCES, flags);
 
         m_GlobalDescriptorSet.BuildLayout(mdevice);

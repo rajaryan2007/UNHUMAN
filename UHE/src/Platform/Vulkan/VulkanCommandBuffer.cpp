@@ -8,6 +8,7 @@
 #include "Platform/Vulkan/VulkanExtensionCheck.h"
 #include "Platform/Vulkan/VulkanFramebuffer.h"
 #include "Platform/Vulkan/VulkanGraphicPipeline.h"
+#include "Platform/Vulkan/VulkanPipelineState.h"
 #include "Platform/Vulkan/VulkanTexture.h"
 #include "UHE/RHI/RHITypes.h"
 #include "UHE/Renderer/Renderer.h"
@@ -358,15 +359,15 @@ void VulkanCommandBuffer::EndRenderPass()
 
 void VulkanCommandBuffer::BindPipeline(PipelineHandle handle)
 {
-    auto* pipeline = reinterpret_cast<VulkanGraphicPipeline*>(handle);
+    auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
 
     m_CurrentPipelineLayout = pipeline->GetPipelineLayout();
-    m_CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->GetPipeline());
+    m_CommandBuffer.bindPipeline(pipeline->GetBindPoint(), pipeline->GetPipeline());
 
     if (m_DescriptorManager)
     {
         vk::DescriptorSet globalSet = m_DescriptorManager->GetSetHandle();
-        m_CommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_CurrentPipelineLayout, 0, {globalSet},
+        m_CommandBuffer.bindDescriptorSets(pipeline->GetBindPoint(), m_CurrentPipelineLayout, 0, {globalSet},
                                            nullptr);
     }
 }
@@ -418,13 +419,18 @@ void VulkanCommandBuffer::PushConstants(ShaderStage stage, const void* data, u32
             flags = vk::ShaderStageFlagBits::eFragment;
         else if (stage == ShaderStage::Compute)
             flags = vk::ShaderStageFlagBits::eCompute;
-        else if (stage == ShaderStage::AllGraphics)
-            flags = vk::ShaderStageFlagBits::eAllGraphics;
+    else if (stage == ShaderStage::AllGraphics)
+        flags = vk::ShaderStageFlagBits::eAllGraphics;
 
-        m_CommandBuffer.pushConstants<uint8_t>(m_CurrentPipelineLayout, static_cast<vk::ShaderStageFlags>(flags),
-                                               offset,
-                                               vk::ArrayProxy<const uint8_t>(size, static_cast<const uint8_t*>(data)));
+    m_CommandBuffer.pushConstants<uint8_t>(m_CurrentPipelineLayout, static_cast<vk::ShaderStageFlags>(flags),
+                                           offset,
+                                           vk::ArrayProxy<const uint8_t>(size, static_cast<const uint8_t*>(data)));
     }
+}
+
+void VulkanCommandBuffer::Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ)
+{
+    m_CommandBuffer.dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
 void VulkanCommandBuffer::UpdateBuffer(BufferHandle handle, const void* data, u64 size, u64 offset)

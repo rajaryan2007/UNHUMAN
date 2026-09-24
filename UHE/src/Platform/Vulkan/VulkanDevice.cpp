@@ -12,8 +12,10 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <volk.h>
 #include "Platform/Vulkan/VulkanBuffer.h"
+#include "Platform/Vulkan/VulkanComputePipeline.h"
 #include "Platform/Vulkan/VulkanExtensionCheck.h"
 #include "Platform/Vulkan/VulkanGraphicPipeline.h"
+#include "Platform/Vulkan/VulkanPipelineState.h"
 #include "Platform/Vulkan/VulkanShader.h"
 #include "Platform/Vulkan/VulkanTexture.h"
 #include "Platform/Vulkan/VulkanUtils.h"
@@ -235,7 +237,14 @@ PipelineHandle VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& 
 {
     auto* pipeline = new VulkanGraphicPipeline();
     pipeline->createGraphicsPipeline(m_LogicalDevice, m_DescriptorManager, m_Context, desc);
-    return reinterpret_cast<PipelineHandle>(pipeline);
+    return reinterpret_cast<PipelineHandle>(static_cast<VulkanPipelineState*>(pipeline));
+}
+
+PipelineHandle VulkanDevice::CreateComputePipeline(const ComputePipelineDesc& desc)
+{
+    auto* pipeline = new VulkanComputePipeline();
+    pipeline->CreateComputePipeline(m_LogicalDevice, m_DescriptorManager, desc);
+    return reinterpret_cast<PipelineHandle>(static_cast<VulkanPipelineState*>(pipeline));
 }
 
 void VulkanDevice::DestroyBuffer(BufferHandle handle)
@@ -269,7 +278,16 @@ void VulkanDevice::DestroyGraphicsPipeline(PipelineHandle handle)
 {
     if (handle)
     {
-        auto* pipeline = reinterpret_cast<VulkanGraphicPipeline*>(handle);
+        auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
+        m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
+    }
+}
+
+void VulkanDevice::DestroyComputePipeline(PipelineHandle handle)
+{
+    if (handle)
+    {
+        auto* pipeline = reinterpret_cast<VulkanPipelineState*>(handle);
         m_Frames[m_CurrentFrame].GetDeletionQueue().Push([pipeline]() { delete pipeline; });
     }
 }

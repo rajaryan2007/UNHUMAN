@@ -25,6 +25,7 @@ public:
     virtual ShaderHandle CreateShader(const ShaderDesc &desc) = 0;
     virtual PipelineHandle
     CreateGraphicsPipeline(const GraphicsPipelineDesc &desc) = 0;
+    virtual PipelineHandle CreateComputePipeline(const ComputePipelineDesc &desc) = 0;
 
     // ─── Data Transfer ─────────────────────────────────────────
     virtual void ReadPixel(TextureHandle handle, int x, int y, void* outData) = 0;
@@ -34,6 +35,7 @@ public:
     virtual void DestroyTexture(TextureHandle handle) = 0;
     virtual void DestroyShader(ShaderHandle handle) = 0;
     virtual void DestroyGraphicsPipeline(PipelineHandle handle) = 0;
+    virtual void DestroyComputePipeline(PipelineHandle handle) = 0;
 
     // ─── Command Buffer Access ─────────────────────────────────
     virtual RHICommandBuffer& GetCurrentCommandBuffer() = 0;

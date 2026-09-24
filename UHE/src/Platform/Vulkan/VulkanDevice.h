@@ -34,6 +34,7 @@ public:
     TextureHandle CreateTexture(const TextureDesc& desc) override;
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
+    PipelineHandle CreateComputePipeline(const ComputePipelineDesc& desc) override;
 
     void ReadPixel(TextureHandle handle, int x, int y, void* outData) override;
 
@@ -41,6 +42,7 @@ public:
     void DestroyTexture(TextureHandle handle) override;
     void DestroyShader(ShaderHandle handle) override;
     void DestroyGraphicsPipeline(PipelineHandle handle) override;
+    void DestroyComputePipeline(PipelineHandle handle) override;
     void DeferDestruction(std::function<void()>&& function);
     u32 RegisterBuffer(VulkanBuffer* buffer);
 

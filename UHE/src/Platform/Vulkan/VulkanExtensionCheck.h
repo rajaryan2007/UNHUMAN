@@ -133,6 +133,7 @@ private:
     SyncTier m_syncTier = SyncTier::Legacy;
     std::vector<std::string> m_advertised;
     vk::PhysicalDeviceFeatures2 m_features2;
+    vk::PhysicalDeviceFeatures m_supportedCoreFeatures;
     vk::PhysicalDeviceVulkan11Features m_v11Features;
     vk::PhysicalDeviceVulkan12Features m_v12Features;
     vk::PhysicalDeviceVulkan13Features m_v13Features;

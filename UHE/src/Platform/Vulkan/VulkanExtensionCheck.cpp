@@ -155,6 +155,11 @@ vk::PhysicalDeviceFeatures2* VulkanExtensionCheck::BuildDeviceFeatureChain()
     m_features2.features.samplerAnisotropy = VK_TRUE;
     m_features2.features.independentBlend = VK_TRUE;
 
+    if (m_supportedCoreFeatures.shaderStorageImageWriteWithoutFormat)
+        m_features2.features.shaderStorageImageWriteWithoutFormat = VK_TRUE;
+    if (m_supportedCoreFeatures.shaderStorageImageReadWithoutFormat)
+        m_features2.features.shaderStorageImageReadWithoutFormat = VK_TRUE;
+
     // ── Always chain Vulkan 1.1 / 1.2 / 1.3 (they are core for Vulkan 1.3) ──
     m_features2.pNext = &m_v11Features;
     m_v11Features.pNext = &m_v12Features;
@@ -324,6 +329,10 @@ vk::PhysicalDeviceFeatures2* VulkanExtensionCheck::BuildDeviceFeatureChain()
 
 void VulkanExtensionCheck::QuerySupportedFeatures(const vk::raii::PhysicalDevice& PhysicalDevice)
 {
+    vk::PhysicalDeviceFeatures2 coreQuery{};
+    vkGetPhysicalDeviceFeatures2(*PhysicalDevice, reinterpret_cast<VkPhysicalDeviceFeatures2*>(&coreQuery));
+    m_supportedCoreFeatures = coreQuery.features;
+
     if (!Supports(Extension::FragmentShadingRate))
         return;
 

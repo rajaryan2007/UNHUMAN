@@ -96,7 +96,8 @@ std::unordered_map<RHI::ShaderStage, std::string> SlangCompiler::CompileToGLSL(c
     };
 
     std::vector<EntryPointInfo> entryPoints = {{"vertexMain", RHI::ShaderStage::Vertex, ".vert"},
-                                               {"fragmentMain", RHI::ShaderStage::Fragment, ".frag"}};
+                                               {"fragmentMain", RHI::ShaderStage::Fragment, ".frag"},
+                                               {"computeMain", RHI::ShaderStage::Compute, ".comp"}};
 
     for (const auto& ep : entryPoints)
     {
@@ -104,10 +105,7 @@ std::unordered_map<RHI::ShaderStage, std::string> SlangCompiler::CompileToGLSL(c
         module->findEntryPointByName(ep.name, entryPoint.writeRef());
 
         if (!entryPoint)
-        {
-            UHE_CORE_ERROR("Could not find Slang entry point '{0}' in {1}", ep.name, filepath);
             continue;
-        }
 
         slang::IComponentType* components[] = {module, entryPoint};
         Slang::ComPtr<slang::IComponentType> program;
@@ -203,7 +201,8 @@ std::unordered_map<RHI::ShaderStage, std::vector<uint8_t>> SlangCompiler::Compil
     };
 
     EntryPointInfo entryPoints[] = {{"vertexMain", RHI::ShaderStage::Vertex},
-                                    {"fragmentMain", RHI::ShaderStage::Fragment}};
+                                    {"fragmentMain", RHI::ShaderStage::Fragment},
+                                    {"computeMain", RHI::ShaderStage::Compute}};
 
     for (const auto& ep : entryPoints)
     {
