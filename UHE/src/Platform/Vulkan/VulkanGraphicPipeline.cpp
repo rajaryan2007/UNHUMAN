@@ -175,7 +175,7 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
         .layout = *m_PipelineLayout, // Extracts the raw vk::PipelineLayout handle
         .renderPass = nullptr        // Correct for Dynamic Rendering
     };
-    if (!check->IsEnable("VK_KHR_dynamic_rendering"))
+    if (!check->Supports(Extension::DynamicRendering))
     {
         m_FallbackRenderPass.Init(ctx, desc.renderPassDesc);
         pipelineInfo.renderPass = m_FallbackRenderPass.GetRenderPass();

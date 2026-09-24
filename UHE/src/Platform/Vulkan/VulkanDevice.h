@@ -8,6 +8,7 @@
 #include "Platform/Vulkan/VulkanInstance.h"
 #include "Platform/Vulkan/VulkanLogicalDevice.h"
 #include "Platform/Vulkan/VulkanPhysicalDevice.h"
+#include "Platform/Vulkan/VulkanPipelineState.h"
 #include "Platform/Vulkan/VulkanSwapChain.h"
 #include "UHE/RHI/RHIDevice.h"
 
@@ -34,6 +35,7 @@ public:
     TextureHandle CreateTexture(const TextureDesc& desc) override;
     ShaderHandle CreateShader(const ShaderDesc& desc) override;
     PipelineHandle CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
+    PipelineHandle CreateComputePipeline(const ComputePipelineDesc& desc) override;
 
     void ReadPixel(TextureHandle handle, int x, int y, void* outData) override;
 
@@ -41,6 +43,7 @@ public:
     void DestroyTexture(TextureHandle handle) override;
     void DestroyShader(ShaderHandle handle) override;
     void DestroyGraphicsPipeline(PipelineHandle handle) override;
+    void DestroyComputePipeline(PipelineHandle handle) override;
     void DeferDestruction(std::function<void()>&& function);
     u32 RegisterBuffer(VulkanBuffer* buffer);
 
@@ -83,6 +86,7 @@ private:
     VmaAllocator m_Allocator = nullptr;
     VulkanDescriptorManager m_DescriptorManager;
     VulkanExtensionCheck m_ExtensionCheck;
+    VulkanPipelineStateCache m_PipelineStateCache;
 
     GLFWwindow* m_WindowHandle = nullptr;
     u32 m_WindowWidth;

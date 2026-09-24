@@ -128,17 +128,23 @@ without stalling frames; rapid shots don't hitch.
 
 ---
 
-## M5 — FrameGraph frontend + backend intelligence — issues #4, #7
+## M5 — Render graph completeness — issues #4, #7
 
-Per the framegraph doc's Phase 4–5, and only reachable once M2 has ≥2 passes in the backend.
+Only the RenderGraph layer. The separate FrameGraph frontend was dropped on
+2026-09-24: it duplicated dependency tracking and renderer code would have to cross two
+graph layers to add a pass. Feature code will declare passes directly into the render
+graph instead. Revisit only if renderer code needs a stable API that outlives backend
+changes — not before the render graph itself works.
 
 | Step | Deliverable | Status |
 |---|---|---|
-| 1 | `UHE/RHI/FrameGraph/` frontend over the backend: logical resources, `FGHandle<T>`, blackboard, culling; `FrameGraph::Compile()` calls the backend compiler | `DESIGN` |
-| 2 | Feature code declares passes ("shadow", "gbuffer", "lighting", "tonemap") instead of calling `Renderer3D::SubmitModel` directly | `DESIGN` |
-| 3 | Graph caching on a hash of pass/resource descriptors (needs stable slot indices for per-frame dynamic resources) | `UNDECIDED` |
-| 4 | Async compute / second queue: passes declare queue hints from the start even if the compiler ignores them | `DEFERRED` |
-| 5 | Graph validation + debug overlays (which pass produced this texture) | `DESIGN` |
+| 1 | RenderGraph builder + resource tracking: `VulkanRenderGraphBuilder`/`Resources`/`Types` get real bodies | `TODO` |
+| 2 | RenderGraph compiler: barriers, pass ordering, layouts from the graph | `TODO` |
+| 3 | RenderGraph executor: command list partitioning and submission | `TODO` |
+| 4 | Feature code declares passes ("shadow", "gbuffer", "lighting", "tonemap") instead of calling `Renderer3D::SubmitModel` directly | `TODO` |
+| 5 | Async compute / second queue: passes declare queue hints from the start even if the compiler ignores them | `DEFERRED` |
+| 6 | Graph validation + debug overlays (which pass produced this texture) | `DEFERRED` |
+| — | Separate FrameGraph frontend (logical resources, `FGHandle<T>`, blackboard, graph caching) — dropped, can be layered on later if ever needed | `CANCELLED` |
 
 **Exit:** adding a pass means declaring it, not hand-writing barriers.
 
@@ -205,13 +211,13 @@ stop-work signal for its milestone.
 |---|---|---|---|
 | D1 | One frame timeline vs per-queue timelines | sync §6 | `UNDECIDED` — start: one frame timeline + binary semaphores for cross-queue |
 | D2 | How aggressively to split passes for parallel recording | sync §6 | `UNDECIDED` — measure first |
-| D3 | Graph cache key (stable slots for shadows/clusters) | sync §6 | `UNDECIDED` |
-| D4 | Does `RenderGraph` stay inside `RHI::VULKAN` or move to `UHE/RHI` | sync §6, framegraph §9 | `UNDECIDED` — stay in Vulkan until a second backend is real |
+| D3 | Graph cache key (stable slots for shadows/clusters) | sync §6 | `DEFERRED` — no RenderGraph to cache until M5 |
+| D4 | Does `RenderGraph` stay inside `RHI::VULKAN` or move to `UHE/RHI` | sync §6 | `UNDECIDED` — stay in Vulkan until a second backend is real |
 | D5 | Descriptor ownership: global set once + optional per-pass sets | sync §6 | `UNDECIDED` |
-| D6 | Where FrameGraph lives (`UHE/RHI/FrameGraph/`) | framegraph §9 | `UNDECIDED` |
-| D7 | One graph per frame vs per view | framegraph §9 | `UNDECIDED` — handles are view-agnostic now |
-| D8 | When the graph is rebuilt (define the hash inputs) | framegraph §9 | `UNDECIDED` |
-| D9 | Async compute ambition (queue hints from the start?) | framegraph §9 | `UNDECIDED` |
+| D6 | Where FrameGraph lives (`UHE/RHI/FrameGraph/`) | — | `CANCELLED` 2026-09-24 — separate FrameGraph layer dropped; feature code declares passes into the RenderGraph directly |
+| D7 | One graph per frame vs per view | sync §6 | `UNDECIDED` — handles are view-agnostic now |
+| D8 | When the graph is rebuilt (define the hash inputs) | sync §6 | `DEFERRED` — follow D3 |
+| D9 | Async compute ambition (queue hints from the start?) | sync §6 | `UNDECIDED` |
 | D10 | Asset handle lifetime: strong `Ref` vs weak + pin | assets §6 | `UNDECIDED` — start strong |
 | D11 | Asset ID: random-at-import vs content hash | assets §6 | `UNDECIDED` |
 | D12 | Audio API threading: main-thread-only vs command queue | assets §6 | `UNDECIDED` — main-thread-only recommended |

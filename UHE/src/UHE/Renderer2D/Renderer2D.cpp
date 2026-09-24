@@ -72,13 +72,13 @@ void Renderer2D::Init()
 
     s_Data.VertexBuffer = VertexBuffer::Create(s_Data.MaxVertices * sizeof(QuadVertex));
 
-    BufferLayout SVlayout = {{ShaderDataType::Float3, "a_Position"},
-                             {ShaderDataType::Float2, "a_TexCoord"},
-                             {ShaderDataType::Float4, "a_Color"},
-                             {ShaderDataType::Float, "a_TexIndex"},
+    RHI::BufferLayout SVlayout = {{ShaderDataType::Float3, "a_Position"},
+                                  {ShaderDataType::Float2, "a_TexCoord"},
+                                  {ShaderDataType::Float4, "a_Color"},
+                                  {ShaderDataType::Float, "a_TexIndex"},
 
-                             {ShaderDataType::Float, "a_TilingFactor"},
-                             {ShaderDataType::Int, "a_EntityID"}
+                                  {ShaderDataType::Float, "a_TilingFactor"},
+                                  {ShaderDataType::Int, "a_EntityID"}
 
     };
 

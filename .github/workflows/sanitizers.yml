@@ -1,0 +1,187 @@
+name: Sanitizer Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  sandbox-smoke:
+    name: Sandbox smoke (${{ matrix.sanitizer }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Uses the single toggleable build dir from CMakePresets.json:
+        #   cmake --preset sanitizer -DUHE_SANITIZER=<value>
+        # Binaries land in bin/Debug-linux-x64-<sanitizer>/ (never overwrites
+        # a normal build). TSan/MSan must run alone - we only use one each.
+        sanitizer: [ address, thread ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxi-dev libwayland-dev libxkbcommon-dev libfreetype6-dev \
+            mesa-vulkan-drivers xvfb
+
+      # Kernel 6.6+ ships vm.mmap_rnd_bits=32, which breaks ThreadSanitizer
+      # with "FATAL: ThreadSanitizer: unexpected memory mapping".
+      - name: Lower ASLR entropy for ThreadSanitizer
+        if: matrix.sanitizer == 'thread'
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          source /etc/os-release
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${VERSION_CODENAME}.list http://packages.lunarg.com/vulkan/lunarg-vulkan-${VERSION_CODENAME}.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Run Setup Script (download Slang etc.)
+        run: python script/Setup.py
+
+      - name: Configure CMake (${{ matrix.sanitizer }})
+        run: cmake --preset sanitizer -DUHE_SANITIZER=${{ matrix.sanitizer }} -DVG_PROFILE=OFF
+
+      - name: Build
+        run: cmake --build --preset sanitizer --parallel
+
+      # The Vulkan loader + Lavapipe (Mesa software driver) spawn unsynchronized
+      # helper threads -> known TSan false positives (same caveat as the note in
+      # the top-level CMakeLists.txt).
+      - name: Write TSan suppressions
+        if: matrix.sanitizer == 'thread'
+        run: |
+          cat > tsan.supp <<'EOF'
+          # Races inside the Vulkan loader / software ICD are driver-internal
+          called_from_lib:libvulkan
+          # Tracy rpmalloc static-init vs worker (vendor false positive)
+          race:_memory_span_cache
+          race:tracy
+          called_from_lib:libtracy
+          EOF
+
+      - name: Run sandbox smoke test (Lavapipe, headless)
+        shell: bash
+        run: |
+          OUT_DIR="bin/Debug-linux-x64-${{ matrix.sanitizer }}"
+          test -d "$OUT_DIR" || { echo "Output dir '$OUT_DIR' missing - build layout changed?"; exit 1; }
+
+          # How long to keep rendering AFTER the ready marker, to give TSan/ASan
+          # time to catch races that only show up after several frames in flight.
+          SOAK_SECONDS=10
+
+          export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)
+          [ -n "$VK_ICD_FILENAMES" ] || { echo "Lavapipe ICD not found"; exit 1; }
+          echo "Using Vulkan ICD: $VK_ICD_FILENAMES"
+
+          if [ "${{ matrix.sanitizer }}" = "thread" ]; then
+            export TSAN_OPTIONS="second_deadlock_stack=1:suppressions=$PWD/tsan.supp"
+          else
+            # verify_asan_link_order=0: stdbuf LD_PRELOADs libstdbuf.so, which
+            # makes libasan not the first DSO and otherwise aborts at startup.
+            export ASAN_OPTIONS="detect_leaks=1:detect_stack_use_after_return=1:verify_asan_link_order=0"
+          fi
+
+          # Start a virtual X server directly instead of xvfb-run, so the Sandbox
+          # is a direct child process we can kill by PID once it reports ready.
+          Xvfb :99 -screen 0 1280x720x24 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          for i in $(seq 1 50); do
+            [ -S /tmp/.X11-unix/X99 ] && break
+            sleep 0.2
+          done
+
+          cd "$OUT_DIR"
+
+          # Readiness gate: the engine logs "[SMOKE-READY] first frame rendered"
+          # (sandbox/src/ModelTestLayer.cpp) once frame 1 has been submitted AND
+          # presented. We wait for that line instead of a fixed wall-clock timeout.
+          # spdlog's stdout sink does not auto-flush and piped stdout is fully
+          # buffered, so force line buffering and tee to a file we can poll.
+          LOG="$PWD/smoke.log"
+          rm -f "$LOG"
+          # Direct file redirect (no process substitution): $! is Sandbox itself,
+          # and stdbuf -oL keeps spdlog line-buffered for the readiness grep.
+          stdbuf -oL -eL ./Sandbox >"$LOG" 2>&1 &
+          APP_PID=$!
+          echo "Sandbox PID=$APP_PID log=$LOG"
+
+          dump_log() {
+            echo "---------------- Sandbox output (last 200 lines) ----------------"
+            tail -n 200 "$LOG" 2>/dev/null || true
+            echo "-----------------------------------------------------------------"
+            if grep -qE 'ERROR: (Thread|Address)Sanitizer|SUMMARY: (Thread|Address)Sanitizer' "$LOG" 2>/dev/null; then
+              echo "Sanitizer findings (first match):"
+              grep -m1 -E 'ERROR: (Thread|Address)Sanitizer|SUMMARY: (Thread|Address)Sanitizer' "$LOG" || true
+            fi
+          }
+          # True unless the process is gone or a zombie (zombie => already died).
+          is_alive() {
+            local s
+            s=$(ps -o stat= -p "$APP_PID" 2>/dev/null)
+            [ -n "$s" ] && [ "${s:0:1}" != "Z" ]
+          }
+          cleanup() {
+            if [ -n "$APP_PID" ] && is_alive; then
+              kill "$APP_PID" 2>/dev/null || true
+              sleep 1
+              kill -9 "$APP_PID" 2>/dev/null || true
+            fi
+            [ -n "$XVFB_PID" ] && kill "$XVFB_PID" 2>/dev/null || true
+            dump_log
+          }
+          trap cleanup EXIT
+
+          READY=0
+          for i in $(seq 1 90); do
+            if grep -qF -- "[SMOKE-READY]" "$LOG" 2>/dev/null; then
+              READY=1
+              break
+            fi
+            # Process died before reporting ready -> fail fast (crash output is
+            # dumped by the EXIT trap, including the sanitizer report).
+            is_alive || break
+            sleep 2
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            echo "Smoke test FAILED: engine did not report [SMOKE-READY] within 180s"
+            if is_alive; then
+              echo "(still running)"
+              kill "$APP_PID" 2>/dev/null || true
+            else
+              echo "(process exited early, exit status unknown - see log above)"
+            fi
+            exit 1
+          fi
+
+          echo "Sandbox reported ready under ${{ matrix.sanitizer }} - soaking ${SOAK_SECONDS}s to catch delayed races..."
+          for i in $(seq 1 "$SOAK_SECONDS"); do
+            if ! is_alive; then
+              echo "Smoke test FAILED: engine died during soak"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "Sandbox rendered frames and survived the soak under ${{ matrix.sanitizer }}. Smoke test passed!"

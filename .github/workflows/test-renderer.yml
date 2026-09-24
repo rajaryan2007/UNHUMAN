@@ -71,28 +71,30 @@ jobs:
 
       - name: Configure CMake (ASAN Enabled)
         run: >
-          cmake -B build
-          -G Ninja
-          -DCMAKE_BUILD_TYPE=Debug
-          -DUHE_ENABLE_ASAN=ON
+          cmake --preset sanitizer
+          -DUHE_SANITIZER=address
           -DVG_PROFILE=OFF
 
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build --preset sanitizer --parallel
 
       - name: Run Tests (Headless + Lavapipe)
         run: |
-          cd bin/Debug-linux-x64
+          OUT_DIR="bin/Debug-linux-x64-address"
+          test -d "$OUT_DIR" || { echo "Output dir '$OUT_DIR' missing"; exit 1; }
+          cd "$OUT_DIR"
           # xvfb-run sets up a virtual X display
           # VK_ICD_FILENAMES forces Vulkan to use the Lavapipe software driver
-          # We use timeout 10s to gracefully kill the engine, which returns 124. We catch 124 and pass the test.
+          # timeout 10s kills the engine with exit 124; treat that as pass.
           export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)
-          timeout 10s xvfb-run --auto-servernum ./UHE_EDITOR || {
-            if [ $? -eq 124 ]; then
-              echo "Engine survived for 10 seconds. Test passed!"
-              exit 0
-            else
-              echo "Engine crashed or failed!"
-              exit 1
-            fi
-          }
+          set +e
+          timeout 10s xvfb-run --auto-servernum ./UHE_EDITOR
+          rc=$?
+          set -e
+          if [ "$rc" -eq 124 ]; then
+            echo "Engine survived for 10 seconds. Test passed!"
+            exit 0
+          else
+            echo "Engine crashed or failed with exit code $rc!"
+            exit 1
+          fi

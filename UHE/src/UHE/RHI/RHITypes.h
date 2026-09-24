@@ -360,6 +360,13 @@ struct GraphicsPipelineDesc
     RenderPassDesc renderPassDesc = {};
 };
 
+struct ComputePipelineDesc
+{
+    ShaderHandle computeShader = nullptr;
+    u32 pushConstantSize = 0;
+    const char* debugName = nullptr;
+};
+
 // ─── Swapchain Info ─────────────────────────────────────────────
 
 struct SwapchainDesc

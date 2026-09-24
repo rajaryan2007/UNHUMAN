@@ -5,6 +5,8 @@
 
 # Build folders
 build/
+build_*/
+build-*/
 bin/
 out/
 cmake-build-*/
@@ -422,3 +424,11 @@ UHE/vendor/bin/
 !UHE/src/UHE/Debug/
 !UHE/src/UHE/Debug/**/*core
 build_debug/
+build-release/
+.agents/
+imgui.ini
+.worktrees/
+
+# NOTE: imgui.ini is tracked in git today, so the ignore line above is a no-op.
+# Decide: `git rm --cached imgui.ini` (untrack it) or drop the line. See docs/ROADMAP.md (M0).
+

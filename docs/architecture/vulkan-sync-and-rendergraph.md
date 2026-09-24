@@ -445,7 +445,7 @@ Platform/Vulkan/
    cache and multithreaded command recording.
 7. Wire multithreaded secondary recording to `GetCurrentThreadIndex()`.
 
-## Open questions
+## will deside soon
 
 - One frame timeline or per-queue timelines. Per-queue timelines give finer
   cross-queue ordering but complicate the legacy fallback. Start with one frame

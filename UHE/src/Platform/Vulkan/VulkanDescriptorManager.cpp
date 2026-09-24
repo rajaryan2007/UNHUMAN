@@ -87,7 +87,7 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
 {
     const auto& logicaldevice = device.getLogicalDevClass().getLogicalDevice();
     mdevice = *logicaldevice;
-    m_IsBindless = device.GetVulkanContext().CheckExtensions->GetVulkanExtensionFlags().HasVkBindlessDescriptor;
+    m_IsBindless = device.GetVulkanContext().CheckExtensions->Supports(Extension::DescriptorIndexing);
 
     if (m_IsBindless)
     {
@@ -101,7 +101,8 @@ void VulkanDescriptorManager::init(VulkanDevice& device)
             vk::ShaderStageFlags(vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute),
             MAX_BINDLESS_RESOURCES, flags);
         m_GlobalDescriptorSet.AddBinding(1, vk::DescriptorType::eCombinedImageSampler,
-                                         vk::ShaderStageFlags(vk::ShaderStageFlagBits::eAllGraphics),
+                                         vk::ShaderStageFlags(vk::ShaderStageFlagBits::eAllGraphics |
+                                                              vk::ShaderStageFlagBits::eCompute),
                                          MAX_BINDLESS_RESOURCES, flags);
 
         m_GlobalDescriptorSet.BuildLayout(mdevice);

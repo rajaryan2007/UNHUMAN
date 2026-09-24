@@ -39,6 +39,8 @@ public:
   virtual void Draw(u32 vertexCount, u32 firstVertex = 0) = 0;
   virtual void DrawIndexed(u32 indexCount, u32 firstIndex = 0,
                            i32 vertexOffset = 0) = 0;
+  virtual void Dispatch(u32 groupCountX, u32 groupCountY = 1,
+                        u32 groupCountZ = 1) = 0;
 
 private: 
 	

@@ -32,6 +32,14 @@ Thank you for your interest in contributing! To keep the codebase clean, perform
 5. **`file:line` references in docs are snapshots.** Re-verify before acting on one, and update the
    doc's status block when the referenced code changes shape.
 
+## Contributor License Agreement
+
+Before your first pull request can be merged you must accept the
+[Contributor License Agreement](CLA.md). It grants the maintainer the rights
+needed to keep the project distributable under its current license and under
+future ones, and it does not transfer ownership of your work. Corporate
+contributions use the entity version, signed by an authorized representative.
+
 ## Commit Messages
 
 To keep the git history readable and easy to search, please prefix your commit messages with the subsystem you modified. 

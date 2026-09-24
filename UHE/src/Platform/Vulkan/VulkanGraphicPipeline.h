@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
 #include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanPipelineState.h"
 #include "Platform/Vulkan/VulkanRenderPass.h"
 #include "UHE/RHI/RHITypes.h"
 #include "vulkan/vulkan.hpp"
@@ -17,7 +18,7 @@ class VulkanDescriptorManager;
 class VulkanRenderPass;
 class VulkanFramebuffer;
 
-class VulkanGraphicPipeline
+class VulkanGraphicPipeline : public VulkanPipelineState
 {
 public:
     VulkanGraphicPipeline();
@@ -30,8 +31,9 @@ public:
     void createGraphicsPipeline(VulkanLogicalDevice& Device, VulkanDescriptorManager& descriptorManager,
                                 const VulkanContext& ctx, const GraphicsPipelineDesc& desc);
 
-    [[nodiscard]] vk::Pipeline GetPipeline() const { return *m_GraphicsPipeline; }
-    [[nodiscard]] vk::PipelineLayout GetPipelineLayout() const { return *m_PipelineLayout; }
+    [[nodiscard]] vk::Pipeline GetPipeline() const override { return *m_GraphicsPipeline; }
+    [[nodiscard]] vk::PipelineLayout GetPipelineLayout() const override { return *m_PipelineLayout; }
+    [[nodiscard]] vk::PipelineBindPoint GetBindPoint() const override { return vk::PipelineBindPoint::eGraphics; }
     [[nodiscard]] VulkanRenderPass& GetRenderPassHandle() { return m_FallbackRenderPass; }
 
 private:

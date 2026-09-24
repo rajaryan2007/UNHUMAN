@@ -15,7 +15,7 @@ class VulkanShaderManager {
     VulkanShaderManager& operator=(VulkanShaderManager&&) = delete;
     
     void Init();
-
+    void ShutDown();
 
     private:
 

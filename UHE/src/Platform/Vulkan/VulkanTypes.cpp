@@ -233,4 +233,138 @@ vk::DescriptorType ToVkDescriptorType(BufferUsageFlags usage)
     }
 }
 
+vk::ImageLayout ToVkImageLayout(ImageState state)
+{
+    switch (state)
+    {
+        case ImageState::Undefined:
+            return vk::ImageLayout::eUndefined;
+        case ImageState::ColorAttachment:
+            return vk::ImageLayout::eColorAttachmentOptimal;
+        case ImageState::DepthAttachment:
+            return vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        case ImageState::ShaderRead:
+            return vk::ImageLayout::eShaderReadOnlyOptimal;
+        case ImageState::TransferSrc:
+            return vk::ImageLayout::eTransferSrcOptimal;
+        case ImageState::TransferDst:
+            return vk::ImageLayout::eTransferDstOptimal;
+        case ImageState::Present:
+            return vk::ImageLayout::ePresentSrcKHR;
+        case ImageState::Storage:
+            return vk::ImageLayout::eGeneral;
+    }
+    return vk::ImageLayout::eUndefined;
+}
+
+vk::PipelineStageFlags2 ToVkPipelineStage2(Stage stage)
+{
+    switch (stage)
+    {
+        case Stage::None:
+            return vk::PipelineStageFlagBits2::eNone;
+        case Stage::TopOfPipe:
+            return vk::PipelineStageFlagBits2::eTopOfPipe;
+        case Stage::Transfer:
+            return vk::PipelineStageFlagBits2::eAllTransfer;
+        case Stage::Compute:
+            return vk::PipelineStageFlagBits2::eComputeShader;
+        case Stage::Vertex:
+            return vk::PipelineStageFlagBits2::eVertexShader;
+        case Stage::Fragment:
+            return vk::PipelineStageFlagBits2::eFragmentShader;
+        case Stage::ColorOutput:
+            return vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+        case Stage::DepthEarly:
+            return vk::PipelineStageFlagBits2::eEarlyFragmentTests;
+        case Stage::DepthLate:
+            return vk::PipelineStageFlagBits2::eLateFragmentTests;
+        case Stage::BottomOfPipe:
+            return vk::PipelineStageFlagBits2::eBottomOfPipe;
+    }
+    return vk::PipelineStageFlagBits2::eAllCommands;
+}
+
+vk::AccessFlags2 ToVkAccess2(Access access)
+{
+    switch (access)
+    {
+        case Access::None:
+            return vk::AccessFlagBits2::eNone;
+        case Access::TransferRead:
+            return vk::AccessFlagBits2::eTransferRead;
+        case Access::TransferWrite:
+            return vk::AccessFlagBits2::eTransferWrite;
+        case Access::ShaderRead:
+            return vk::AccessFlagBits2::eShaderRead;
+        case Access::ShaderWrite:
+            return vk::AccessFlagBits2::eShaderWrite;
+        case Access::ColorWrite:
+            return vk::AccessFlagBits2::eColorAttachmentWrite;
+        case Access::DepthWrite:
+            return vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+        case Access::MemoryRead:
+            return vk::AccessFlagBits2::eMemoryRead;
+        case Access::MemoryWrite:
+            return vk::AccessFlagBits2::eMemoryWrite;
+    }
+    return vk::AccessFlagBits2::eNone;
+}
+
+// Legacy mappings. Lossy by nature: 64-bit stages/access collapse to the nearest
+// v1 bit, and the barrier encoder coalesces stages across a barrier group.
+vk::PipelineStageFlags ToVkPipelineStage1(Stage stage)
+{
+    switch (stage)
+    {
+        case Stage::None:
+            return {};
+        case Stage::TopOfPipe:
+            return vk::PipelineStageFlagBits::eTopOfPipe;
+        case Stage::Transfer:
+            return vk::PipelineStageFlagBits::eTransfer;
+        case Stage::Compute:
+            return vk::PipelineStageFlagBits::eComputeShader;
+        case Stage::Vertex:
+            return vk::PipelineStageFlagBits::eVertexShader;
+        case Stage::Fragment:
+            return vk::PipelineStageFlagBits::eFragmentShader;
+        case Stage::ColorOutput:
+            return vk::PipelineStageFlagBits::eColorAttachmentOutput;
+        case Stage::DepthEarly:
+            return vk::PipelineStageFlagBits::eEarlyFragmentTests;
+        case Stage::DepthLate:
+            return vk::PipelineStageFlagBits::eLateFragmentTests;
+        case Stage::BottomOfPipe:
+            return vk::PipelineStageFlagBits::eBottomOfPipe;
+    }
+    return vk::PipelineStageFlagBits::eAllCommands;
+}
+
+vk::AccessFlags ToVkAccess1(Access access)
+{
+    switch (access)
+    {
+        case Access::None:
+            return {};
+        case Access::TransferRead:
+            return vk::AccessFlagBits::eTransferRead;
+        case Access::TransferWrite:
+            return vk::AccessFlagBits::eTransferWrite;
+        case Access::ShaderRead:
+            return vk::AccessFlagBits::eShaderRead;
+        case Access::ShaderWrite:
+            return vk::AccessFlagBits::eShaderWrite;
+        case Access::ColorWrite:
+            return vk::AccessFlagBits::eColorAttachmentWrite;
+        case Access::DepthWrite:
+            return vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+        case Access::MemoryRead:
+            return vk::AccessFlagBits::eMemoryRead;
+        case Access::MemoryWrite:
+            return vk::AccessFlagBits::eMemoryWrite;
+    }
+    return {};
+}
+
 } // namespace UHE::RHI::VULKAN

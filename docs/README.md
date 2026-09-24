@@ -24,7 +24,7 @@ working tree.
 | Document | Subject | Status | Issues |
 |---|---|---|---|
 | [vulkan-sync-and-rendergraph.md](architecture/vulkan-sync-and-rendergraph.md) | Sync2 and legacy fallback tiers, barrier and submit encoders, render-graph backend, and the defects to fix first | DESIGN | #2, #27, #4, #14 |
-| [framegraph-and-rendergraph.md](architecture/framegraph-and-rendergraph.md) | FrameGraph frontend versus RenderGraph backend, thin RHI core, phased migration | DESIGN | #4, #14, #12 |
+| [framegraph-and-rendergraph.md](architecture/framegraph-and-rendergraph.md) | FrameGraph frontend versus RenderGraph backend — **SUPERSEDED 2026-09-24**, the separate frontend layer is dropped; keep only the RenderGraph backend | ARCHIVED | #4, #14 |
 | [jobsystem.md](architecture/jobsystem.md) | The job-system thread pool and the TaskGraph DAG executor | IMPLEMENTED at `c271467` | #5 |
 | [assets-and-audio.md](architecture/assets-and-audio.md) | Asset identity, refcounting and async loading, and the audio voice and bus model | DESIGN, phases A and B not started | #24 |
 | [ci-cd.md](architecture/ci-cd.md) | CI tiers, sanitizers, test infrastructure and rollout order | PARTIAL, builds and sanitizers run but there are no in-tree unit tests | #9, #10 |
