@@ -1,0 +1,63 @@
+name: Bug Report
+description: Create a report to help us improve the engine
+title: "[Bug]: "
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: What type of bug is this?
+      options:
+        - Bug
+        - Performance
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: What component is this bug related to?
+      options:
+        - Core
+        - RHI
+        - Vulkan
+        - Renderer
+        - Shader
+        - Physics
+        - Animation
+        - Audio
+        - Editor
+        - Asset
+        - Platform
+        - Build/CI
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform are you using?
+      options:
+        - Linux
+        - Windows
+        - Android
+        - Cross-platform
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+    validations:
+      required: true
