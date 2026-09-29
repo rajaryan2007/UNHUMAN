@@ -1,0 +1,62 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "[Feature]: "
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: What type of request is this?
+      options:
+        - Feature
+        - Enhancement
+        - Performance
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: What component will this feature affect?
+      options:
+        - Core
+        - RHI
+        - Vulkan
+        - Renderer
+        - Shader
+        - Physics
+        - Animation
+        - Audio
+        - Editor
+        - Asset
+        - Platform
+        - Build/CI
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Is this specific to a platform?
+      options:
+        - Linux
+        - Windows
+        - Android
+        - Cross-platform
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what you want to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: A clear and concise description of any alternative solutions or features you've considered.

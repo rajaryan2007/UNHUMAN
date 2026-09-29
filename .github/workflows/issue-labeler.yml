@@ -1,0 +1,104 @@
+name: Issue Labeler
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Apply labels based on issue forms
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            
+            // Function to extract field values from markdown headers
+            const extractField = (fieldName) => {
+              const regex = new RegExp(`###\\s+${fieldName}\\s*\\n+([^#]+)`, 'i');
+              const match = body.match(regex);
+              if (match && match[1]) {
+                const val = match[1].trim();
+                if (val && val !== '_No response_' && val !== 'None') {
+                  return val;
+                }
+              }
+              return null;
+            };
+            
+            const typeVal = extractField('Type');
+            const compVal = extractField('Component');
+            const platVal = extractField('Platform');
+            
+            const allowedTypes = ['Bug', 'Feature', 'Enhancement', 'Performance', 'Documentation'];
+            const allowedComponents = ['Core', 'RHI', 'Vulkan', 'Renderer', 'Shader', 'Physics', 'Animation', 'Audio', 'Editor', 'Asset', 'Platform', 'Build/CI', 'Other'];
+            const allowedPlatforms = ['Linux', 'Windows', 'Android', 'Cross-platform', 'Other'];
+            
+            const newLabels = [];
+            
+            if (typeVal && allowedTypes.includes(typeVal)) {
+              newLabels.push(`Type: ${typeVal}`);
+            }
+            if (compVal && allowedComponents.includes(compVal)) {
+              newLabels.push(`Component: ${compVal}`);
+            }
+            if (platVal && allowedPlatforms.includes(platVal)) {
+              newLabels.push(`Platform: ${platVal}`);
+            }
+            
+            if (newLabels.length === 0) {
+              console.log("No matching fields found in the issue body.");
+              return;
+            }
+            
+            // Get existing repository labels
+            const { data: repoLabels } = await github.rest.issues.listLabelsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            const repoLabelNames = new Set(repoLabels.map(l => l.name.toLowerCase()));
+            
+            // Define a color map for labels
+            const getLabelColor = (label) => {
+              if (label.startsWith('Type:')) {
+                if (label.includes('Bug')) return 'd73a4a';
+                if (label.includes('Feature') || label.includes('Enhancement')) return 'a2eeef';
+                if (label.includes('Performance')) return 'fbca04';
+                if (label.includes('Documentation')) return '0075ca';
+                return 'cfd3d7';
+              } else if (label.startsWith('Component:')) {
+                return 'c2e0c6';
+              } else if (label.startsWith('Platform:')) {
+                return 'bfdadc';
+              }
+              return 'ededed';
+            };
+            
+            for (const label of newLabels) {
+              if (!repoLabelNames.has(label.toLowerCase())) {
+                console.log(`Creating missing label: ${label}`);
+                try {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                    color: getLabelColor(label)
+                  });
+                } catch (err) {
+                  console.log(`Failed to create label ${label}:`, err.message);
+                }
+              }
+            }
+            
+            console.log(`Applying labels to issue #${context.issue.number}:`, newLabels);
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: newLabels
+            });
