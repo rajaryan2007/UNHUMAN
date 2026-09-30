@@ -352,6 +352,7 @@ void Editor::OnImGuiRender()
 
     // your setting
     m_SceneHireacyPanel.OnImGuiRender();
+    m_SceneHireacyPanel.ApplyQueuedMutations(); // Issue #17: apply tree edits outside registry iteration
     m_ContentBrowserPanel.OnImGuiRender();
     ImGui::Begin("Settings");
 
@@ -537,8 +538,9 @@ void Editor::OnImGuiRender()
             glm::mat4 transform = glm::mat4(1.0f);
             if (SelectedEntity.HasComponent<TransformComponent>())
             {
-                auto& tc = SelectedEntity.GetComponent<TransformComponent>();
-                transform = tc.GetTransform();
+                // Issue #17: gizmos operate on the world transform so entities
+                // nested under a parent still line up with what is on screen.
+                transform = m_ActiveScene->GetWorldSpaceTransformMatrix(SelectedEntity);
             }
 
             bool snap = Input::IsKeyPressed(Key::LeftControl);
@@ -555,12 +557,18 @@ void Editor::OnImGuiRender()
 
             if (ImGuizmo::IsUsing() && SelectedEntity.HasComponent<TransformComponent>())
             {
+                // Issue #17: convert the manipulated world transform back to
+                // local space relative to the entity's parent.
+                glm::mat4 local = transform;
+                Entity parent = m_ActiveScene->GetParentEntity(SelectedEntity);
+                if (parent)
+                    local = glm::inverse(m_ActiveScene->GetWorldSpaceTransformMatrix(parent)) * transform;
+
                 glm::vec3 translation, rotation, scale;
-                Math::DecomposeTransform(transform, translation, rotation, scale);
+                Math::DecomposeTransform(local, translation, rotation, scale);
                 auto& tc = SelectedEntity.GetComponent<TransformComponent>();
-                glm::vec3 deltaRotation = rotation - tc.Rotation;
                 tc.Translation = translation;
-                tc.Rotation += deltaRotation;
+                tc.Rotation = rotation;
                 tc.Scale = scale;
             }
         }

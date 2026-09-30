@@ -9,6 +9,9 @@
 #include "fastgltf/types.hpp"
 #include "glm/ext/vector_float3.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
+
 namespace UHE::RD3d
 {
 
@@ -25,6 +28,9 @@ void Model::Destroy()
     m_Skeleton.Bones.clear();
     m_Skeleton.JointNodes.clear();
     m_Skeleton.RootBoneID = -1;
+    m_Nodes.clear();
+    m_RootNodes.clear();
+    m_NodeToMesh.clear();
 
     for (auto& mesh : m_LoadedMeshes)
     {
@@ -59,6 +65,9 @@ bool Model::loadModel(const std::filesystem::path& filepath)
     m_Skeleton.Bones.clear();
     m_Skeleton.JointNodes.clear();
     m_Skeleton.RootBoneID = -1;
+    m_Nodes.clear();
+    m_RootNodes.clear();
+    m_NodeToMesh.clear();
 
     static constexpr auto supportedExtensions = ~fastgltf::Extensions::None;
     fastgltf::Parser parser(supportedExtensions);
@@ -189,6 +198,7 @@ bool Model::loadModel(const std::filesystem::path& filepath)
         auto& scene = asset.scenes[activeSceneIndex];
         for (auto& rootNodeIndex : scene.nodeIndices)
         {
+            m_RootNodes.push_back(static_cast<int>(m_Nodes.size()));
             ProcessNode(asset, rootNodeIndex);
         }
     }
@@ -197,14 +207,55 @@ bool Model::loadModel(const std::filesystem::path& filepath)
 
 void Model::ProcessNode(const fastgltf::Asset& asset, size_t nodeIndex)
 {
-    auto& node = asset.nodes[nodeIndex];
+    // Issue #17: record the full glTF node tree (flattened) so each node can
+    // later become an editable child entity in the scene hierarchy.
+    const int thisIndex = static_cast<int>(m_Nodes.size());
+    ModelNode& out = m_Nodes.emplace_back();
+
+    const auto& node = asset.nodes[nodeIndex];
+    out.Name = node.name.empty() ? "Node_" + std::to_string(nodeIndex) : std::string(node.name);
+
+    // Local transform (glTF: TRS or matrix)
+    std::visit(fastgltf::visitor{
+                   [&](const fastgltf::math::fmat4x4& matrix)
+                   {
+                       glm::mat4 m{1.0f};
+                       memcpy(&m, matrix.data(), sizeof(glm::mat4));
+                       glm::vec3 translation, scale;
+                       glm::quat rotation;
+                       glm::vec3 skew;
+                       glm::vec4 perspective;
+                       if (glm::decompose(m, scale, rotation, translation, skew, perspective))
+                       {
+                           out.Translation = translation;
+                           out.Rotation = rotation;
+                           out.Scale = scale;
+                       }
+                   },
+                   [&](const fastgltf::TRS& trs)
+                   {
+                       out.Translation = glm::vec3(trs.translation[0], trs.translation[1], trs.translation[2]);
+                       out.Rotation =
+                           glm::quat(trs.rotation[3], trs.rotation[0], trs.rotation[1], trs.rotation[2]); // w,x,y,z
+                       out.Scale = glm::vec3(trs.scale[0], trs.scale[1], trs.scale[2]);
+                   }},
+               node.transform);
+
     if (node.meshIndex.has_value())
     {
+        out.MeshIndex = static_cast<int>(m_LoadedMeshes.size());
+        m_NodeToMesh[static_cast<int>(nodeIndex)] = out.MeshIndex;
         ExtractMesh(asset, asset.meshes[node.meshIndex.value()]);
     }
+
+    // NOTE: recurse first, then write through indices — `out` would dangle
+    // once ProcessNode appends more nodes to m_Nodes.
     for (auto& childIndex : node.children)
     {
+        const int childSlot = static_cast<int>(m_Nodes.size());
         ProcessNode(asset, childIndex);
+        m_Nodes[childSlot].Parent = thisIndex;
+        m_Nodes[thisIndex].Children.push_back(childSlot);
     }
 }
 

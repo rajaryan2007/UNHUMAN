@@ -261,41 +261,84 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
 
     for (const auto& mesh : model.GetMesh())
     {
-        for (const auto& prim : mesh.primitive)
+        SubmitMesh(mesh, transform, entityID, model.GetMaterials());
+    }
+}
+
+// Issue #17: submit a single mesh (one glTF node) with its model's materials.
+void Renderer3D::SubmitMesh(const RD3d::Mesh& mesh, const glm::mat4& transform, int entityID,
+                            const std::vector<RD3d::Material>& materials)
+{
+    auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
+
+    cmd.BindPipeline(s_Data3D.ModelPipeline);
+
+    struct PushConstants
+    {
+        glm::mat4 viewProj;
+        glm::mat4 model;
+        glm::vec4 cameraPos;
+        int entityID;
+        int textureSlot;
+        int enableLighting;
+        int lightBufferIndex;
+        int numLights;
+        int mrTextureSlot;
+        float metallicFactor;
+        float roughnessFactor;
+        int boneBufferIndex;
+        int boneOffset;
+        int padding1;
+        int padding2;
+    } pc;
+    pc.viewProj = s_Data3D.ViewProjection;
+    pc.model = transform;
+    pc.cameraPos = glm::vec4(s_Data3D.CameraPosition, 1.0f);
+    pc.entityID = entityID;
+    pc.textureSlot = 0; // Temp hardcode until material system is done
+    pc.enableLighting = s_Data3D.EnableLighting ? 1 : 0;
+    pc.lightBufferIndex = s_Data3D.LightStorageBufferIndex;
+    pc.numLights = static_cast<int>(s_Data3D.CurrentLights.size());
+    pc.mrTextureSlot = -1;
+    pc.metallicFactor = 1.0f;
+    pc.roughnessFactor = 1.0f;
+    pc.boneBufferIndex = -1;
+    pc.boneOffset = -1;
+
+    for (const auto& prim : mesh.primitive)
+    {
+        if (!prim.VertexBuffer || !prim.IndexBuffer)
+            continue;
+
+        int textureSlot = s_Data3D.WhiteTexture->GetTextureIndex(); // Default to white texture
+        int mrTextureSlot = -1;
+        float metallicFactor = 0.0f;
+        float roughnessFactor = 0.4f;
+
+        if (prim.materialIndex < materials.size())
         {
-            if (!prim.VertexBuffer || !prim.IndexBuffer)
-                continue;
-
-            int textureSlot = s_Data3D.WhiteTexture->GetTextureIndex(); // Default to white texture
-            int mrTextureSlot = -1;
-            float metallicFactor = 0.0f;
-            float roughnessFactor = 0.4f;
-
-            if (prim.materialIndex < model.GetMaterials().size())
+            auto& material = materials[prim.materialIndex];
+            if (material.AlbedoTexture)
             {
-                auto& material = model.GetMaterials()[prim.materialIndex];
-                if (material.AlbedoTexture)
-                {
-                    textureSlot = material.AlbedoTexture->GetTextureIndex();
-                }
-                if (material.MetallicRoughnessTexture)
-                {
-                    mrTextureSlot = material.MetallicRoughnessTexture->GetTextureIndex();
-                }
-                metallicFactor = material.MetallicFactor;
-                roughnessFactor = material.RoughnessFactor;
+                textureSlot = material.AlbedoTexture->GetTextureIndex();
             }
-
-            pc.textureSlot = textureSlot;
-            pc.mrTextureSlot = mrTextureSlot;
-            pc.metallicFactor = metallicFactor;
-            pc.roughnessFactor = roughnessFactor;
-            cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
-
-            cmd.BindVertexBuffer(prim.VertexBuffer);
-            cmd.BindIndexBuffer(prim.IndexBuffer);
-            cmd.DrawIndexed(prim.IndexCount);
+            if (material.MetallicRoughnessTexture)
+            {
+                mrTextureSlot = material.MetallicRoughnessTexture->GetTextureIndex();
+            }
+            metallicFactor = material.MetallicFactor;
+            roughnessFactor = material.RoughnessFactor;
         }
+
+        pc.textureSlot = textureSlot;
+        pc.mrTextureSlot = mrTextureSlot;
+        pc.metallicFactor = metallicFactor;
+        pc.roughnessFactor = roughnessFactor;
+        cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
+
+        cmd.BindVertexBuffer(prim.VertexBuffer);
+        cmd.BindIndexBuffer(prim.IndexBuffer);
+        cmd.DrawIndexed(prim.IndexCount);
     }
 }
 
