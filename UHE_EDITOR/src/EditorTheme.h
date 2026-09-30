@@ -10,6 +10,14 @@ namespace EditorTheme
         Midnight,
         Graphite,
         Light,
+        Emerald,
+        Rose,
+        Ocean,
+        Sunset,
+        Nord,
+        Dracula,
+        Paper,
+        Carbon,
         COUNT
     };
 
@@ -21,12 +29,28 @@ namespace EditorTheme
 
     EditorThemeId GetSelected();
     const char* GetName(EditorThemeId id);
+    int GetThemeCount();
 
     // Applies and persists the selection.
     void SetSelected(EditorThemeId id);
 
-    // Reads the persisted theme file (defaults to DarkViolet when missing).
+    // Reads the persisted theme + custom accent (defaults when missing).
     void LoadSelected();
+
+    // ---- custom accent picker ----
+    // When enabled, the accent color overrides the theme's built-in accent
+    // everywhere (checkmarks, sliders, headers, buttons, drag-drop targets,
+    // panel accents...). Backgrounds/text of the chosen theme are kept.
+    bool IsCustomAccentEnabled();
+    ImVec4 GetCustomAccent();
+    void SetCustomAccentEnabled(bool enabled); // re-applies + persists
+    void SetCustomAccent(const ImVec4& rgb);   // enables + re-applies + persists
+
+    // ---- console / text palette (theme-aware) ----
+    ImVec4 ConsoleInfo();
+    ImVec4 ConsoleWarn();
+    ImVec4 ConsoleError();
+    ImVec4 ConsoleCritical();
 
     // Palette accessors for panels with hand-drawn accents.
     ImVec4 Accent();

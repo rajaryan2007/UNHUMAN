@@ -245,19 +245,20 @@ void DrawConsolePanel()
     {
         ImVec4 color;
 
+        // Theme-aware console palette (readable on light themes too).
         switch (log.Level)
         {
             case spdlog::level::warn:
-                color = ImVec4(1, 1, 0, 1);
+                color = EditorTheme::ConsoleWarn();
                 break;
             case spdlog::level::err:
-                color = ImVec4(1, 0, 0, 1);
+                color = EditorTheme::ConsoleError();
                 break;
             case spdlog::level::critical:
-                color = ImVec4(1, 0, 1, 1);
+                color = EditorTheme::ConsoleCritical();
                 break;
             default:
-                color = ImVec4(1, 1, 1, 1);
+                color = EditorTheme::ConsoleInfo();
                 break;
         }
 
@@ -378,20 +379,46 @@ void Editor::OnImGuiRender()
     ImGui::Checkbox("Show Light Icons", &Scene::GetShowLightIcons());
 
     ImGui::Separator();
-    // Issue #17 UX: built-in theme selector, persisted across sessions.
-    const char* themeLabel = EditorTheme::GetName(EditorTheme::GetSelected());
-    if (ImGui::BeginCombo("Theme", themeLabel))
+    // Issue #17 UX: theme gallery + custom accent picker, persisted.
+    if (ImGui::TreeNodeEx("Appearance", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        for (int i = 0; i < (int)EditorTheme::EditorThemeId::COUNT; i++)
+        const char* themeLabel = EditorTheme::GetName(EditorTheme::GetSelected());
+        if (ImGui::BeginCombo("Theme", themeLabel))
         {
-            auto id = (EditorTheme::EditorThemeId)i;
-            bool selected = (EditorTheme::GetSelected() == id);
-            if (ImGui::Selectable(EditorTheme::GetName(id), selected) && !selected)
-                EditorTheme::SetSelected(id);
-            if (selected)
-                ImGui::SetItemDefaultFocus();
+            int count = EditorTheme::GetThemeCount();
+            for (int i = 0; i < count; i++)
+            {
+                auto id = (EditorTheme::EditorThemeId)i;
+                bool selected = (EditorTheme::GetSelected() == id);
+                if (ImGui::Selectable(EditorTheme::GetName(id), selected) && !selected)
+                    EditorTheme::SetSelected(id);
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
         }
-        ImGui::EndCombo();
+
+        // Custom accent picker: overrides the theme accent everywhere while
+        // keeping the theme's backgrounds and text.
+        bool customEnabled = EditorTheme::IsCustomAccentEnabled();
+        ImVec4 accent = customEnabled ? EditorTheme::GetCustomAccent() : EditorTheme::Accent();
+        ImGui::BeginDisabled(!customEnabled);
+        ImGuiColorEditFlags accentFlags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaBar |
+                                          ImGuiColorEditFlags_AlphaPreviewHalf;
+        if (ImGui::ColorEdit3("##AccentColor", &accent.x, accentFlags))
+            EditorTheme::SetCustomAccent(accent);
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Custom Accent", &customEnabled))
+            EditorTheme::SetCustomAccentEnabled(customEnabled);
+
+        if (customEnabled)
+        {
+            if (ImGui::Button("Reset to Theme Accent"))
+                EditorTheme::SetCustomAccentEnabled(false);
+        }
+        ImGui::TreePop();
     }
 
     ImGui::End();
