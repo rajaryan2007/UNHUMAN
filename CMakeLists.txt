@@ -239,6 +239,16 @@ add_subdirectory(UHE/vendor/yaml-cpp)
 add_subdirectory(UHE/vendor/box2d)
 add_subdirectory(UHE/vendor/fastgltf)
 
+# Meshoptimizer (https://github.com/zeux/meshoptimizer) - MIT, no dependencies.
+# Upstream also builds a demo/ and a gltfpack executable; we only want the
+# library. MESHOPT_INSTALL is forced off because the install() rules would
+# otherwise pull into `make install` a vendored dep the engine never installs.
+set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
+set(MESHOPT_BUILD_GLTFPACK OFF CACHE BOOL "" FORCE)
+set(MESHOPT_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory(UHE/vendor/meshoptimizer EXCLUDE_FROM_ALL)
+
 # MSDF text rendering (msdf-atlas-gen + msdfgen)
 set(MSDF_ATLAS_USE_VCPKG OFF        CACHE BOOL "" FORCE)
 set(MSDF_ATLAS_USE_SKIA  OFF        CACHE BOOL "" FORCE)
