@@ -7,13 +7,24 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "UHE/AssestsManager/VfsSystem.h"
+#include "EditorTheme.h"
 
 // todo divide them in other file as usage after 3d support
 namespace UHE {
-static constexpr ImVec4 kAccent{0.424f, 0.388f, 1.000f, 1.00f};
-static constexpr ImVec4 kAccentHover{0.525f, 0.490f, 1.000f, 1.00f};
-static constexpr ImVec4 kAccentActive{0.350f, 0.318f, 0.900f, 1.00f};
-static constexpr ImVec4 kAccentMuted{0.424f, 0.388f, 1.000f, 0.15f};
+
+// Theme-driven accents (previously hardcoded violet constants). Fully
+// qualified: EditorTheme is a global-namespace library, not part of UHE.
+static ImVec4 kAccent()       { return ::EditorTheme::Accent(); }
+static ImVec4 kAccentHover()  { return ::EditorTheme::AccentHover(); }
+static ImVec4 kAccentActive() { return ::EditorTheme::AccentActive(); }
+static ImVec4 kAccentMuted()  { return ::EditorTheme::AccentMuted(); }
+
+// Dimmed label text derived from the active theme's text color (the old
+// near-white constants were unreadable on the light theme).
+static ImVec4 DimText(float alpha) {
+  ImVec4 c = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+  return ImVec4(c.x, c.y, c.z, alpha);
+}
 static constexpr ImVec4 kAxisX{0.75f, 0.22f, 0.28f, 1.0f};
 static constexpr ImVec4 kAxisXHover{0.85f, 0.32f, 0.35f, 1.0f};
 static constexpr ImVec4 kAxisXActive{0.65f, 0.15f, 0.20f, 1.0f};
@@ -114,7 +125,7 @@ void SceneHierarchyPanel::OnImGuiRender() {
   ImFont *boldFont = io.Fonts->Fonts.Size > 1 ? io.Fonts->Fonts[1] : nullptr;
   if (boldFont)
     ImGui::PushFont(boldFont);
-  ImGui::TextColored(ImVec4(0.878f, 0.878f, 0.926f, 0.60f), "ENTITIES");
+  ImGui::TextColored(DimText(0.60f), "ENTITIES");
   if (boldFont)
     ImGui::PopFont();
   ImGui::Spacing();
@@ -134,7 +145,7 @@ void SceneHierarchyPanel::OnImGuiRender() {
       ImGui::GetWindowDrawList()->AddRectFilled(
           cursorPos,
           ImVec2(cursorPos.x + regionAvail.x, cursorPos.y + rowHeight),
-          IM_COL32(255, 255, 255, 6), 0.0f);
+          ImGui::GetColorU32(ImGuiCol_TableRowBgAlt), 0.0f);
     }
     DrawEntityNode(entity);
     rowIdx++;
@@ -173,8 +184,7 @@ void SceneHierarchyPanel::OnImGuiRender() {
   if (m_SelectionContext) {
     DrawComponents(m_SelectionContext);
   } else {
-    ImGui::TextColored(ImVec4(0.376f, 0.376f, 0.627f, 1.0f),
-                       "Select an entity to view properties");
+    ImGui::TextDisabled("Select an entity to view properties");
   }
   ImGui::End();
   ImGui::PopStyleVar();
@@ -218,9 +228,8 @@ void SceneHierarchyPanel::DrawEntityNode(Entity entity) {
   if (!hasChildren)
     flags |= ImGuiTreeNodeFlags_Leaf;
   if (m_SelectionContext == entity) {
-    ImGui::PushStyleColor(ImGuiCol_Header, kAccentMuted);
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
-                          ImVec4(0.424f, 0.388f, 1.000f, 0.25f));
+    ImGui::PushStyleColor(ImGuiCol_Header, kAccentMuted());
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, kAccentMuted());
   }
   bool opened = ImGui::TreeNodeEx(tc.Tag.c_str(), flags | (expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0));
   if (m_SelectionContext == entity)
@@ -263,7 +272,7 @@ void SceneHierarchyPanel::DrawEntityNode(Entity entity) {
 
   bool entityDeleted = false;
   if (ImGui::BeginPopupContextItem()) {
-    ImGui::TextColored(ImVec4(0.92f, 0.92f, 0.92f, 0.50f), "Entity Actions");
+    ImGui::TextColored(DimText(0.50f), "Entity Actions");
     ImGui::Separator();
     DrawCreateEntityMenu(entity);
     if (ImGui::MenuItem("  Unparent to Root"))
@@ -301,8 +310,7 @@ static void DrawVec3Control(const std::string &label, glm::vec3 &value,
   ImGui::PushID(label.c_str());
   ImGui::Columns(2);
   ImGui::SetColumnWidth(0, columeWidth);
-  ImGui::TextColored(ImVec4(0.878f, 0.878f, 0.926f, 0.70f), "%s",
-                     label.c_str());
+  ImGui::TextColored(DimText(0.70f), "%s", label.c_str());
   ImGui::NextColumn();
   ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -376,12 +384,6 @@ static void DrawComponents(const std::string &name, Entity entity,
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.0f);
     ImGui::Separator();
     ImGui::Spacing();
-    ImGui::PushStyleColor(ImGuiCol_Header,
-                          ImVec4{0.165f, 0.165f, 0.340f, 1.0f});
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
-                          ImVec4{0.200f, 0.200f, 0.420f, 1.0f});
-    ImGui::PushStyleColor(ImGuiCol_HeaderActive,
-                          ImVec4{0.240f, 0.240f, 0.500f, 1.0f});
     ImGuiIO &io = ImGui::GetIO();
     ImFont *boldFont = io.Fonts->Fonts.Size > 1 ? io.Fonts->Fonts[1] : nullptr;
     if (boldFont)
@@ -390,22 +392,19 @@ static void DrawComponents(const std::string &name, Entity entity,
                                   name.c_str());
     if (boldFont)
       ImGui::PopFont();
-    ImGui::PopStyleColor(3);
     ImGui::PopStyleVar();
     ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
     ImGui::PushID(name.c_str());
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                          ImVec4(0.424f, 0.388f, 1.0f, 0.25f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-                          ImVec4(0.424f, 0.388f, 1.0f, 0.40f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentMuted());
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentHover());
     if (ImGui::Button("...", ImVec2{lineHeight, lineHeight})) {
       ImGui::OpenPopup("ComponentSettings");
     }
     ImGui::PopStyleColor(3);
     bool removeComponent = false;
     if (ImGui::BeginPopup("ComponentSettings")) {
-      ImGui::TextColored(ImVec4(0.878f, 0.878f, 0.926f, 0.50f), "Component");
+      ImGui::TextColored(DimText(0.50f), "Component");
       ImGui::Separator();
       if (ImGui::MenuItem("  Remove Component"))
         removeComponent = true;
@@ -439,9 +438,9 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
     auto &mc = entity.GetComponent<Model3DComponent>();
     if (mc.IsLoaded && mc.ModelData &&
         !mc.ModelData->GetNodes().empty()) {
-      ImGui::PushStyleColor(ImGuiCol_Button, kAccent);
-      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHover);
-      ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentActive);
+      ImGui::PushStyleColor(ImGuiCol_Button, kAccent());
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHover());
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentActive());
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
       if (ImGui::Button("Expand Child Nodes", ImVec2(-1, 0))) {
         m_Context->CollapseModelNodes(entity);
@@ -465,16 +464,16 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
     ImGui::PopStyleVar(2);
   }
   ImGui::SameLine();
-  ImGui::PushStyleColor(ImGuiCol_Button, kAccent);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHover);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentActive);
+  ImGui::PushStyleColor(ImGuiCol_Button, kAccent());
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHover());
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentActive());
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
   if (ImGui::Button("+ Add"))
     ImGui::OpenPopup("AddComponents");
   ImGui::PopStyleVar();
   ImGui::PopStyleColor(3);
   if (ImGui::BeginPopup("AddComponents")) {
-    ImGui::TextColored(ImVec4(0.878f, 0.878f, 0.926f, 0.50f), "Components");
+    ImGui::TextColored(DimText(0.50f), "Components");
     ImGui::Separator();
     if (ImGui::MenuItem("  Camera")) {
       m_SelectionContext.AddComponent<CameraComponent>();

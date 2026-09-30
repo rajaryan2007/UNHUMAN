@@ -1,4 +1,5 @@
 #include "Editor.h"
+#include "EditorTheme.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
@@ -21,6 +22,8 @@ Editor::Editor()
 }
 void Editor::OnAttach()
 {
+    EditorTheme::LoadSelected(); // pick up the persisted theme before first frame
+
     FramebufferSpecification fbSpec;
     fbSpec.Attachments = {FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RED_INTEGER,
                           FramebufferTextureFormat::Depth};
@@ -282,6 +285,7 @@ void Editor::SaveSceneAs()
 void Editor::OnImGuiRender()
 {
     UHE_PROFILE_FUNCTION();
+    EditorTheme::EnsureApplied();
 
     static bool dockspaceOpen = true;
     static bool opt_fullscreen = true;
@@ -372,6 +376,23 @@ void Editor::OnImGuiRender()
     }
     
     ImGui::Checkbox("Show Light Icons", &Scene::GetShowLightIcons());
+
+    ImGui::Separator();
+    // Issue #17 UX: built-in theme selector, persisted across sessions.
+    const char* themeLabel = EditorTheme::GetName(EditorTheme::GetSelected());
+    if (ImGui::BeginCombo("Theme", themeLabel))
+    {
+        for (int i = 0; i < (int)EditorTheme::EditorThemeId::COUNT; i++)
+        {
+            auto id = (EditorTheme::EditorThemeId)i;
+            bool selected = (EditorTheme::GetSelected() == id);
+            if (ImGui::Selectable(EditorTheme::GetName(id), selected) && !selected)
+                EditorTheme::SetSelected(id);
+            if (selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
 
     ImGui::End();
     DrawConsolePanel();
@@ -607,7 +628,9 @@ void Editor::UI_Toolbar()
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.32f, 0.22f, 0.55f, 0.85f));
+    ImVec4 toolbarBg = EditorTheme::ToolbarBg();
+    toolbarBg.w = 0.85f;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, toolbarBg);
 
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
     auto& colors = ImGui::GetStyle().Colors;
