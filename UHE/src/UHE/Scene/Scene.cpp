@@ -94,7 +94,9 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
         // copy (play mode snapshot).
         if (srcRegistry.all_of<IDComponent>(srcEntity))
         {
+            u64 generatedID = newEntity.GetUUID();
             newEntity.GetComponent<IDComponent>().ID = srcRegistry.get<IDComponent>(srcEntity).ID;
+            newScene->UnindexEntity(generatedID); // drop the auto-generated key
             newScene->IndexEntity(newEntity, newEntity.GetUUID());
         }
         if (srcRegistry.all_of<RelationshipComponent>(srcEntity))
@@ -317,8 +319,37 @@ UHE::Entity Scene::CreateChildEntity(Entity parent, const std::string& name /*= 
     Entity entity = CreateEntity(name);
     u64 childID = entity.GetUUID();
     u64 parentID = parent.GetUUID();
-    m_PendingReparents.push_back({childID, parentID});
+    // Fresh child: keep its local transform so it appears at the parent's
+    // origin (world preservation would teleport it back to its old world spot,
+    // i.e. the world origin for a new entity, cancelling the parent's).
+    m_PendingReparents.push_back({childID, parentID, /*PreserveWorld=*/false});
     return entity;
+}
+
+void Scene::AttachChildEntity(Entity child, Entity parent)
+{
+    UHE_CORE_ASSERT(child, "Child is null!");
+    UHE_CORE_ASSERT(parent, "Parent is null!");
+    if (!child || !parent || child == parent)
+        return;
+    if (IsEntityParentOf(child, parent))
+    {
+        UHE_CORE_WARN("AttachChildEntity rejected (cycle): child={0} parent={1}", (u64)child.GetUUID(),
+                      (u64)parent.GetUUID());
+        return;
+    }
+
+    Entity currentParent = GetParentEntity(child);
+    if (currentParent)
+    {
+        auto& siblings = currentParent.GetComponent<RelationshipComponent>().Children;
+        siblings.erase(std::remove(siblings.begin(), siblings.end(), child.GetUUID()), siblings.end());
+    }
+
+    auto& rel = child.GetComponent<RelationshipComponent>();
+    rel.Parent = parent.GetUUID();
+    parent.GetComponent<RelationshipComponent>().Children.push_back(child.GetUUID());
+    // Local transform intentionally untouched.
 }
 
 void Scene::DestroyEntity(Entity entity)
@@ -440,7 +471,8 @@ void Scene::ReparentEntity(Entity entity, Entity newParent)
     // Cannot parent under self or own descendant (would create a cycle).
     if (entity == newParent || IsEntityParentOf(entity, newParent))
     {
-        UHE_CORE_WARN("ReparentEntity rejected: would create a hierarchy cycle.");
+        UHE_CORE_WARN("ReparentEntity rejected (cycle): entity={0} newParent={1}", (u64)entity.GetUUID(),
+                      (u64)newParent.GetUUID());
         return;
     }
 
@@ -664,29 +696,17 @@ std::vector<Entity> Scene::GetRootEntities()
 {
     std::vector<Entity> roots;
 
-    // A root is an entity whose Parent is 0 or dangling AND that is not listed
-    // as a child of any other live entity. The second condition makes ghosts
-    // from stale/corrupted child lists impossible to display or serialize.
-    std::unordered_set<u64> listedAsChild;
-    auto relViewAll = m_registry.view<RelationshipComponent>();
-    for (auto handle : relViewAll)
-    {
-        for (u64 childID : relViewAll.get<RelationshipComponent>(handle).Children)
-            listedAsChild.insert(childID);
-    }
-
+    // A root is an entity whose Parent is 0 or dangling. Stale child-list
+    // entries elsewhere do NOT disqualify it (Parent is authoritative);
+    // consumers validate child edges against RelationshipComponent.Parent
+    // instead, so a stale entry can never draw or serialize a duplicate.
     auto view = m_registry.view<RelationshipComponent>();
     for (auto handle : view)
     {
-        Entity entity{handle, this};
         auto& rel = view.get<RelationshipComponent>(handle);
         bool danglingParent = rel.Parent != 0 && !GetEntityWithUUID(rel.Parent);
         if (rel.Parent == 0 || danglingParent)
-        {
-            if (listedAsChild.count(entity.GetUUID()))
-                continue; // ghost entry: some parent still lists it
-            roots.push_back(entity);
-        }
+            roots.push_back(Entity{handle, this});
     }
     return roots;
 }
@@ -840,12 +860,17 @@ void Scene::FlushPendingReparents()
     auto pending = m_PendingReparents;
     m_PendingReparents.clear();
 
-    for (auto& [childID, parentID] : pending)
+    for (auto& [childID, parentID, preserveWorld] : pending)
     {
         Entity child = GetEntityWithUUID(childID);
         Entity parent = GetEntityWithUUID(parentID);
         if (child && parent)
-            ReparentEntity(child, parent);
+        {
+            if (preserveWorld)
+                ReparentEntity(child, parent);
+            else
+                AttachChildEntity(child, parent);
+        }
     }
 }
 

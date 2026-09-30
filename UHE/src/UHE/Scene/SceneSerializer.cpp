@@ -269,15 +269,17 @@ static void SerializeEntityRecursive(YAML::Emitter& out, Entity entity)
     SerializeEntity(out, entity);
 
     // Issue #17 hardening: walk children explicitly instead of serializing
-    // every registry entity at top level (avoids ghost duplicates from stale
-    // child lists and preserves the intended hierarchy order).
+    // every registry entity at top level. A child entry is followed only when
+    // the child's own Parent points back at us, so stale child-list entries
+    // (double-listed or re-parented elsewhere) cannot serialize twice.
     if (entity.HasComponent<RelationshipComponent>())
     {
         auto childrenCopy = entity.GetComponent<RelationshipComponent>().Children;
         for (u64 childID : childrenCopy)
         {
             Entity child = entity.GetScene()->GetEntityWithUUID(childID);
-            if (child)
+            if (child && child.HasComponent<RelationshipComponent>() &&
+                child.GetComponent<RelationshipComponent>().Parent == entity.GetUUID())
                 SerializeEntityRecursive(out, child);
         }
     }
@@ -335,8 +337,14 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
         Entity entity = m_Scene->CreateEntity(name);
         if (entityNode["Entity"])
         {
-            entity.GetComponent<IDComponent>().ID = entityNode["Entity"].as<u64>();
-            m_Scene->IndexEntity(entity, entity.GetUUID()); // keep the O(1) UUID index in sync
+            u64 serializedID = entityNode["Entity"].as<u64>();
+            if (serializedID != 0) // 0 = legacy/pre-UUID file: keep fresh IDs
+            {
+                u64 generatedID = entity.GetUUID();
+                entity.GetComponent<IDComponent>().ID = serializedID;
+                m_Scene->UnindexEntity(generatedID); // drop the auto-generated key
+                m_Scene->IndexEntity(entity, entity.GetUUID()); // keep the O(1) UUID index in sync
+            }
         }
 
         if (auto relNode = entityNode["RelationshipComponent"])

@@ -79,7 +79,10 @@ public:
 
     // Issue #17 hardening: hierarchy mutations queued from the editor UI and
     // applied at a safe point in the frame (start of the next update).
-    void QueueReparent(u64 entityID, u64 newParentID) { m_PendingReparents.push_back({entityID, newParentID}); }
+    void QueueReparent(u64 entityID, u64 newParentID)
+    {
+        m_PendingReparents.push_back({entityID, newParentID, true});
+    }
     void QueueCollapse(u64 entityID)
     {
         if (entityID != 0)
@@ -126,10 +129,15 @@ private:
     void FlushPendingReparents();
     void FlushPendingCollapses();
     void FlushPendingModelOps();
+    // Attach 'child' under 'parent' WITHOUT preserving its world transform:
+    // the local transform is kept as-is (new entities appear at the parent's
+    // origin). ReparentEntity is the world-preserving variant.
+    void AttachChildEntity(Entity child, Entity parent);
     struct PendingReparent
     {
         u64 ChildID;
         u64 ParentID;
+        bool PreserveWorld; // true = drag-drop re-parent, false = fresh child
     };
     std::vector<PendingReparent> m_PendingReparents;
     std::vector<u64> m_PendingCollapses;

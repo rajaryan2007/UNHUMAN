@@ -302,7 +302,11 @@ void SceneHierarchyPanel::DrawEntityNode(Entity entity) {
       auto childrenCopy = entity.GetComponent<RelationshipComponent>().Children;
       for (u64 childID : childrenCopy) {
         Entity child = m_Context->GetEntityWithUUID(childID);
-        if (child)
+        // Edge validation: a child entry only draws when the child's own
+        // Parent points back at us — stale entries (child re-parented or
+        // deleted elsewhere) can never produce a duplicate row.
+        if (child && child.HasComponent<RelationshipComponent>() &&
+            child.GetComponent<RelationshipComponent>().Parent == entityID)
           DrawEntityNode(child);
       }
     }

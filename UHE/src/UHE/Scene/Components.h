@@ -40,7 +40,13 @@ struct UHE_API TransformComponent
 struct UHE_API IDComponent
 {
     u64 ID = 0;
-    IDComponent() = default;
+    // Fresh entities get a real random UUID here: leaving it 0 made EVERY
+    // entity share identity 0, so GetEntityWithUUID returned the first
+    // registry entity and all UUID-based logic (deferred child creation,
+    // unparenting, serialization, dedup) silently operated on the wrong
+    // entities. Deserialization overwrites this with the stored value.
+    IDComponent() : ID(UUID()) {}
+    explicit IDComponent(u64 id) : ID(id) {}
     IDComponent(const IDComponent&) = default;
 };
 
