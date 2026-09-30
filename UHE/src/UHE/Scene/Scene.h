@@ -114,6 +114,12 @@ public:
     template <typename T> void OnComponentAdded(Entity entity, T& components);
 
 private:
+    // Issue #17 lifetime fix: NativeScriptComponent::Instance is heap-owned
+    // (created by InstantiateScript) and must be released via OnDestroy() +
+    // DestroyScript on entity deletion AND scene teardown, or every script
+    // leaks and keeps a dangling Entity handle.
+    void DestroyScriptInstances();
+
     // Issue #17 hardening: hierarchy mutations requested from the editor UI
     // while it iterates the registry are queued here and applied at a safe
     // point in the frame (start of OnUpdateEditor / OnUpdateRuntime).

@@ -49,7 +49,31 @@ Scene::Scene()
     m_registry.storage<RelationshipComponent>();
 }
 
-Scene::~Scene() = default;
+Scene::~Scene()
+{
+    // Issue #17 lifetime fix: release script instances before the registry
+    // dies so OnDestroy() can still access components and handles safely.
+    DestroyScriptInstances();
+}
+
+void Scene::DestroyScriptInstances()
+{
+    // ScriptableEntity grants Scene friendship, so calling OnDestroy() here
+    // is allowed even though it is protected.
+    m_registry.view<NativeScriptComponent>().each(
+        [this](auto entity, auto& nsc)
+        {
+            if (nsc.Instance)
+            {
+                nsc.Instance->OnDestroy();
+                if (nsc.DestroyScript)
+                    nsc.DestroyScript(&nsc);
+                else
+                    delete nsc.Instance; // bound scripts always set DestroyScript
+                nsc.Instance = nullptr;
+            }
+        });
+}
 
 Ref<Scene> Scene::Copy(Ref<Scene> other)
 {
@@ -299,6 +323,22 @@ UHE::Entity Scene::CreateChildEntity(Entity parent, const std::string& name /*= 
 
 void Scene::DestroyEntity(Entity entity)
 {
+    // Issue #17 lifetime fix: destroy the script instance (OnDestroy + delete)
+    // BEFORE the registry handle dies, or it leaks and keeps a dangling Entity.
+    if (entity.HasComponent<NativeScriptComponent>())
+    {
+        auto& nsc = entity.GetComponent<NativeScriptComponent>();
+        if (nsc.Instance)
+        {
+            nsc.Instance->OnDestroy();
+            if (nsc.DestroyScript)
+                nsc.DestroyScript(&nsc);
+            else
+                delete nsc.Instance;
+            nsc.Instance = nullptr;
+        }
+    }
+
     // Issue #17: recursively destroy children first.
     if (entity.HasComponent<RelationshipComponent>())
     {
@@ -1299,6 +1339,11 @@ void Scene::OnRuntimeStart()
 
 void Scene::OnRuntimeStop()
 {
+    // Issue #17 lifetime fix: the runtime (play-mode) scene copy instantiated
+    // its own script instances; release them before the copy is swapped out,
+    // otherwise every play session leaked the whole instance set.
+    DestroyScriptInstances();
+
     if (b2World_IsValid(m_PhysicsWorldId))
     {
         b2DestroyWorld(m_PhysicsWorldId);
