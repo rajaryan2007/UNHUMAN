@@ -50,6 +50,7 @@ namespace
 int g_failures = 0;
 int g_checks = 0;
 
+/// @brief Record an assertion and print its description on failure without stopping the harness.
 void check(bool condition, std::string_view what)
 {
     ++g_checks;
@@ -60,6 +61,7 @@ void check(bool condition, std::string_view what)
     }
 }
 
+/// @brief Print a heading for the next group of integration checks.
 void section(std::string_view name)
 {
     std::printf("[ %.*s ]\n", static_cast<int>(name.size()), name.data());
@@ -90,10 +92,13 @@ struct StridedFloats
     std::size_t count = 0; // element count, NOT byte count
     std::size_t stride = 0; // bytes between elements
 
+    /// @brief Return the pointer to the first scalar in the strided stream.
     const f32* begin() const { return data; }
+    /// @brief Return the stream pointer advanced by count byte strides.
     const f32* end() const { return data + count * (stride / sizeof(f32)); }
 };
 
+/// @brief Return a borrowed position stream, or an empty view for empty input.
 StridedFloats positionsOf(std::span<const Vertex> vertices)
 {
     if (vertices.empty())
@@ -101,6 +106,7 @@ StridedFloats positionsOf(std::span<const Vertex> vertices)
     return {vertices.front().position, vertices.size(), sizeof(Vertex)};
 }
 
+/// @brief Return a borrowed normal stream, or an empty view for empty input.
 StridedFloats normalsOf(std::span<const Vertex> vertices)
 {
     if (vertices.empty())
@@ -108,6 +114,7 @@ StridedFloats normalsOf(std::span<const Vertex> vertices)
     return {vertices.front().normal, vertices.size(), sizeof(Vertex)};
 }
 
+/// @brief Return a borrowed UV stream, or an empty view for empty input.
 StridedFloats uvsOf(std::span<const Vertex> vertices)
 {
     if (vertices.empty())
@@ -118,9 +125,9 @@ StridedFloats uvsOf(std::span<const Vertex> vertices)
 constexpr u32 kSlices = 16;
 constexpr u32 kStacks = 12;
 
-// A UV sphere: enough triangles that cache/fetch optimization has real work to
-// do, small enough to verify exactly. Normals are true sphere normals, so
-// meshopt_generateTangents has well-conditioned input.
+/// A UV sphere: enough triangles that cache/fetch optimization has real work to
+/// do, small enough to verify exactly. Normals are true sphere normals, so
+/// meshopt_generateTangents has well-conditioned input.
 std::vector<Vertex> makeSphere()
 {
     std::vector<Vertex> vertices;
@@ -151,6 +158,7 @@ std::vector<Vertex> makeSphere()
     return vertices;
 }
 
+/// @brief Build two triangles per grid cell using the vertex order from makeSphere().
 std::vector<u32> makeSphereIndices()
 {
     std::vector<u32> indices;
@@ -167,15 +175,15 @@ std::vector<u32> makeSphereIndices()
     return indices;
 }
 
-// Byte-identical duplicates of every vertex, so generateVertexRemap has real
-// work to do.
-//
-// NOTE: the UV sphere is NOT a valid merge test. Its seam vertices share a
-// position and normal but carry different UVs (u=0 vs u=1), and
-// meshopt_generateVertexRemap hashes all vertex_size bytes - so the correct
-// answer for a sphere is "no reduction". Asserting a reduction there tests the
-// wrong thing. The loader only sees a real merge when the source data is
-// genuinely duplicated, which is what this models.
+/// Byte-identical duplicates of every vertex, so generateVertexRemap has real
+/// work to do.
+///
+/// NOTE: the UV sphere is NOT a valid merge test. Its seam vertices share a
+/// position and normal but carry different UVs (u=0 vs u=1), and
+/// meshopt_generateVertexRemap hashes all vertex_size bytes - so the correct
+/// answer for a sphere is "no reduction". Asserting a reduction there tests the
+/// wrong thing. The loader only sees a real merge when the source data is
+/// genuinely duplicated, which is what this models.
 std::vector<Vertex> makeSphereWithDuplicates(std::span<const Vertex> base)
 {
     std::vector<Vertex> vertices(base.begin(), base.end());
@@ -185,14 +193,14 @@ std::vector<Vertex> makeSphereWithDuplicates(std::span<const Vertex> base)
     return vertices;
 }
 
-// Shuffle the triangle order so consecutive triangles reference unrelated
-// vertices.
-//
-// This matters more than it looks. Reversing triangle order on a GRID mesh is
-// NOT a scramble: the mesh is so regular that walking it backwards still keeps
-// consecutive triangles adjacent, so vertex-cache locality barely moves and any
-// ACMR assertion on it is vacuous. A real Fisher-Yates shuffle with a fixed
-// seed destroys locality for real.
+/// Shuffle the triangle order so consecutive triangles reference unrelated
+/// vertices.
+///
+/// This matters more than it looks. Reversing triangle order on a GRID mesh is
+/// NOT a scramble: the mesh is so regular that walking it backwards still keeps
+/// consecutive triangles adjacent, so vertex-cache locality barely moves and any
+/// ACMR assertion on it is vacuous. A real Fisher-Yates shuffle with a fixed
+/// seed destroys locality for real.
 std::vector<u32> scrambleTriangles(std::span<const u32> indices)
 {
     std::vector<u32> triangles(indices.begin(), indices.end());
@@ -211,10 +219,10 @@ std::vector<u32> scrambleTriangles(std::span<const u32> indices)
     return triangles;
 }
 
-// Sum of triangle areas. Not a full surface-area metric, but it IS invariant
-// under the index permutations these functions perform, which is exactly the
-// property under test: a non-lossy "optimization" that changes geometry fails
-// here.
+/// Sum of triangle areas. Not a full surface-area metric, but it IS invariant
+/// under the index permutations these functions perform, which is exactly the
+/// property under test: a non-lossy "optimization" that changes geometry fails
+/// here.
 f64 surfaceSignature(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     f64 total = 0.0;
@@ -238,6 +246,7 @@ f64 surfaceSignature(std::span<const Vertex> vertices, std::span<const u32> indi
     return total;
 }
 
+/// @brief Check that the vendored meshoptimizer meets the minimum expected version.
 void testVersion()
 {
     section("version");
@@ -245,6 +254,7 @@ void testVersion()
     check(MESHOPTIMIZER_VERSION >= 1020, "version >= 1.2 (generateVertexRemapMulti / simplify attributes)");
 }
 
+/// @brief Check remap bounds, duplicate compaction, and surface preservation for the sphere fixtures.
 void testIndexGeneration(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("generateVertexRemap / remap buffers");
@@ -309,6 +319,7 @@ void testIndexGeneration(std::span<const Vertex> vertices, std::span<const u32> 
     }
 }
 
+/// @brief Check that cache optimization preserves the surface and improves cache metrics on shuffled triangles.
 void testVertexCacheOptimization(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("optimizeVertexCache");
@@ -338,6 +349,7 @@ void testVertexCacheOptimization(std::span<const Vertex> vertices, std::span<con
     std::printf("  acmr %.3f -> %.3f, atvr %.3f -> %.3f\n", before.acmr, after.acmr, before.atvr, after.atvr);
 }
 
+/// @brief Check fetch remap bounds, surface preservation, and overfetch after cache optimization.
 void testVertexFetchOptimization(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("optimizeVertexFetchRemap");
@@ -372,6 +384,7 @@ void testVertexFetchOptimization(std::span<const Vertex> vertices, std::span<con
     std::printf("  overfetch %.3f, %u bytes fetched\n", fetch.overfetch, fetch.bytes_fetched);
 }
 
+/// @brief Check that overdraw optimization preserves the index count and surface signature.
 void testOverdrawOptimization(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("optimizeOverdraw");
@@ -390,6 +403,7 @@ void testOverdrawOptimization(std::span<const Vertex> vertices, std::span<const 
           "surface signature unchanged by overdraw optimization");
 }
 
+/// @brief Check surface preservation after vertex sorting and the index count after triangle sorting.
 void testSpatialSort(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("spatialSortRemap");
@@ -413,6 +427,7 @@ void testSpatialSort(std::span<const Vertex> vertices, std::span<const u32> indi
     check(triSort.size() == indices.size(), "spatial sort triangles preserves index count");
 }
 
+/// @brief Check simplification reduces triangles while keeping valid indices and a bounded reported error.
 void testSimplify(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("simplify");
@@ -453,6 +468,7 @@ void testSimplify(std::span<const Vertex> vertices, std::span<const u32> indices
                 scale);
 }
 
+/// @brief Check per-corner tangents are finite and mostly unit length and orthogonal to their normals.
 void testTangents(std::span<const Vertex> vertices, std::span<const u32> indices)
 {
     section("generateTangents");
@@ -501,6 +517,7 @@ void testTangents(std::span<const Vertex> vertices, std::span<const u32> indices
                 indices.size());
 }
 
+/// @brief Check position exponents stay within the asserted range for the supplied nonempty vertex bounds.
 void testQuantization(std::span<const Vertex> vertices)
 {
     section("computePositionExponent");
@@ -538,6 +555,7 @@ void testQuantization(std::span<const Vertex> vertices)
 
 } // namespace
 
+/// @brief Run all meshoptimizer integration checks and return zero only when no assertions fail.
 int main()
 {
     std::printf("meshoptimizer harness - version %d\n\n", MESHOPTIMIZER_VERSION);
