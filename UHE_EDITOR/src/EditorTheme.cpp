@@ -1,7 +1,6 @@
 #include "EditorTheme.h"
-#include <cstring>
-#include <cstdio>
 #include <filesystem>
+#include <fstream>
 
 namespace EditorTheme
 {
@@ -224,22 +223,25 @@ namespace EditorTheme
             }
         }
 
-        const char* SettingsPath()
+        // The converted string must itself be static: returning a temporary
+        // path.string().c_str() handed fopen a dangling pointer (ASan
+        // heap-use-after-free in LoadSelected).
+        const std::string& SettingsPath()
         {
-            // Lives next to wherever the editor was launched from (the bin
-            // output dir in dev), keeping the source tree clean.
-            static std::filesystem::path path = std::filesystem::current_path() / "editor_theme.ini";
-            return path.string().c_str();
+            static const std::string pathStr =
+                (std::filesystem::current_path() / "editor_theme.ini").string();
+            return pathStr;
         }
 
         void Persist()
         {
-            FILE* f = fopen(SettingsPath(), "w");
-            if (!f)
+            // std::ofstream, no raw FILE* handle to leak or misuse.
+            std::ofstream out(SettingsPath());
+            if (!out)
                 return; // read-only dir shouldn't break the UI
-            fprintf(f, "%d\n%d\n%.4f %.4f %.4f\n", (int)s_Selected, s_CustomEnabled ? 1 : 0,
-                    s_CustomAccent.x, s_CustomAccent.y, s_CustomAccent.z);
-            fclose(f);
+            out << (int)s_Selected << '\n'
+                << (s_CustomEnabled ? 1 : 0) << '\n'
+                << s_CustomAccent.x << ' ' << s_CustomAccent.y << ' ' << s_CustomAccent.z << '\n';
         }
     } // namespace
 
@@ -297,24 +299,24 @@ namespace EditorTheme
         s_CustomEnabled = false;
         s_CustomAccent = ImVec4{0.424f, 0.388f, 1.000f, 1.0f};
 
-        if (FILE* f = fopen(SettingsPath(), "r"))
+        std::ifstream in(SettingsPath());
+        if (in)
         {
             int value = -1;
-            if (fscanf(f, "%d", &value) == 1 && value >= 0 && value < (int)EditorThemeId::COUNT)
+            if (in >> value && value >= 0 && value < (int)EditorThemeId::COUNT)
                 s_Selected = (EditorThemeId)value;
 
             int custom = 0;
-            if (fscanf(f, "%d", &custom) == 1)
+            if (in >> custom)
                 s_CustomEnabled = (custom != 0);
 
-            float r, g, b;
-            if (fscanf(f, "%f %f %f", &r, &g, &b) == 3)
+            float r = 0.0f, g = 0.0f, b = 0.0f;
+            if (in >> r >> g >> b)
             {
+                // Accepted as-is (including black): SetCustomAccent persists
+                // whatever the user picked, so loading must round-trip it.
                 s_CustomAccent = ImVec4(r, g, b, 1.0f);
-                if (s_CustomAccent.x <= 0.0f && s_CustomAccent.y <= 0.0f && s_CustomAccent.z <= 0.0f)
-                    s_CustomEnabled = false; // black accent is a corrupt entry
             }
-            fclose(f);
         }
         s_Applied = false; // re-apply on first frame with the loaded settings
     }
@@ -359,4 +361,14 @@ namespace EditorTheme
     ImVec4 AccentActive()  { return WithAlpha(Accent(), 0.70f); }
     ImVec4 AccentMuted()   { return WithAlpha(Accent(), 0.15f); }
     ImVec4 ToolbarBg()     { return GetCol(ImGuiCol_TitleBgActive); }
+
+    ImVec4 AccentForeground()
+    {
+        // Relative luminance (Rec. 709): light accents need dark text, dark
+        // accents need white. Fixes e.g. Carbon (near-white accent) rendering
+        // white-on-white button labels.
+        const ImVec4 a = Accent();
+        float lum = 0.2126f * a.x + 0.7152f * a.y + 0.0722f * a.z;
+        return lum > 0.55f ? ImVec4(0.080f, 0.080f, 0.090f, 1.0f) : ImVec4(0.960f, 0.960f, 0.960f, 1.0f);
+    }
 } // namespace EditorTheme

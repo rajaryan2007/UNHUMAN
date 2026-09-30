@@ -69,7 +69,10 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
         // Issue #17: keep the same UUID so parent/child references survive the
         // copy (play mode snapshot).
         if (srcRegistry.all_of<IDComponent>(srcEntity))
+        {
             newEntity.GetComponent<IDComponent>().ID = srcRegistry.get<IDComponent>(srcEntity).ID;
+            newScene->IndexEntity(newEntity, newEntity.GetUUID());
+        }
         if (srcRegistry.all_of<RelationshipComponent>(srcEntity))
             newEntity.GetComponent<RelationshipComponent>() = srcRegistry.get<RelationshipComponent>(srcEntity);
 
@@ -274,6 +277,8 @@ UHE::Entity Scene::CreateEntity(const std::string& name /*= std::string()*/)
     auto& tag = entity.AddComponent<TagComponent>();
     tag.Tag = name.empty() ? "Entity" : name;
 
+    IndexEntity(entity, entity.GetUUID());
+
     return entity;
 }
 
@@ -322,6 +327,7 @@ void Scene::DestroyEntity(Entity entity)
         }
     }
 
+    UnindexEntity(entity.GetUUID());
     m_registry.destroy(entity);
 }
 
@@ -329,13 +335,25 @@ void Scene::DestroyEntity(Entity entity)
 
 Entity Scene::GetEntityWithUUID(u64 uuid)
 {
-    auto view = m_registry.view<IDComponent>();
-    for (auto entityHandle : view)
-    {
-        if (view.get<IDComponent>(entityHandle).ID == uuid)
-            return Entity{entityHandle, this};
-    }
+    // O(1) index lookup; the old implementation scanned every IDComponent,
+    // which dominated frame time once the hierarchy UI and rendering started
+    // resolving UUIDs each frame.
+    auto it = m_UUIDIndex.find(uuid);
+    if (it != m_UUIDIndex.end() && m_registry.valid(it->second))
+        return Entity{it->second, this};
     return {};
+}
+
+void Scene::IndexEntity(Entity entity, u64 uuid)
+{
+    if (!entity)
+        return;
+    m_UUIDIndex[uuid] = (entt::entity)entity;
+}
+
+void Scene::UnindexEntity(u64 uuid)
+{
+    m_UUIDIndex.erase(uuid);
 }
 
 bool Scene::IsEntityParentOf(Entity parent, Entity entity)
@@ -416,50 +434,78 @@ void Scene::CollapseEntity(Entity entity)
     if (!entity)
         return;
 
-    Entity parent = GetParentEntity(entity);
-    if (!parent)
-        return; // already a root
-
     // Issue #17 hardening: a stale child entry can make GetParentEntity
     // resolve to the entity itself (its own UUID listed under its Children).
-    // Treat that as a root instead of detaching from itself.
-    if (parent == entity)
+    // Repair that state instead of detaching from itself.
+    auto& rel = entity.GetComponent<RelationshipComponent>();
+    auto& kids = rel.Children;
+    kids.erase(std::remove(kids.begin(), kids.end(), entity.GetUUID()), kids.end());
+
+    Entity parent = GetParentEntity(entity);
+    if (!parent)
     {
-        auto& selfRel = entity.GetComponent<RelationshipComponent>();
-        selfRel.Parent = 0;
-        auto& kids = selfRel.Children;
-        kids.erase(std::remove(kids.begin(), kids.end(), entity.GetUUID()), kids.end());
+        rel.Parent = 0; // already a root (or dangling parent reference)
         return;
     }
+    if (parent == entity)
+        return; // repaired above
 
+    // Keep the entity's world transform, detach ONLY the entity: its children
+    // stay attached and simply move along with it (the old implementation
+    // re-parented every child to the grandparent, which scattered subtrees).
     glm::mat4 worldTransform = GetWorldSpaceTransformMatrix(entity);
 
-    auto& rel = entity.GetComponent<RelationshipComponent>();
-    auto childrenCopy = rel.Children;
+    auto& siblings = parent.GetComponent<RelationshipComponent>().Children;
+    siblings.erase(std::remove(siblings.begin(), siblings.end(), entity.GetUUID()), siblings.end());
 
-    // Re-attach children to the grandparent first, preserving their world
-    // transforms.
-    for (u64 childID : childrenCopy)
-    {
-        Entity child = GetEntityWithUUID(childID);
-        if (!child)
-            continue;
-        glm::mat4 childWorld = GetWorldSpaceTransformMatrix(child);
-
-        auto& childRel = child.GetComponent<RelationshipComponent>();
-        childRel.Parent = parent.GetUUID();
-        parent.GetComponent<RelationshipComponent>().Children.push_back(childID);
-
-        SetLocalTransformFromWorld(child, childWorld);
-    }
-
-    rel.Children.clear();
     rel.Parent = 0;
 
     SetLocalTransformFromWorld(entity, worldTransform);
 }
 
-void Scene::CollapseModelNodes(Entity modelEntity)
+void Scene::FlushPendingModelOps()
+{
+    if (!m_PendingModelExpands.empty())
+    {
+        auto pending = m_PendingModelExpands;
+        m_PendingModelExpands.clear();
+        for (u64 modelID : pending)
+        {
+            Entity model = GetEntityWithUUID(modelID);
+            if (model)
+                ExpandModelNodes(model);
+        }
+    }
+
+    if (!m_PendingModelCollapses.empty())
+    {
+        auto pending = m_PendingModelCollapses;
+        m_PendingModelCollapses.clear();
+        for (u64 modelID : pending)
+        {
+            Entity model = GetEntityWithUUID(modelID);
+            if (model)
+                CollapseExpandedModel(model);
+        }
+    }
+}
+
+bool Scene::IsModelExpanded(Entity modelEntity)
+{
+    if (!modelEntity || !modelEntity.HasComponent<RelationshipComponent>())
+        return false;
+
+    auto childrenCopy = modelEntity.GetComponent<RelationshipComponent>().Children;
+    for (u64 childID : childrenCopy)
+    {
+        Entity child = GetEntityWithUUID(childID);
+        if (child && child.HasComponent<ModelNodeComponent>())
+            return true;
+    }
+    return false;
+}
+
+void Scene::ExpandModelNodes(Entity modelEntity)
 {
     UHE_CORE_ASSERT(modelEntity, "Model entity is null!");
     if (!modelEntity || !modelEntity.HasComponent<Model3DComponent>())
@@ -470,20 +516,28 @@ void Scene::CollapseModelNodes(Entity modelEntity)
         return;
 
     const auto& nodes = mc.ModelData->GetNodes();
-    const auto& roots = mc.ModelData->GetRootNodes();
     if (nodes.empty())
         return;
 
+    // Idempotency guard: expanding twice used to duplicate the whole tree.
+    if (IsModelExpanded(modelEntity))
+    {
+        UHE_CORE_WARN("ExpandModelNodes ignored: model is already expanded.");
+        return;
+    }
+
     u64 modelUUID = modelEntity.GetUUID();
 
-    // Create one entity per glTF node (root nodes become direct children of
-    // the model entity so the model keeps its own transform as a handle).
+    // Create one entity per glTF node.
     std::vector<Entity> nodeEntities(nodes.size());
     for (size_t i = 0; i < nodes.size(); i++)
     {
         const auto& node = nodes[i];
         Entity nodeEntity = CreateEntity(node.Name.empty() ? "Node" : node.Name);
 
+        // glTF node transforms are LOCAL to their parent node — assign them
+        // directly, do NOT round-trip through ReparentEntity (which preserves
+        // world transform and used to cancel out the model's own transform).
         auto& transform = nodeEntity.GetComponent<TransformComponent>();
         transform.Translation = node.Translation;
         transform.Rotation = glm::eulerAngles(node.Rotation);
@@ -498,14 +552,71 @@ void Scene::CollapseModelNodes(Entity modelEntity)
         nodeEntities[i] = nodeEntity;
     }
 
-    // Wire up the hierarchy.
+    // Wire the hierarchy directly (locals are already correct model-space).
     for (size_t i = 0; i < nodes.size(); i++)
     {
         const auto& node = nodes[i];
+        auto& rel = nodeEntities[i].GetComponent<RelationshipComponent>();
+
+        u64 parentUUID;
         if (node.Parent >= 0)
-            ReparentEntity(nodeEntities[i], nodeEntities[static_cast<size_t>(node.Parent)]);
+            parentUUID = nodeEntities[static_cast<size_t>(node.Parent)].GetUUID();
         else
-            ReparentEntity(nodeEntities[i], modelEntity);
+            parentUUID = modelUUID; // glTF roots hang under the model entity
+
+        rel.Parent = parentUUID;
+        GetEntityWithUUID(parentUUID).GetComponent<RelationshipComponent>().Children.push_back(
+            nodeEntities[i].GetUUID());
+    }
+}
+
+void Scene::CollapseExpandedModel(Entity modelEntity)
+{
+    UHE_CORE_ASSERT(modelEntity, "Model entity is null!");
+    if (!modelEntity || !IsModelExpanded(modelEntity))
+        return;
+
+    // Re-attach user-created entities that live inside the node tree back to
+    // the model (world transform preserved), then destroy the node entities.
+    // Recursive: user entities may sit anywhere in the glTF subtree.
+    std::function<void(Entity)> foldSubtree = [&](Entity nodeEntity) {
+        auto childrenCopy = nodeEntity.GetComponent<RelationshipComponent>().Children;
+        for (u64 childID : childrenCopy)
+        {
+            Entity child = GetEntityWithUUID(childID);
+            if (!child)
+                continue;
+
+            if (child.HasComponent<ModelNodeComponent>())
+            {
+                foldSubtree(child);
+            }
+            else
+            {
+                // User entity: move to the model with world transform kept.
+                glm::mat4 world = GetWorldSpaceTransformMatrix(child);
+
+                auto& childRel = child.GetComponent<RelationshipComponent>();
+                auto& nodeChildren = nodeEntity.GetComponent<RelationshipComponent>().Children;
+                nodeChildren.erase(std::remove(nodeChildren.begin(), nodeChildren.end(), childID), nodeChildren.end());
+
+                childRel.Parent = modelEntity.GetUUID();
+                modelEntity.GetComponent<RelationshipComponent>().Children.push_back(childID);
+
+                SetLocalTransformFromWorld(child, world);
+            }
+        }
+    };
+
+    auto modelChildren = modelEntity.GetComponent<RelationshipComponent>().Children;
+    for (u64 childID : modelChildren)
+    {
+        Entity child = GetEntityWithUUID(childID);
+        if (child && child.HasComponent<ModelNodeComponent>())
+        {
+            foldSubtree(child);
+            DestroyEntity(child); // removes any remaining node subtree
+        }
     }
 }
 
@@ -639,6 +750,7 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
     // iteration, so no entt iterator gets invalidated).
     FlushPendingReparents();
     FlushPendingCollapses();
+    FlushPendingModelOps();
 
     m_registry.view<NativeScriptComponent>().each(
         [=, this](auto entity, auto& nsc)
@@ -896,12 +1008,12 @@ void Scene::RenderModels(Timestep ts, const std::unordered_map<entt::entity, glm
 
     // Issue #17: leaf nodes of expanded glTF trees submit their sub-mesh with
     // the accumulated world transform so every part is individually placed.
+    // NOTE: group nodes with their own mesh are drawn here too — only nodes
+    // without a mesh are skipped.
     auto nodeView = m_registry.view<ModelNodeComponent>();
     for (auto entity : nodeView)
     {
         auto& nodeComp = nodeView.get<ModelNodeComponent>(entity);
-        if (nodeComp.HasChildrenNodes)
-            continue; // group node, nothing to draw
 
         Entity modelEntity = GetEntityWithUUID(nodeComp.ModelEntity);
         if (!modelEntity || !modelEntity.HasComponent<Model3DComponent>())
@@ -933,6 +1045,7 @@ void Scene::OnUpdateRuntime(Timestep ts)
     // UI before anything reads the tree this frame.
     FlushPendingReparents();
     FlushPendingCollapses();
+    FlushPendingModelOps();
 
     {
         auto view = m_registry.view<AnimatorComponent>();

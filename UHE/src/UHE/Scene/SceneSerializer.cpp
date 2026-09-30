@@ -334,7 +334,10 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
 
         Entity entity = m_Scene->CreateEntity(name);
         if (entityNode["Entity"])
+        {
             entity.GetComponent<IDComponent>().ID = entityNode["Entity"].as<u64>();
+            m_Scene->IndexEntity(entity, entity.GetUUID()); // keep the O(1) UUID index in sync
+        }
 
         if (auto relNode = entityNode["RelationshipComponent"])
         {

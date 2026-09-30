@@ -58,4 +58,7 @@ namespace EditorTheme
     ImVec4 AccentActive();
     ImVec4 AccentMuted();
     ImVec4 ToolbarBg();
+    // Readable text color to use ON TOP of Accent()-filled controls (near-white
+    // accents like Carbon's get dark text; dark accents get white).
+    ImVec4 AccentForeground();
 } // namespace EditorTheme

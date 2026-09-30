@@ -51,12 +51,25 @@ public:
     bool IsEntityParentOf(Entity parent, Entity entity);
     Entity GetParentEntity(Entity entity);
     void ReparentEntity(Entity entity, Entity newParent);
-    // Re-attach 'entity' to its grandparent, keeping its world transform.
+    // Detach 'entity' from its parent (making it a root) while keeping its
+    // world transform; its children stay attached and move along with it.
     void CollapseEntity(Entity entity);
 
     // Issue #17: expand a model's glTF node tree into child entities so every
-    // node is individually controllable in the editor.
-    void CollapseModelNodes(Entity modelEntity);
+    // node is individually controllable in the editor. Idempotent: a model
+    // that is already expanded is left untouched.
+    void ExpandModelNodes(Entity modelEntity);
+    // Fold an expanded model back into a single entity: glTF node entities are
+    // removed; user-created entities under them are re-attached to the model
+    // with their world transforms preserved.
+    void CollapseExpandedModel(Entity modelEntity);
+    // True when 'modelEntity' currently has expanded glTF node entities.
+    bool IsModelExpanded(Entity modelEntity);
+
+    // Issue #17 hardening: model expand/collapse requested from the editor UI
+    // is queued and applied at a safe point in the frame.
+    void QueueModelExpand(u64 modelEntityID) { if (modelEntityID) m_PendingModelExpands.push_back(modelEntityID); }
+    void QueueModelCollapse(u64 modelEntityID) { if (modelEntityID) m_PendingModelCollapses.push_back(modelEntityID); }
 
     // Definitive root list: every entity whose Parent is 0 or dangling.
     // Deduplicates against the Children lists, so UI/serialization must use
@@ -106,6 +119,7 @@ private:
     // point in the frame (start of OnUpdateEditor / OnUpdateRuntime).
     void FlushPendingReparents();
     void FlushPendingCollapses();
+    void FlushPendingModelOps();
     struct PendingReparent
     {
         u64 ChildID;
@@ -113,6 +127,8 @@ private:
     };
     std::vector<PendingReparent> m_PendingReparents;
     std::vector<u64> m_PendingCollapses;
+    std::vector<u64> m_PendingModelExpands;
+    std::vector<u64> m_PendingModelCollapses;
 
     // Issue #17: cached world-space transforms for every entity, built once
     // per frame from the RelationshipComponent tree.
@@ -130,6 +146,16 @@ private:
     // UUID-keyed view of the same cache; used by the editor UI (stable across
     // entity destruction during iteration).
     std::unordered_map<u64, glm::mat4> m_WorldTransformByUUID;
+
+    // UUID index maintenance (friends SceneSerializer/Entity also rely on it
+    // via Copy/Deserialize restoring IDs).
+    void IndexEntity(Entity entity, u64 uuid);
+    void UnindexEntity(u64 uuid);
+
+    // Issue #17 hardening: UUID -> entity index so hierarchy lookups are O(1)
+    // instead of a full IDComponent scan per call (the old scan ran inside
+    // tree iteration, rendering, and every reparent).
+    std::unordered_map<u64, entt::entity> m_UUIDIndex;
 
     b2WorldId m_PhysicsWorldId = b2_nullWorldId;
     Physics::PhysicsSystem3D m_PhysicsSystem3D;

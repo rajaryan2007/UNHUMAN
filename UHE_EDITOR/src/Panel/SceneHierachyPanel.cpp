@@ -18,6 +18,9 @@ static ImVec4 kAccent()       { return ::EditorTheme::Accent(); }
 static ImVec4 kAccentHover()  { return ::EditorTheme::AccentHover(); }
 static ImVec4 kAccentActive() { return ::EditorTheme::AccentActive(); }
 static ImVec4 kAccentMuted()  { return ::EditorTheme::AccentMuted(); }
+// Readable label color for accent-filled controls (fixes white-on-white on
+// light-accent themes like Carbon).
+static ImVec4 kAccentText()   { return ::EditorTheme::AccentForeground(); }
 
 // Dimmed label text derived from the active theme's text color (the old
 // near-white constants were unreadable on the light theme).
@@ -109,9 +112,17 @@ void SceneHierarchyPanel::ApplyQueuedMutations() {
     for (u64 deleteID : m_PendingDeleteIDs) {
       Entity toDelete = m_Context->GetEntityWithUUID(deleteID);
       if (toDelete) {
-        m_Context->DestroyEntity(toDelete);
-        if (m_SelectionContext == toDelete)
+        // Clear the selection BEFORE destroying when it is the deleted entity
+        // OR a descendant of it (deleting a parent removes its whole subtree,
+        // so a child selection would dangle and crash the properties panel).
+        bool clearSelection =
+            m_SelectionContext == toDelete ||
+            (m_SelectionContext &&
+             m_Context->IsEntityParentOf(toDelete, m_SelectionContext));
+        if (clearSelection)
           m_SelectionContext = {};
+
+        m_Context->DestroyEntity(toDelete);
       }
     }
     m_PendingDeleteIDs.clear();
@@ -436,18 +447,27 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
   if (entity.HasComponent<Model3DComponent>() &&
       !entity.HasComponent<ModelNodeComponent>()) {
     auto &mc = entity.GetComponent<Model3DComponent>();
-    if (mc.IsLoaded && mc.ModelData &&
-        !mc.ModelData->GetNodes().empty()) {
+    if (mc.IsLoaded && mc.ModelData && !mc.ModelData->GetNodes().empty()) {
+      // Expand/collapse toggle. Queued, not executed here: the previous
+      // direct call mutated the registry mid-draw AND ran on every click,
+      // duplicating the whole node tree (the reported UI/engine weirdness).
+      bool expanded = m_Context->IsModelExpanded(entity);
+      ImGui::PushStyleColor(ImGuiCol_Text, kAccentText());
       ImGui::PushStyleColor(ImGuiCol_Button, kAccent());
       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHover());
       ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentActive());
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-      if (ImGui::Button("Expand Child Nodes", ImVec2(-1, 0))) {
-        m_Context->CollapseModelNodes(entity);
+      if (ImGui::Button(expanded ? "Collapse Child Nodes" : "Expand Child Nodes",
+                        ImVec2(-1, 0))) {
+        if (expanded)
+          m_Context->QueueModelCollapse(entity.GetUUID());
+        else
+          m_Context->QueueModelExpand(entity.GetUUID());
       }
       ImGui::PopStyleVar();
-      ImGui::PopStyleColor(3);
-      ImGui::TextDisabled("One entity per glTF node");
+      ImGui::PopStyleColor(4);
+      ImGui::TextDisabled(expanded ? "One entity per glTF node"
+                                   : "Fold the glTF tree into editable entities");
     }
   }
 
@@ -464,6 +484,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
     ImGui::PopStyleVar(2);
   }
   ImGui::SameLine();
+  ImGui::PushStyleColor(ImGuiCol_Text, kAccentText());
   ImGui::PushStyleColor(ImGuiCol_Button, kAccent());
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHover());
   ImGui::PushStyleColor(ImGuiCol_ButtonActive, kAccentActive());
@@ -471,7 +492,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
   if (ImGui::Button("+ Add"))
     ImGui::OpenPopup("AddComponents");
   ImGui::PopStyleVar();
-  ImGui::PopStyleColor(3);
+  ImGui::PopStyleColor(4);
   if (ImGui::BeginPopup("AddComponents")) {
     ImGui::TextColored(DimText(0.50f), "Components");
     ImGui::Separator();

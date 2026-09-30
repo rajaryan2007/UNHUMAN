@@ -208,40 +208,11 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
 {
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
 
-    cmd.BindPipeline(s_Data3D.ModelPipeline);
-
-    struct PushConstants
-    {
-        glm::mat4 viewProj;
-        glm::mat4 model;
-        glm::vec4 cameraPos;
-        int entityID;
-        int textureSlot;
-        int enableLighting;
-        int lightBufferIndex;
-        int numLights;
-        int mrTextureSlot;
-        float metallicFactor;
-        float roughnessFactor;
-        int boneBufferIndex;
-        int boneOffset;
-        int padding1;
-        int padding2;
-    } pc;
-    pc.viewProj = s_Data3D.ViewProjection;
-    pc.model = transform;
-    pc.cameraPos = glm::vec4(s_Data3D.CameraPosition, 1.0f);
-    pc.entityID = entityID;
-    pc.textureSlot = 0; // Temp hardcode until material system is done
-    pc.enableLighting = s_Data3D.EnableLighting ? 1 : 0;
-    pc.lightBufferIndex = s_Data3D.LightStorageBufferIndex;
-    pc.numLights = static_cast<int>(s_Data3D.CurrentLights.size());
-    pc.mrTextureSlot = -1;
-    pc.metallicFactor = 1.0f;
-    pc.roughnessFactor = 1.0f;
-    pc.boneBufferIndex = -1;
-    pc.boneOffset = -1;
-
+    // Upload bone matrices once per model, then forward the buffer location to
+    // every sub-mesh (SubmitMesh used to reset them to -1, breaking animated
+    // models drawn through the per-node path).
+    int boneBufferIndex = -1;
+    int boneOffset = -1;
     if (animator && animator->HasAnimation())
     {
         const auto& matrices = animator->GetFinalBoneMatrices();
@@ -250,24 +221,22 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
             uint64_t size = matrices.size() * sizeof(glm::mat4);
             cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size,
                              s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
-            pc.boneBufferIndex = s_Data3D.BoneStorageBufferIndex;
-            pc.boneOffset = s_Data3D.BoneBufferOffset;
+            boneBufferIndex = s_Data3D.BoneStorageBufferIndex;
+            boneOffset = s_Data3D.BoneBufferOffset;
             s_Data3D.BoneBufferOffset += matrices.size();
         }
     }
 
-    // We will push constants per primitive now since textureSlot can change.
-    // cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
-
     for (const auto& mesh : model.GetMesh())
     {
-        SubmitMesh(mesh, transform, entityID, model.GetMaterials());
+        SubmitMesh(mesh, transform, entityID, model.GetMaterials(), boneBufferIndex, boneOffset);
     }
 }
 
 // Issue #17: submit a single mesh (one glTF node) with its model's materials.
 void Renderer3D::SubmitMesh(const RD3d::Mesh& mesh, const glm::mat4& transform, int entityID,
-                            const std::vector<RD3d::Material>& materials)
+                            const std::vector<RD3d::Material>& materials, int boneBufferIndex,
+                            int boneOffset)
 {
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
 
@@ -302,8 +271,8 @@ void Renderer3D::SubmitMesh(const RD3d::Mesh& mesh, const glm::mat4& transform, 
     pc.mrTextureSlot = -1;
     pc.metallicFactor = 1.0f;
     pc.roughnessFactor = 1.0f;
-    pc.boneBufferIndex = -1;
-    pc.boneOffset = -1;
+    pc.boneBufferIndex = boneBufferIndex;
+    pc.boneOffset = boneOffset;
 
     for (const auto& prim : mesh.primitive)
     {
