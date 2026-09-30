@@ -1075,7 +1075,15 @@ void Scene::RenderModels(Timestep ts, const std::unordered_map<entt::entity, glm
     // the accumulated world transform so every part is individually placed.
     // NOTE: group nodes with their own mesh are drawn here too — only nodes
     // without a mesh are skipped.
+    // One bone upload per expanded model: all node meshes of a model share the
+    // binding (a naive per-node upload would re-upload the same matrices once
+    // per node and break the bone-offset contract).
     auto nodeView = m_registry.view<ModelNodeComponent>();
+
+    u64 lastModelUUID = 0;
+    Renderer3D::BoneBinding sharedBones;
+    bool haveBinding = false;
+
     for (auto entity : nodeView)
     {
         auto& nodeComp = nodeView.get<ModelNodeComponent>(entity);
@@ -1099,9 +1107,25 @@ void Scene::RenderModels(Timestep ts, const std::unordered_map<entt::entity, glm
         if (meshIndex >= static_cast<int>(meshes.size()))
             continue;
 
+        // Model changed: prepare the next model's shared bone binding.
+        if (!haveBinding || nodeComp.ModelEntity != lastModelUUID)
+        {
+            const RD3d::Animator* animator = nullptr;
+            if (modelEntity.HasComponent<AnimatorComponent>())
+            {
+                auto& animComp = modelEntity.GetComponent<AnimatorComponent>();
+                if (animComp.Animator)
+                    animator = animComp.Animator.get();
+            }
+            sharedBones = Renderer3D::PrepareBoneBinding(animator);
+            lastModelUUID = nodeComp.ModelEntity;
+            haveBinding = true;
+        }
+
         Renderer3D::SubmitMesh(meshes[meshIndex], GetWorldFromCache(worldTransforms, entity), (int)entity,
-                               mc.ModelData->GetMaterials());
+                               mc.ModelData->GetMaterials(), sharedBones.BufferIndex, sharedBones.Offset);
     }
+    (void)lastModelUUID;
 }
 
 void Scene::OnUpdateRuntime(Timestep ts)

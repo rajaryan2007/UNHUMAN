@@ -42,6 +42,7 @@ void Renderer2D::NextBatch() {}
 // ---- Renderer3D ----
 void Renderer3D::Init() {}
 void Renderer3D::Shutdown() {}
+Renderer3D::BoneBinding Renderer3D::PrepareBoneBinding(const RD3d::Animator*) { return {}; }
 void Renderer3D::BeginScene(const EditorCamera&, const std::vector<RD3d::LightData>&) {}
 void Renderer3D::BeginScene(const Camera&, const glm::mat4&, const std::vector<RD3d::LightData>&) {}
 void Renderer3D::EndScene() {}

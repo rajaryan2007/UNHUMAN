@@ -264,8 +264,13 @@ static void SerializeEntity(YAML::Emitter& out, Entity entity)
     out << YAML::EndMap;
 }
 
-static void SerializeEntityRecursive(YAML::Emitter& out, Entity entity)
+static void SerializeEntityRecursive(YAML::Emitter& out, Entity entity, std::unordered_set<u64>& written)
 {
+    // Exactly-once guard: a UUID reachable through two paths (e.g. listed in
+    // two Children lists) must serialize a single time.
+    if (!written.insert(entity.GetUUID()).second)
+        return;
+
     SerializeEntity(out, entity);
 
     // Issue #17 hardening: walk children explicitly instead of serializing
@@ -280,7 +285,7 @@ static void SerializeEntityRecursive(YAML::Emitter& out, Entity entity)
             Entity child = entity.GetScene()->GetEntityWithUUID(childID);
             if (child && child.HasComponent<RelationshipComponent>() &&
                 child.GetComponent<RelationshipComponent>().Parent == entity.GetUUID())
-                SerializeEntityRecursive(out, child);
+                SerializeEntityRecursive(out, child, written);
         }
     }
 }
@@ -293,9 +298,21 @@ void SceneSerializer::Serialize(const std::string& filepath)
     out << YAML::Key << "Scene" << YAML::Value << "Untitled";
     out << YAML::Key << "Entities" << YAML::BeginSeq;
 
-    // Only roots at the top level; children follow recursively.
+    // Pass 1: hierarchy order — roots first, then each root's subtree.
+    std::unordered_set<u64> written;
     for (Entity root : m_Scene->GetRootEntities())
-        SerializeEntityRecursive(out, root);
+        SerializeEntityRecursive(out, root, written);
+
+    // Pass 2: fallback sweep — any live entity not reached through a parent's
+    // Children list (missing/stale parent entry) would silently vanish from
+    // the save. Emit it at top level so nothing is ever lost.
+    auto view = m_Scene->m_registry.view<entt::entity>();
+    for (auto entityID : view)
+    {
+        Entity entity{entityID, m_Scene.get()};
+        if (entity && !written.count(entity.GetUUID()))
+            SerializeEntityRecursive(out, entity, written);
+    }
 
     out << YAML::EndSeq;
     out << YAML::EndMap;

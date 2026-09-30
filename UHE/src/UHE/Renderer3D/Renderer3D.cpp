@@ -203,33 +203,36 @@ void Renderer3D::DrawGrid()
     cmd.Draw(6, 0);
 }
 
-void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID,
-                             const RD3d::Animator* animator)
+Renderer3D::BoneBinding Renderer3D::PrepareBoneBinding(const RD3d::Animator* animator)
 {
-    auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
-
-    // Upload bone matrices once per model, then forward the buffer location to
-    // every sub-mesh (SubmitMesh used to reset them to -1, breaking animated
-    // models drawn through the per-node path).
-    int boneBufferIndex = -1;
-    int boneOffset = -1;
+    BoneBinding binding;
     if (animator && animator->HasAnimation())
     {
         const auto& matrices = animator->GetFinalBoneMatrices();
         if (!matrices.empty())
         {
             uint64_t size = matrices.size() * sizeof(glm::mat4);
+            auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
             cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size,
                              s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
-            boneBufferIndex = s_Data3D.BoneStorageBufferIndex;
-            boneOffset = s_Data3D.BoneBufferOffset;
+            binding.BufferIndex = s_Data3D.BoneStorageBufferIndex;
+            binding.Offset = s_Data3D.BoneBufferOffset;
             s_Data3D.BoneBufferOffset += matrices.size();
         }
     }
+    return binding;
+}
+
+void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID,
+                             const RD3d::Animator* animator)
+{
+    // Upload bone matrices once per model, then forward the buffer location to
+    // every sub-mesh.
+    BoneBinding bones = PrepareBoneBinding(animator);
 
     for (const auto& mesh : model.GetMesh())
     {
-        SubmitMesh(mesh, transform, entityID, model.GetMaterials(), boneBufferIndex, boneOffset);
+        SubmitMesh(mesh, transform, entityID, model.GetMaterials(), bones.BufferIndex, bones.Offset);
     }
 }
 

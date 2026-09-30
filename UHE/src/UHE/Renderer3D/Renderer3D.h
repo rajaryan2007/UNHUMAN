@@ -12,6 +12,17 @@ namespace UHE
 class UHE_API Renderer3D
 {
 public:
+    // Bone buffer location for one model's animation upload this frame.
+    struct BoneBinding
+    {
+        int BufferIndex = -1;
+        int Offset = -1;
+    };
+
+    // Uploads the animator's bone matrices once and returns where they live;
+    // pass the result to every SubmitMesh of that model so expanded glTF node
+    // entities share one binding instead of losing skinning.
+    static BoneBinding PrepareBoneBinding(const RD3d::Animator* animator);
     static void Init();
     static void Shutdown();
 
