@@ -342,6 +342,23 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
     for (auto entityNode : entities)
         ordered.push_back(entityNode);
 
+    std::unordered_set<u64> seenUUIDs;
+    for (auto entityNode : ordered)
+    {
+        if (entityNode["Entity"])
+        {
+            u64 serializedID = entityNode["Entity"].as<u64>();
+            if (serializedID != 0)
+            {
+                if (!seenUUIDs.insert(serializedID).second)
+                {
+                    UHE_CORE_ERROR("Duplicate UUID {0} found in serialized scene", serializedID);
+                    return false;
+                }
+            }
+        }
+    }
+
     std::vector<Entity> created;
     created.reserve(ordered.size());
     for (auto entityNode : ordered)
@@ -644,6 +661,43 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
                 clean.push_back(childID);
         }
         rel.Children = std::move(clean);
+    }
+
+    // Issue #17 hardening: detect and break cycles in parent links.
+    for (auto handle : relView)
+    {
+        u64 cursorID = m_Scene->m_registry.get<IDComponent>(handle).ID;
+        std::unordered_set<u64> path;
+        
+        while (cursorID != 0)
+        {
+            if (!path.insert(cursorID).second)
+            {
+                Entity entityToBreak = m_Scene->GetEntityWithUUID(cursorID);
+                if (entityToBreak && entityToBreak.HasComponent<RelationshipComponent>())
+                {
+                    auto& relToBreak = entityToBreak.GetComponent<RelationshipComponent>();
+                    u64 formerParentID = relToBreak.Parent;
+                    relToBreak.Parent = 0;
+                    
+                    Entity formerParent = m_Scene->GetEntityWithUUID(formerParentID);
+                    if (formerParent && formerParent.HasComponent<RelationshipComponent>())
+                    {
+                        auto& formerParentRel = formerParent.GetComponent<RelationshipComponent>();
+                        formerParentRel.Children.erase(
+                            std::remove(formerParentRel.Children.begin(), formerParentRel.Children.end(), cursorID),
+                            formerParentRel.Children.end());
+                    }
+                }
+                break;
+            }
+            
+            Entity cursor = m_Scene->GetEntityWithUUID(cursorID);
+            if (!cursor || !cursor.HasComponent<RelationshipComponent>())
+                break;
+                
+            cursorID = cursor.GetComponent<RelationshipComponent>().Parent;
+        }
     }
 
     return true;
