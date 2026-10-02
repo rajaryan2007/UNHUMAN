@@ -45,6 +45,20 @@ struct Mesh
     std::vector<Primitive> primitive;
 };
 
+// Issue #17: flat representation of the glTF node tree so the editor can turn
+// each node into a controllable child entity instead of one opaque model.
+struct ModelNode
+{
+    std::string Name;
+    int Parent = -1;          // index into Model::GetNodes(), -1 for roots
+    std::vector<int> Children;
+    int MeshIndex = -1;       // index into Model::GetMesh(), -1 if empty node
+
+    glm::vec3 Translation{0.0f};
+    glm::quat Rotation{1.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec3 Scale{1.0f};
+};
+
 class UHE_API Model
 {
 public:
@@ -55,6 +69,9 @@ public:
 
     const std::vector<Mesh>& GetMesh() const { return m_LoadedMeshes; }
     const std::vector<Material>& GetMaterials() const { return m_LoadedMaterials; }
+    // Flat glTF node list; roots are the entries with Parent == -1.
+    const std::vector<ModelNode>& GetNodes() const { return m_Nodes; }
+    const std::vector<int>& GetRootNodes() const { return m_RootNodes; }
 
 private:
     void ProcessNode(const fastgltf::Asset& asset, size_t nodeIndex);
@@ -65,6 +82,9 @@ private:
 private:
     std::vector<Mesh> m_LoadedMeshes;
     std::vector<Material> m_LoadedMaterials;
+    std::vector<ModelNode> m_Nodes;
+    std::vector<int> m_RootNodes;
+    std::unordered_map<int, int> m_NodeToMesh; // glTF node -> m_LoadedMeshes index
 
     Skeleton m_Skeleton;
     std::vector<AnimationClip> m_Animations;

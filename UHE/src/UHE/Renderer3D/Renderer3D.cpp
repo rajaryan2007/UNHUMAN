@@ -203,8 +203,43 @@ void Renderer3D::DrawGrid()
     cmd.Draw(6, 0);
 }
 
+Renderer3D::BoneBinding Renderer3D::PrepareBoneBinding(const RD3d::Animator* animator)
+{
+    BoneBinding binding;
+    if (animator && animator->HasAnimation())
+    {
+        const auto& matrices = animator->GetFinalBoneMatrices();
+        if (!matrices.empty())
+        {
+            uint64_t size = matrices.size() * sizeof(glm::mat4);
+            auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
+            cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size,
+                             s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
+            binding.BufferIndex = s_Data3D.BoneStorageBufferIndex;
+            binding.Offset = s_Data3D.BoneBufferOffset;
+            s_Data3D.BoneBufferOffset += matrices.size();
+        }
+    }
+    return binding;
+}
+
 void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transform, int entityID,
                              const RD3d::Animator* animator)
+{
+    // Upload bone matrices once per model, then forward the buffer location to
+    // every sub-mesh.
+    BoneBinding bones = PrepareBoneBinding(animator);
+
+    for (const auto& mesh : model.GetMesh())
+    {
+        SubmitMesh(mesh, transform, entityID, model.GetMaterials(), bones.BufferIndex, bones.Offset);
+    }
+}
+
+// Issue #17: submit a single mesh (one glTF node) with its model's materials.
+void Renderer3D::SubmitMesh(const RD3d::Mesh& mesh, const glm::mat4& transform, int entityID,
+                            const std::vector<RD3d::Material>& materials, int boneBufferIndex,
+                            int boneOffset)
 {
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
 
@@ -239,63 +274,43 @@ void Renderer3D::SubmitModel(const RD3d::Model& model, const glm::mat4& transfor
     pc.mrTextureSlot = -1;
     pc.metallicFactor = 1.0f;
     pc.roughnessFactor = 1.0f;
-    pc.boneBufferIndex = -1;
-    pc.boneOffset = -1;
+    pc.boneBufferIndex = boneBufferIndex;
+    pc.boneOffset = boneOffset;
 
-    if (animator && animator->HasAnimation())
+    for (const auto& prim : mesh.primitive)
     {
-        const auto& matrices = animator->GetFinalBoneMatrices();
-        if (!matrices.empty())
+        if (!prim.VertexBuffer || !prim.IndexBuffer)
+            continue;
+
+        int textureSlot = s_Data3D.WhiteTexture->GetTextureIndex(); // Default to white texture
+        int mrTextureSlot = -1;
+        float metallicFactor = 0.0f;
+        float roughnessFactor = 0.4f;
+
+        if (prim.materialIndex < materials.size())
         {
-            uint64_t size = matrices.size() * sizeof(glm::mat4);
-            cmd.UpdateBuffer(s_Data3D.BoneStorageBufferHandle, matrices.data(), size,
-                             s_Data3D.BoneBufferOffset * sizeof(glm::mat4));
-            pc.boneBufferIndex = s_Data3D.BoneStorageBufferIndex;
-            pc.boneOffset = s_Data3D.BoneBufferOffset;
-            s_Data3D.BoneBufferOffset += matrices.size();
-        }
-    }
-
-    // We will push constants per primitive now since textureSlot can change.
-    // cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
-
-    for (const auto& mesh : model.GetMesh())
-    {
-        for (const auto& prim : mesh.primitive)
-        {
-            if (!prim.VertexBuffer || !prim.IndexBuffer)
-                continue;
-
-            int textureSlot = s_Data3D.WhiteTexture->GetTextureIndex(); // Default to white texture
-            int mrTextureSlot = -1;
-            float metallicFactor = 0.0f;
-            float roughnessFactor = 0.4f;
-
-            if (prim.materialIndex < model.GetMaterials().size())
+            auto& material = materials[prim.materialIndex];
+            if (material.AlbedoTexture)
             {
-                auto& material = model.GetMaterials()[prim.materialIndex];
-                if (material.AlbedoTexture)
-                {
-                    textureSlot = material.AlbedoTexture->GetTextureIndex();
-                }
-                if (material.MetallicRoughnessTexture)
-                {
-                    mrTextureSlot = material.MetallicRoughnessTexture->GetTextureIndex();
-                }
-                metallicFactor = material.MetallicFactor;
-                roughnessFactor = material.RoughnessFactor;
+                textureSlot = material.AlbedoTexture->GetTextureIndex();
             }
-
-            pc.textureSlot = textureSlot;
-            pc.mrTextureSlot = mrTextureSlot;
-            pc.metallicFactor = metallicFactor;
-            pc.roughnessFactor = roughnessFactor;
-            cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
-
-            cmd.BindVertexBuffer(prim.VertexBuffer);
-            cmd.BindIndexBuffer(prim.IndexBuffer);
-            cmd.DrawIndexed(prim.IndexCount);
+            if (material.MetallicRoughnessTexture)
+            {
+                mrTextureSlot = material.MetallicRoughnessTexture->GetTextureIndex();
+            }
+            metallicFactor = material.MetallicFactor;
+            roughnessFactor = material.RoughnessFactor;
         }
+
+        pc.textureSlot = textureSlot;
+        pc.mrTextureSlot = mrTextureSlot;
+        pc.metallicFactor = metallicFactor;
+        pc.roughnessFactor = roughnessFactor;
+        cmd.PushConstants(RHI::ShaderStage::AllGraphics, &pc, sizeof(PushConstants), 0);
+
+        cmd.BindVertexBuffer(prim.VertexBuffer);
+        cmd.BindIndexBuffer(prim.IndexBuffer);
+        cmd.DrawIndexed(prim.IndexCount);
     }
 }
 
