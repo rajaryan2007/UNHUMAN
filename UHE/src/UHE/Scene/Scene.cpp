@@ -354,52 +354,62 @@ void Scene::AttachChildEntity(Entity child, Entity parent)
 
 void Scene::DestroyEntity(Entity entity)
 {
-    // Issue #17 lifetime fix: destroy the script instance (OnDestroy + delete)
-    // BEFORE the registry handle dies, or it leaks and keeps a dangling Entity.
-    if (entity.HasComponent<NativeScriptComponent>())
-    {
-        auto& nsc = entity.GetComponent<NativeScriptComponent>();
-        if (nsc.Instance)
-        {
-            nsc.Instance->OnDestroy();
-            if (nsc.DestroyScript)
-                nsc.DestroyScript(&nsc);
-            else
-                delete nsc.Instance;
-            nsc.Instance = nullptr;
-        }
-    }
+    std::unordered_set<u64> visited;
+    auto destroyRecursive = [&](Entity e, auto& self) -> void {
+        if (!e) return;
+        u64 uuid = e.GetUUID();
+        if (visited.find(uuid) != visited.end()) return;
+        visited.insert(uuid);
 
-    // Issue #17: recursively destroy children first.
-    if (entity.HasComponent<RelationshipComponent>())
-    {
-        auto childrenCopy = entity.GetComponent<RelationshipComponent>().Children;
-        for (u64 childID : childrenCopy)
+        // Issue #17 lifetime fix: destroy the script instance (OnDestroy + delete)
+        // BEFORE the registry handle dies, or it leaks and keeps a dangling Entity.
+        if (e.HasComponent<NativeScriptComponent>())
         {
-            Entity child = GetEntityWithUUID(childID);
-            if (child)
-                DestroyEntity(child);
-        }
-    }
-
-    // Detach from parent so the parent's child list stays valid.
-    if (entity.HasComponent<RelationshipComponent>())
-    {
-        u64 parentID = entity.GetComponent<RelationshipComponent>().Parent;
-        if (parentID != 0)
-        {
-            Entity parent = GetEntityWithUUID(parentID);
-            if (parent)
+            auto& nsc = e.GetComponent<NativeScriptComponent>();
+            if (nsc.Instance)
             {
-                auto& parentChildren = parent.GetComponent<RelationshipComponent>().Children;
-                parentChildren.erase(std::remove(parentChildren.begin(), parentChildren.end(), entity.GetUUID()),
-                                     parentChildren.end());
+                nsc.Instance->OnDestroy();
+                if (nsc.DestroyScript)
+                    nsc.DestroyScript(&nsc);
+                else
+                    delete nsc.Instance;
+                nsc.Instance = nullptr;
             }
         }
-    }
 
-    UnindexEntity(entity.GetUUID());
-    m_registry.destroy(entity);
+        // Issue #17: recursively destroy children first.
+        if (e.HasComponent<RelationshipComponent>())
+        {
+            auto childrenCopy = e.GetComponent<RelationshipComponent>().Children;
+            for (u64 childID : childrenCopy)
+            {
+                Entity child = GetEntityWithUUID(childID);
+                if (child)
+                    self(child, self);
+            }
+        }
+
+        // Detach from parent so the parent's child list stays valid.
+        if (e.HasComponent<RelationshipComponent>())
+        {
+            u64 parentID = e.GetComponent<RelationshipComponent>().Parent;
+            if (parentID != 0)
+            {
+                Entity parent = GetEntityWithUUID(parentID);
+                if (parent)
+                {
+                    auto& parentChildren = parent.GetComponent<RelationshipComponent>().Children;
+                    parentChildren.erase(std::remove(parentChildren.begin(), parentChildren.end(), e.GetUUID()),
+                                         parentChildren.end());
+                }
+            }
+        }
+
+        UnindexEntity(uuid);
+        m_registry.destroy(e);
+    };
+
+    destroyRecursive(entity, destroyRecursive);
 }
 
 // --- Issue #17: hierarchy helpers ---
@@ -1080,9 +1090,7 @@ void Scene::RenderModels(Timestep ts, const std::unordered_map<entt::entity, glm
     // per node and break the bone-offset contract).
     auto nodeView = m_registry.view<ModelNodeComponent>();
 
-    u64 lastModelUUID = 0;
-    Renderer3D::BoneBinding sharedBones;
-    bool haveBinding = false;
+    std::unordered_map<u64, Renderer3D::BoneBinding> boneCache;
 
     for (auto entity : nodeView)
     {
@@ -1107,8 +1115,9 @@ void Scene::RenderModels(Timestep ts, const std::unordered_map<entt::entity, glm
         if (meshIndex >= static_cast<int>(meshes.size()))
             continue;
 
-        // Model changed: prepare the next model's shared bone binding.
-        if (!haveBinding || nodeComp.ModelEntity != lastModelUUID)
+        // Use cached binding or prepare it once per model entity
+        auto cacheIt = boneCache.find(nodeComp.ModelEntity);
+        if (cacheIt == boneCache.end())
         {
             const RD3d::Animator* animator = nullptr;
             if (modelEntity.HasComponent<AnimatorComponent>())
@@ -1117,15 +1126,13 @@ void Scene::RenderModels(Timestep ts, const std::unordered_map<entt::entity, glm
                 if (animComp.Animator)
                     animator = animComp.Animator.get();
             }
-            sharedBones = Renderer3D::PrepareBoneBinding(animator);
-            lastModelUUID = nodeComp.ModelEntity;
-            haveBinding = true;
+            boneCache[nodeComp.ModelEntity] = Renderer3D::PrepareBoneBinding(animator);
+            cacheIt = boneCache.find(nodeComp.ModelEntity);
         }
 
         Renderer3D::SubmitMesh(meshes[meshIndex], GetWorldFromCache(worldTransforms, entity), (int)entity,
-                               mc.ModelData->GetMaterials(), sharedBones.BufferIndex, sharedBones.Offset);
+                               mc.ModelData->GetMaterials(), cacheIt->second.BufferIndex, cacheIt->second.Offset);
     }
-    (void)lastModelUUID;
 }
 
 void Scene::OnUpdateRuntime(Timestep ts)

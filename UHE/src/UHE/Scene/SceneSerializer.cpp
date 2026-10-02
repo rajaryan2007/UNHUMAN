@@ -384,10 +384,6 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
         auto& entityNode = ordered[i];
         Entity entity = created[i];
 
-        // Issue #17: keep the serialized UUID so hierarchy references resolve.
-        if (entityNode["Entity"])
-            entity.GetComponent<IDComponent>().ID = entityNode["Entity"].as<u64>();
-
         // Transform
         auto transformNode = entityNode["TransformComponent"];
         if (transformNode)
