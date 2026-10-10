@@ -8,6 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "UHE/AssestsManager/VfsSystem.h"
 #include "EditorTheme.h"
+#include <cstdint>
 
 // todo divide them in other file as usage after 3d support
 namespace UHE {
@@ -38,21 +39,20 @@ static constexpr ImVec4 kAxisZ{0.25f, 0.42f, 0.82f, 1.0f};
 static constexpr ImVec4 kAxisZHover{0.35f, 0.52f, 0.92f, 1.0f};
 static constexpr ImVec4 kAxisZActive{0.18f, 0.32f, 0.72f, 1.0f};
 
-// Issue #17: outliner icons, lazily loaded once and shared for the session.
-static ImTextureID LoadOutlinerIcon(const char *assetName) {
-  static std::unordered_map<std::string, Ref<Texture2D>> s_IconCache;
-  auto it = s_IconCache.find(assetName);
-  if (it == s_IconCache.end()) {
+// Issue #17: outliner icons, lazily loaded once per panel instance.
+void* SceneHierarchyPanel::LoadOutlinerIcon(const char *assetName) {
+  auto it = m_IconCache.find(assetName);
+  if (it == m_IconCache.end()) {
     std::string path =
         (FileSystem::Get().GetRootPath() / "assets/icon" / assetName).string();
     Ref<Texture2D> tex = Texture2D::Create(path);
-    it = s_IconCache.emplace(assetName, tex).first;
+    it = m_IconCache.emplace(assetName, tex).first;
   }
   Ref<Texture2D> &tex = it->second;
-  return tex ? (ImTextureID)(intptr_t)tex->GetImGuiTextureID() : (ImTextureID)0;
+  return tex ? tex->GetImGuiTextureID() : nullptr;
 }
 
-static ImTextureID GetEntityIcon(Entity entity) {
+void* SceneHierarchyPanel::GetEntityIcon(Entity entity) {
   if (entity.HasComponent<CameraComponent>())
     return LoadOutlinerIcon("camera.png");
   if (entity.HasComponent<DirectionalLightComponent>())
@@ -258,7 +258,7 @@ void SceneHierarchyPanel::DrawEntityNode(Entity entity) {
   // the right edge of the row. Deliberately NOT an ImGui item: ImGui::Image()
   // submits no ID and would clobber LastItemData, which BeginPopupContextItem
   // and the drag-drop helpers rely on (assert 'id != 0' crash).
-  ImTextureID icon = GetEntityIcon(entity);
+  ImTextureID icon = static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(GetEntityIcon(entity)));
   if (icon) {
     ImVec2 rowMin = ImGui::GetItemRectMin();
     ImVec2 rowMax = ImGui::GetItemRectMax();

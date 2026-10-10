@@ -71,7 +71,6 @@ if(WIN32)
     target_compile_definitions(UHE PUBLIC UHE_DYNAMIC_LINK WINDLL)
 elseif(UNIX)
     target_compile_definitions(UHE PUBLIC UHE_PLATFORM_LINUX)
-    # UNIX doesn't typically need WINDLL or explicit dllexport macros for shared objects if visibility is handled
 endif()
 
 target_compile_definitions(UHE PUBLIC
