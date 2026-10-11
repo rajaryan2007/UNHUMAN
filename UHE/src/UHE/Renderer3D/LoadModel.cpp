@@ -432,7 +432,10 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
         const auto& gltfSkin = asset.skins[s];
         Skin skin;
         skin.Name = gltfSkin.name.empty() ? "Skin_" + std::to_string(s) : std::string(gltfSkin.name);
-        skin.JointNodes.assign(gltfSkin.joints.begin(), gltfSkin.joints.end());
+        skin.JointNodes.clear();
+        skin.JointNodes.reserve(gltfSkin.joints.size());
+        for (auto joint : gltfSkin.joints)
+            skin.JointNodes.push_back(static_cast<int>(joint));
         skin.InverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
 
         if (gltfSkin.inverseBindMatrices.has_value())

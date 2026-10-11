@@ -15,7 +15,11 @@
 #include <iostream>
 #include <thread>
 #include <unordered_set>
-#include <unistd.h>
+#if defined(_WIN32)
+    #include <process.h>
+#else
+    #include <unistd.h>
+#endif
 
 using namespace UHE;
 
@@ -38,8 +42,13 @@ namespace fs = std::filesystem;
 static fs::path MakeTempDir()
 {
     static int counter = 0;
+#if defined(_WIN32)
+    const auto pid = _getpid();
+#else
+    const auto pid = ::getpid();
+#endif
     fs::path dir = fs::temp_directory_path() /
-                   ("uhe_asset_test_" + std::to_string(counter++) + "_" + std::to_string(::getpid()));
+                   ("uhe_asset_test_" + std::to_string(counter++) + "_" + std::to_string(pid));
     fs::create_directories(dir);
     return dir;
 }
@@ -225,7 +234,7 @@ static void TestVfs()
 
     auto resolved = vfs.Resolve("base:/models/gun.glb");
     CHECK(resolved.has_value(), "mount resolves a virtual path");
-    CHECK(*resolved == fs::absolute(base / "models" / "gun.glb").lexically_normal(),
+    CHECK(*resolved == fs::absolute(base / "models" / "gun.glb").lexically_normal().make_preferred(),
           "path maps under the mount root");
 
     // Remount replaces the physical root without duplicating the entry.
@@ -233,7 +242,7 @@ static void TestVfs()
     vfs.Mount("layer:", mod);
     auto layers = vfs.ResolveAll("layer:/models/gun.glb");
     CHECK(layers.size() == 1, "remount replaces instead of duplicating");
-    CHECK(layers[0] == fs::absolute(mod / "models" / "gun.glb").lexically_normal(),
+    CHECK(layers[0] == fs::absolute(mod / "models" / "gun.glb").lexically_normal().make_preferred(),
           "remount points at the new root");
 
     // Prefix safety: "game:" must not swallow "gameboy:/x".
@@ -262,7 +271,7 @@ static void TestFileSystemShim(const char* argv0)
 
     // Legacy prefixless Resolve forwards through the "game:" mount.
     std::string resolved = FileSystem::Get().Resolve("icon/pointLight.png");
-    CHECK(resolved.find("assets/icon/pointLight.png") != std::string::npos,
+    CHECK(fs::path(resolved).generic_string().find("assets/icon/pointLight.png") != std::string::npos,
           "legacy path resolves through the mount");
 }
 

@@ -323,7 +323,7 @@ RGCompileResult VulkanRenderGraphCompiler::Compile(const std::vector<RGPassSpec>
     const auto TouchLifetime = [&](bool isTexture, u32 slot, u32 compiledId, bool isWrite)
     {
         const auto [it, inserted] = lifetimeIndex.emplace(LifetimeKey(isTexture, slot),
-                                                          frame.lifetimes.size());
+                                                          static_cast<u32>(frame.lifetimes.size()));
         if (inserted)
         {
             RGCompiledResourceLifetime lifetime;
