@@ -104,6 +104,7 @@ void Renderer3D::Init()
     pipeDesc.blendMode = RHI::BlendMode::Alpha;
     pipeDesc.depthTest = true;
     pipeDesc.depthWrite = true;
+    pipeDesc.cullMode = RHI::CullMode::Back;
 
     pipeDesc.colorAttachmentCount = 2;
     pipeDesc.colorFormats[0] = RHI::TextureFormat::RGBA8_SRGB;

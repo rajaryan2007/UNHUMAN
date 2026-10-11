@@ -292,14 +292,20 @@ FragmentOutput fragmentMain(VertexOutput input, bool isFrontFace : SV_IsFrontFac
             transmission *= SampleSlot(m, 12, input.v_TexCoord).r;
     }
 
-    // Alpha MASK: discard below the cutoff. BLEND blends in submission order
-    // until a sorted transparent pass exists; the loader already warned.
+    // Alpha MASK: discard below the cutoff.
     if (m.flags.x == 1)
     {
         if (baseColor.a < m.alphaCutoff)
             discard;
     }
 
+    // Alpha BLEND: discard fully transparent fragments so they do not write
+    // depth and occlude geometry behind them in the forward pass.
+    if (m.flags.x == 2)
+    {
+        if (baseColor.a < 0.01)
+            discard;
+    }
     // glTF unlit: output the base colour untouched (BLEND keeps its alpha).
     if (m.flags.y == 1)
     {

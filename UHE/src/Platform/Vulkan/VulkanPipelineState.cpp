@@ -55,6 +55,7 @@ u64 VulkanPipelineStateCache::Hash(const GraphicsPipelineDesc& desc)
     HashAdd(seed, desc.vertexLayout.GetStride());
 
     HashAddEnum(seed, desc.topology);
+    HashAddEnum(seed, desc.cullMode);
     HashAdd(seed, desc.colorAttachmentCount);
     for (u32 i = 0; i < desc.colorAttachmentCount; ++i)
         HashAddEnum(seed, desc.colorFormats[i]);
