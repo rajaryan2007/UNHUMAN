@@ -59,5 +59,10 @@ elseif(UNIX)
 endif()
 target_compile_definitions(gltf_test PRIVATE $<$<CONFIG:Debug>:UHE_DEBUG>)
 
+# spdlog's bundled fmt static_asserts on MSVC without /utf-8.
+if(MSVC)
+    target_compile_options(gltf_test PRIVATE /utf-8)
+endif()
+
 add_test(NAME gltf COMMAND gltf_test)
 set_tests_properties(gltf PROPERTIES LABELS "unit")
