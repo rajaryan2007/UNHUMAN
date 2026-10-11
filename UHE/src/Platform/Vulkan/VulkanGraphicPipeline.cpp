@@ -101,8 +101,10 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
         colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
         colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
         colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
-        colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-        colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+        // Keep destination alpha (1.0) so the viewport framebuffer stays fully opaque
+        // when sampled by ImGui::Image, preventing editor background bleed-through.
+        colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eZero;
+        colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
         colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
     }
     else if (desc.blendMode == BlendMode::Additive)
