@@ -52,18 +52,6 @@ std::vector<LightData> LightSystem::ExtractLights(entt::registry& registry)
 {
     std::vector<LightData> lights;
 
-    // Default fallback if no lights exist
-    if (registry.view<DirectionalLightComponent>().empty() && registry.view<PointLightComponent>().empty() &&
-        registry.view<SpotLightComponent>().empty() && registry.view<Model3DComponent>().empty())
-    {
-        LightData fallback;
-        fallback.Type_Radius_Pad = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // Type = 0 (Directional)
-        fallback.PositionOrDirection = glm::vec4(0.5f, -1.0f, 0.3f, 0.0f);
-        fallback.Direction_Pad = glm::vec4(0.0f);
-        fallback.ColorIntensity = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        lights.push_back(fallback);
-        return lights;
-    }
 
     auto dirLightView = registry.view<TransformComponent, DirectionalLightComponent>();
     for (auto entity : dirLightView)
@@ -151,6 +139,16 @@ std::vector<LightData> LightSystem::ExtractLights(entt::registry& registry)
         }
     }
 
+    // Default fallback if no lights were found from any source (scene components or glTF).
+    if (lights.empty())
+    {
+        LightData fallback;
+        fallback.Type_Radius_Pad = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); // Type = 0 (Directional)
+        fallback.PositionOrDirection = glm::vec4(0.5f, -1.0f, 0.3f, 0.0f);
+        fallback.Direction_Pad = glm::vec4(0.0f);
+        fallback.ColorIntensity = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        lights.push_back(fallback);
+    }
     return lights;
 }
 

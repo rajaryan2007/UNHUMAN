@@ -293,9 +293,12 @@ Renderer3D::BoneBinding Renderer3D::PrepareBoneBinding(const RD3d::Animator* ani
 Renderer3D::MaterialBinding Renderer3D::PrepareMaterialBinding(const RD3d::Model& model)
 {
     MaterialBinding binding;
+    binding.BufferIndex = static_cast<int>(s_Data3D.MaterialStorageBufferIndex);
+    binding.BaseIndex = 0;
+    binding.Count = 1;
     const auto& materials = model.GetMaterials();
     if (materials.empty())
-        return binding; // draws fall back to the default material
+        return binding; // draws fall back to the default material (slot 0)
 
     auto& cmd = Renderer::GetDevice().GetCurrentCommandBuffer();
 
@@ -376,7 +379,8 @@ void Renderer3D::SubmitMesh(const RD3d::Mesh& mesh, const glm::mat4& transform, 
     pc.numLights = static_cast<int>(std::min<size_t>(s_Data3D.CurrentLights.size(), 1024));
     pc.boneBufferIndex = boneBufferIndex;
     pc.boneOffset = boneOffset;
-    pc.materialBufferIndex = materialBinding.BufferIndex;
+    pc.materialBufferIndex = (materialBinding.BufferIndex >= 0) ? materialBinding.BufferIndex
+                                                                : static_cast<int>(s_Data3D.MaterialStorageBufferIndex);
     pc.useVertexColor = 0;
     pc.padding = glm::ivec3(0);
 
