@@ -263,6 +263,35 @@ void Model::ExtractGeometry(const fastgltf::Asset& asset, size_t meshIndex, cons
         // dropped rather than read as garbage.
         outPrim.indices.resize(outPrim.indices.size() - (outPrim.indices.size() % 3));
 
+        // When NORMAL is absent from the primitive, synthesize area-weighted vertex normals
+        // from triangle geometry so un-normaled models (e.g. cube.gltf) do not default to
+        // all normals pointing straight up (0, 1, 0) and shading black on side/bottom faces.
+        if (normalAttribute == primitive.attributes.end())
+        {
+            for (auto& v : outPrim.vertices)
+                v.normal = glm::vec3(0.0f);
+
+            for (size_t i = 0; i + 2 < outPrim.indices.size(); i += 3)
+            {
+                u32 i0 = outPrim.indices[i];
+                u32 i1 = outPrim.indices[i + 1];
+                u32 i2 = outPrim.indices[i + 2];
+                glm::vec3 p0 = outPrim.vertices[i0].position;
+                glm::vec3 p1 = outPrim.vertices[i1].position;
+                glm::vec3 p2 = outPrim.vertices[i2].position;
+                glm::vec3 fn = glm::cross(p1 - p0, p2 - p0);
+                outPrim.vertices[i0].normal += fn;
+                outPrim.vertices[i1].normal += fn;
+                outPrim.vertices[i2].normal += fn;
+            }
+
+            for (auto& v : outPrim.vertices)
+            {
+                float len = glm::length(v.normal);
+                v.normal = (len > 1e-6f) ? (v.normal / len) : glm::vec3(0.0f, 1.0f, 0.0f);
+            }
+        }
+
         const bool skinned = IsSkinned(primitive);
         bool hasTangents = primitive.findAttribute("TANGENT") != primitive.attributes.end();
 

@@ -96,7 +96,7 @@ struct Material
     // baseColorFactor. glTF defaults to opaque white (1,1,1,1).
     glm::vec4 BaseColorFactor = glm::vec4(1.0f);
 
-    float MetallicFactor = 1.0f;
+    float MetallicFactor = 0.0f;
     float RoughnessFactor = 1.0f;
 
     // normalTexture.scale defaults to 1.0, NOT 0.0 - a zero default silently
