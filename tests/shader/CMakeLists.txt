@@ -37,6 +37,11 @@ elseif(UNIX)
 endif()
 target_compile_definitions(shader_test PRIVATE $<$<CONFIG:Debug>:UHE_DEBUG>)
 
+# spdlog's bundled fmt static_asserts on MSVC without /utf-8.
+if(MSVC)
+    target_compile_options(shader_test PRIVATE /utf-8)
+endif()
+
 target_link_libraries(shader_test PRIVATE slang::slang)
 
 # The slang package target is normally registered by UHE/CMakeLists.txt; find
