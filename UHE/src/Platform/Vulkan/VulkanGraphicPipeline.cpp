@@ -45,7 +45,12 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
         .depthClampEnable = vk::False,
         .rasterizerDiscardEnable = vk::False,
         .polygonMode = vk::PolygonMode::eFill, // can add Wireframe configuration if supported by desc
-        .cullMode = vk::CullModeFlagBits::eNone,
+        // Was hardcoded eNone. Now driven by desc.cullMode, whose default is
+        // also None so every existing pipeline renders exactly as before -
+        // opting in to culling is left to each pipeline's owner.
+        .cullMode = desc.cullMode == CullMode::None     ? vk::CullModeFlagBits::eNone
+                    : desc.cullMode == CullMode::Front  ? vk::CullModeFlagBits::eFront
+                                                         : vk::CullModeFlagBits::eBack,
         .frontFace = vk::FrontFace::eClockwise,
         .depthBiasEnable = vk::False,
         .depthBiasConstantFactor = 0.0f,
@@ -96,8 +101,10 @@ void VulkanGraphicPipeline::createGraphicsPipeline(VulkanLogicalDevice& Device,
         colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
         colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
         colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
-        colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-        colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+        // Keep destination alpha (1.0) so the viewport framebuffer stays fully opaque
+        // when sampled by ImGui::Image, preventing editor background bleed-through.
+        colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eZero;
+        colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
         colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
     }
     else if (desc.blendMode == BlendMode::Additive)

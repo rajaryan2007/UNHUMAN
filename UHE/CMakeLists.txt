@@ -59,6 +59,7 @@ target_include_directories(UHE PUBLIC
     "vendor/box2d/include"
     "vendor/jolt"
     "vendor/miniaudio"
+    "vendor/meshoptimizer/src"
 )
 
 target_sources(UHE PRIVATE
@@ -70,7 +71,6 @@ if(WIN32)
     target_compile_definitions(UHE PUBLIC UHE_DYNAMIC_LINK WINDLL)
 elseif(UNIX)
     target_compile_definitions(UHE PUBLIC UHE_PLATFORM_LINUX)
-    # UNIX doesn't typically need WINDLL or explicit dllexport macros for shared objects if visibility is handled
 endif()
 
 target_compile_definitions(UHE PUBLIC
@@ -104,6 +104,8 @@ PRIVATE
     box2d
     Jolt
     msdf-atlas-gen
+    meshoptimizer
+    basisu_transcoder
 )
 
 if(UNIX)

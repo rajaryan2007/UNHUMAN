@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 #include "UHE.h"
 #include "UHE/Core/Core.h"
 #include "UHE/Scene/Scene.h"
@@ -40,6 +45,10 @@ namespace UHE {
 
 		Ref<Scene> m_Context;
 		Entity m_SelectionContext;
+
+		std::unordered_map<std::string, Ref<Texture2D>> m_IconCache;
+		void* LoadOutlinerIcon(const char *assetName);
+		void* GetEntityIcon(Entity entity);
 
 		// Expand-state keyed by entity UUID (survives registry rebuilds and
 		// play-mode scene copies).

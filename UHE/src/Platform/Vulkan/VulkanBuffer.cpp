@@ -47,15 +47,34 @@ void VulkanBuffer::init(VmaAllocator allocator, vk::DeviceSize size, vk::BufferU
     m_Buffer = vk::Buffer(vkBuffer);
 }
 
-void VulkanBuffer::UploadData(const void* data, vk::DeviceSize size)
+void VulkanBuffer::UploadData(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 {
-    UHE_CORE_ASSERT(size <= m_Size, "Upload size exceeds buffer size!");
+    if (offset > m_Size || size > m_Size - offset)
+    {
+        UHE_CORE_ERROR("Upload size and offset exceed buffer size!");
+        return;
+    }
+    if (size == 0)
+        return;
+    if (data == nullptr)
+    {
+        UHE_CORE_ERROR("Cannot upload null data to a Vulkan buffer!");
+        return;
+    }
 
-    void* mappedData;
-    vmaMapMemory(m_Allocator, m_Allocation, &mappedData);
-    memcpy(mappedData, data, size);
-    vmaFlushAllocation(m_Allocator, m_Allocation, 0, size);
+    void* mappedData = nullptr;
+    VkResult result = vmaMapMemory(m_Allocator, m_Allocation, &mappedData);
+    if (result != VK_SUCCESS || mappedData == nullptr)
+    {
+        UHE_CORE_ERROR("Failed to map Vulkan buffer memory (VkResult={})", static_cast<i32>(result));
+        return;
+    }
+
+    memcpy(static_cast<uint8_t*>(mappedData) + offset, data, size);
+    VkResult flushResult = vmaFlushAllocation(m_Allocator, m_Allocation, offset, size);
     vmaUnmapMemory(m_Allocator, m_Allocation);
+    if (flushResult != VK_SUCCESS)
+        UHE_CORE_ERROR("Failed to flush Vulkan buffer memory (VkResult={})", static_cast<i32>(flushResult));
 }
 
 void VulkanBuffer::CopyTo(VulkanBuffer& dstBuffer, vk::DeviceSize size, vk::raii::CommandBuffer& commandBuffer)

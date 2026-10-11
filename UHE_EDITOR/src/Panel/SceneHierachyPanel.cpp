@@ -8,6 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "UHE/AssestsManager/VfsSystem.h"
 #include "EditorTheme.h"
+#include <cstdint>
 
 // todo divide them in other file as usage after 3d support
 namespace UHE {
@@ -38,27 +39,28 @@ static constexpr ImVec4 kAxisZ{0.25f, 0.42f, 0.82f, 1.0f};
 static constexpr ImVec4 kAxisZHover{0.35f, 0.52f, 0.92f, 1.0f};
 static constexpr ImVec4 kAxisZActive{0.18f, 0.32f, 0.72f, 1.0f};
 
-// Issue #17: outliner icons, lazily loaded once and shared for the session.
-static ImTextureID LoadOutlinerIcon(const char *assetName) {
-  static std::unordered_map<std::string, Ref<Texture2D>> s_IconCache;
-  auto it = s_IconCache.find(assetName);
-  if (it == s_IconCache.end()) {
+// Issue #17: outliner icons, lazily loaded once per panel instance.
+void* SceneHierarchyPanel::LoadOutlinerIcon(const char *assetName) {
+  auto it = m_IconCache.find(assetName);
+  if (it == m_IconCache.end()) {
     std::string path =
         (FileSystem::Get().GetRootPath() / "assets/icon" / assetName).string();
     Ref<Texture2D> tex = Texture2D::Create(path);
-    it = s_IconCache.emplace(assetName, tex).first;
+    it = m_IconCache.emplace(assetName, tex).first;
   }
   Ref<Texture2D> &tex = it->second;
-  return tex ? (ImTextureID)(intptr_t)tex->GetImGuiTextureID() : (ImTextureID)0;
+  return tex ? tex->GetImGuiTextureID() : nullptr;
 }
 
-static ImTextureID GetEntityIcon(Entity entity) {
+void* SceneHierarchyPanel::GetEntityIcon(Entity entity) {
   if (entity.HasComponent<CameraComponent>())
     return LoadOutlinerIcon("camera.png");
   if (entity.HasComponent<DirectionalLightComponent>())
     return LoadOutlinerIcon("directionLight.png");
   if (entity.HasComponent<PointLightComponent>())
     return LoadOutlinerIcon("pointLight.png");
+  if (entity.HasComponent<SpotLightComponent>())
+    return LoadOutlinerIcon("directionLight.png");
   if (entity.HasComponent<SpriteRendererComponent>() ||
       entity.HasComponent<SpriteAnimationComponent>())
     return LoadOutlinerIcon("image.png");
@@ -256,7 +258,7 @@ void SceneHierarchyPanel::DrawEntityNode(Entity entity) {
   // the right edge of the row. Deliberately NOT an ImGui item: ImGui::Image()
   // submits no ID and would clobber LastItemData, which BeginPopupContextItem
   // and the drag-drop helpers rely on (assert 'id != 0' crash).
-  ImTextureID icon = GetEntityIcon(entity);
+  ImTextureID icon = static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(GetEntityIcon(entity)));
   if (icon) {
     ImVec2 rowMin = ImGui::GetItemRectMin();
     ImVec2 rowMax = ImGui::GetItemRectMax();
@@ -555,6 +557,10 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
     }
     if (ImGui::MenuItem("  Point Light")) {
       m_SelectionContext.AddComponent<PointLightComponent>();
+      ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::MenuItem("  Spot Light")) {
+      m_SelectionContext.AddComponent<SpotLightComponent>();
       ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
@@ -950,6 +956,22 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
         ImGui::ColorEdit3("Color", glm::value_ptr(light.Color));
         ImGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
         ImGui::DragFloat("Radius", &light.Radius, 0.5f, 0.0f, 1000.0f);
+      });
+
+  ::UHE::DrawComponents<SpotLightComponent>(
+      "Spot Light", entity, [](SpotLightComponent &light) {
+        ImGui::ColorEdit3("Color", glm::value_ptr(light.Color));
+        ImGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
+        ImGui::DragFloat("Radius", &light.Radius, 0.5f, 0.0f, 1000.0f);
+        // The component stores radians (glTF KHR_lights_punctual parity); the
+        // panel edits degrees like every other angle in the editor.
+        float innerDeg = glm::degrees(light.InnerConeAngle);
+        float outerDeg = glm::degrees(light.OuterConeAngle);
+        if (ImGui::DragFloat("Inner Cone (deg)", &innerDeg, 0.5f, 0.0f, 89.0f))
+            light.InnerConeAngle = glm::radians(glm::clamp(innerDeg, 0.0f, outerDeg));
+        if (ImGui::DragFloat("Outer Cone (deg)", &outerDeg, 0.5f, 0.0f, 89.0f))
+            light.OuterConeAngle = glm::radians(glm::max(outerDeg, glm::degrees(light.InnerConeAngle)));
+        ImGui::TextDisabled("Rotate the entity's Transform to aim the cone.");
       });
 
   ::UHE::DrawComponents<AnimatorComponent>(
