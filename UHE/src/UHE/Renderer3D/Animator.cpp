@@ -177,19 +177,17 @@ void Animator::UpdateAnimation(float dt)
         while (newTime >= duration) { newTime -= duration; wrapped = true; }
         while (newTime < 0.0f) { newTime += duration; wrapped = true; }
     }
-    else // PingPong: reflect at the ends and flip direction
+    else // PingPong: reflect at the ends and flip direction (no loop wrap)
     {
         while (newTime >= duration)
         {
             newTime = 2.0f * duration - newTime;
             m_PingPongForward = !m_PingPongForward;
-            wrapped = true;
         }
         while (newTime < 0.0f)
         {
             newTime = -newTime;
             m_PingPongForward = !m_PingPongForward;
-            wrapped = true;
         }
     }
     m_CurrentTime = newTime;
@@ -197,10 +195,10 @@ void Animator::UpdateAnimation(float dt)
     FireEvents(clip, prevTime, newTime, movedForward);
 
     if (m_RootMotionEnabled)
-        m_RootMotionDelta = ExtractRootMotion(clip, prevTime, newTime, wrapped);
+        m_RootMotionDelta = ExtractRootMotion(clip, prevTime, newTime, wrapped, movedForward);
 
     // --- sample poses (current clip, and the fading-out clip if any) ---
-    m_CurrentPose.Resize(skeleton.Bones.size());
+    m_CurrentPose = m_RestPose;
     SampleClip(clip, m_CurrentTime, m_CurrentPose);
 
     if (m_PrevAnimationIndex != -1 && m_BlendDuration > 0.0f)
@@ -214,7 +212,7 @@ void Animator::UpdateAnimation(float dt)
             while (m_PrevTime < 0.0f) m_PrevTime += prevClip.Duration;
         }
 
-        m_PrevPose.Resize(skeleton.Bones.size());
+        m_PrevPose = m_RestPose;
         SampleClip(prevClip, m_PrevTime, m_PrevPose);
 
         m_BlendTime += std::abs(effDt);
@@ -233,8 +231,7 @@ void Animator::UpdateAnimation(float dt)
         m_BlendedPose = m_CurrentPose;
     }
 
-    CalculateBoneTransform(m_Model->GetSkeleton(), m_Model->GetSkeleton().RootBoneID, glm::mat4(1.0f));
-    ComputeFinalMatrices();
+    TraverseSkeletonRoots();
 }
 
 void Animator::Seek(float time)
@@ -253,12 +250,11 @@ void Animator::Seek(float time)
     const AnimationClip& clip = m_Model->GetAnimations()[m_CurrentAnimationIndex];
     m_CurrentTime = clip.Duration > 0.0f ? std::clamp(time, 0.0f, clip.Duration) : 0.0f;
 
-    m_CurrentPose.Resize(skeleton.Bones.size());
+    m_CurrentPose = m_RestPose;
     SampleClip(clip, m_CurrentTime, m_CurrentPose);
     m_BlendedPose = m_CurrentPose; // scrubbing shows the target clip only
 
-    CalculateBoneTransform(m_Model->GetSkeleton(), m_Model->GetSkeleton().RootBoneID, glm::mat4(1.0f));
-    ComputeFinalMatrices();
+    TraverseSkeletonRoots();
 }
 
 void Animator::ComputeFinalMatrices()
@@ -285,6 +281,18 @@ void Animator::ComputeFinalMatrices()
             m_FinalBoneMatrices[i] = m_GlobalTransforms[boneID] * skeleton.Bones[boneID].InverseBindMatrix;
         }
     }
+}
+void Animator::TraverseSkeletonRoots()
+{
+    if (!m_Model)
+        return;
+    const auto& skeleton = m_Model->GetSkeleton();
+    for (size_t i = 0; i < skeleton.Bones.size(); ++i)
+    {
+        if (skeleton.Bones[i].ParentID < 0)
+            CalculateBoneTransform(skeleton, static_cast<int>(i), glm::mat4(1.0f));
+    }
+    ComputeFinalMatrices();
 }
 
 void Animator::SampleClip(const AnimationClip& clip, float time, AnimationPose& pose) const
@@ -411,7 +419,7 @@ void Animator::FireEvents(const AnimationClip& clip, float prevTime, float newTi
     }
 }
 
-glm::vec3 Animator::ExtractRootMotion(const AnimationClip& clip, float prevTime, float newTime, bool wrapped) const
+glm::vec3 Animator::ExtractRootMotion(const AnimationClip& clip, float prevTime, float newTime, bool wrapped, bool movedForward) const
 {
     const VectorTrack* rootTrack = nullptr;
     int rootBoneID = m_Model->GetSkeleton().RootBoneID;
@@ -432,12 +440,12 @@ glm::vec3 Animator::ExtractRootMotion(const AnimationClip& clip, float prevTime,
     if (!wrapped)
         return newPos - prevPos;
 
-    // Wrapped: accumulate the motion through the ends instead of jumping.
+    // Wrapped: accumulate the motion through the boundary ends.
     glm::vec3 endPos = SamplePosition(clip.Duration, *rootTrack);
     glm::vec3 startPos = SamplePosition(0.0f, *rootTrack);
-    if (newTime >= prevTime) // wrapped forwards
+    if (movedForward)
         return (endPos - prevPos) + (newPos - startPos);
-    return (startPos - prevPos) + (endPos - newPos);
+    return (startPos - prevPos) + (newPos - endPos);
 }
 
 glm::vec3 Animator::SamplePosition(float time, const VectorTrack& track) const
@@ -541,11 +549,23 @@ void Animator::BuildChildLists()
         return;
     const auto& skeleton = m_Model->GetSkeleton();
     m_ChildBones.assign(skeleton.Bones.size(), {});
+    m_RestPose.Resize(skeleton.Bones.size());
     for (size_t i = 0; i < skeleton.Bones.size(); ++i)
     {
         int parent = skeleton.Bones[i].ParentID;
         if (parent >= 0 && parent < static_cast<int>(m_ChildBones.size()))
             m_ChildBones[parent].push_back(static_cast<int>(i));
+
+        glm::vec3 translation{0.0f}, scale{1.0f}, skew{0.0f};
+        glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 perspective{0.0f};
+        if (glm::decompose(skeleton.Bones[i].LocalTransform, scale, rotation, translation, skew, perspective))
+        {
+            m_RestPose.Bones[i].Translation = translation;
+            m_RestPose.Bones[i].Rotation = rotation;
+            m_RestPose.Bones[i].Scale = scale;
+            m_RestPose.Bones[i].Animated = false;
+        }
     }
 }
 

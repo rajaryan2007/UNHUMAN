@@ -118,7 +118,8 @@ AssetHandle<T> AssetManager::Load(std::string_view path)
     }
 
     // Fast path: already finished (this or an earlier Load).
-    if (record->state.load(std::memory_order_acquire) == LoadState::Ready && record->finalized)
+    if (record->state.load(std::memory_order_acquire) == LoadState::Ready &&
+        record->finalized.load(std::memory_order_acquire))
         return AssetHandle<T>(record);
 
     // Another async load is still decoding this record; its Update()
@@ -173,9 +174,13 @@ AssetHandle<T> AssetManager::LoadAsync(std::string_view path, LoadCallback onDon
     }
 
     // Already finished - deliver on the next Update().
-    if (record->state.load(std::memory_order_acquire) == LoadState::Ready && record->finalized)
+    if (record->state.load(std::memory_order_acquire) == LoadState::Ready &&
+        record->finalized.load(std::memory_order_acquire))
         return AssetHandle<T>(record);
 
+    // If already loading in the background, return the handle without kicking a duplicate job.
+    if (record->state.load(std::memory_order_acquire) == LoadState::Loading)
+        return AssetHandle<T>(record);
     if (!m_Jobs)
     {
         // No jobsystem wired: fall back to a synchronous decode so the caller
@@ -226,7 +231,7 @@ void AssetManager::FinalizeRecord(AssetRecord& record)
     // Main thread only. Finalize does GPU/upload work; callbacks fire after.
     if (record.loader)
         record.loader->Finalize(record.data);
-    record.finalized = true;
+    record.finalized.store(true, std::memory_order_release);
 }
 
 void AssetManager::Unload(AssetID id)
@@ -258,20 +263,29 @@ void AssetManager::UnloadUnused()
 
 void AssetManager::Update()
 {
-    std::vector<std::pair<AssetID, LoadCallback>> deliver;
+    struct CallbackDelivery
+    {
+        AssetID id;
+        LoadCallback callback;
+        bool success = false;
+    };
+
+    std::vector<CallbackDelivery> deliver;
+    std::vector<std::function<void()>> hotReloadListeners;
+
     {
         std::scoped_lock lock(m_Mutex);
 
         // Finalize finished async loads on the main thread.
         for (auto& [id, record] : m_Registry)
         {
-            if (record->finalized)
+            if (record->finalized.load(std::memory_order_acquire))
                 continue;
             LoadState state = record->state.load(std::memory_order_acquire);
             if (state == LoadState::Ready)
                 FinalizeRecord(*record);
             else if (state == LoadState::Failed)
-                record->finalized = true; // terminal; nothing to finalize
+                record->finalized.store(true, std::memory_order_release);
         }
 
         // Hot reload polling: mtime-driven, low frequency in practice.
@@ -279,8 +293,11 @@ void AssetManager::Update()
         {
             for (auto& [id, record] : m_Registry)
             {
-                if (record->state.load(std::memory_order_acquire) == LoadState::Ready && record->finalized)
-                    ReloadIfChanged(*record);
+                if (record->state.load(std::memory_order_acquire) == LoadState::Ready &&
+                    record->finalized.load(std::memory_order_acquire))
+                {
+                    ReloadIfChanged(*record, hotReloadListeners);
+                }
             }
         }
 
@@ -301,14 +318,18 @@ void AssetManager::Update()
         }
 
         // Deliver only callbacks whose load reached a terminal state (or whose
-        // record was reclaimed); the rest wait for a later Update().
+        // record was reclaimed); compute success status under lock.
         for (auto it = m_PendingCallbacks.begin(); it != m_PendingCallbacks.end();)
         {
             auto recordIt = m_Registry.find(it->first);
-            bool terminal = recordIt == m_Registry.end() || recordIt->second->finalized;
+            bool terminal = recordIt == m_Registry.end() ||
+                            recordIt->second->finalized.load(std::memory_order_acquire);
             if (terminal)
             {
-                deliver.emplace_back(std::move(*it));
+                bool success = recordIt != m_Registry.end() &&
+                               recordIt->second->state.load(std::memory_order_acquire) == LoadState::Ready &&
+                               recordIt->second->finalized.load(std::memory_order_acquire);
+                deliver.push_back({it->first, std::move(it->second), success});
                 it = m_PendingCallbacks.erase(it);
             }
             else
@@ -318,19 +339,20 @@ void AssetManager::Update()
         }
     }
 
-    // Deliver outside the lock so callbacks may call back into the manager.
-    for (auto& [id, callback] : deliver)
+    // Deliver outside the lock so callbacks and listeners may safely call back into AssetManager.
+    for (auto& item : deliver)
     {
-        if (!callback)
-            continue;
-        auto it = m_Registry.find(id);
-        bool success = it != m_Registry.end() && it->second->state.load() == LoadState::Ready &&
-                       it->second->finalized;
-        callback(id, success);
+        if (item.callback)
+            item.callback(item.id, item.success);
+    }
+    for (auto& listener : hotReloadListeners)
+    {
+        if (listener)
+            listener();
     }
 }
 
-void AssetManager::ReloadIfChanged(AssetRecord& record)
+void AssetManager::ReloadIfChanged(AssetRecord& record, std::vector<std::function<void()>>& listenersOut)
 {
     std::uintmax_t current = LastWriteTimeOrZero(record.sourcePath);
     if (current == 0 || current == record.fileTime)
@@ -344,16 +366,14 @@ void AssetManager::ReloadIfChanged(AssetRecord& record)
         return;
     }
     record.data = std::move(fresh);
-    record.finalized = false;
+    record.finalized.store(false, std::memory_order_release);
     FinalizeRecord(record);
     record.generation.fetch_add(1, std::memory_order_release);
-    // Old handles keep pointing at the same record but their generation check
-    // now fails, so they re-fetch or react through their listeners.
+    // Collect listeners to invoke outside the mutex lock.
     for (auto& listener : record.listeners)
-        listener();
+        listenersOut.push_back(listener);
     UHE_CORE_INFO("AssetManager: hot reloaded '{0}'", record.sourcePath);
 }
-
 void AssetManager::AddListener(AssetID id, std::function<void()> listener)
 {
     std::scoped_lock lock(m_Mutex);
@@ -373,8 +393,8 @@ bool AssetManager::IsReady(AssetID id) const
 {
     std::scoped_lock lock(m_Mutex);
     auto it = m_Registry.find(id);
-    return it != m_Registry.end() && it->second->state.load() == LoadState::Ready &&
-           it->second->finalized;
+    return it != m_Registry.end() && it->second->state.load(std::memory_order_acquire) == LoadState::Ready &&
+           it->second->finalized.load(std::memory_order_acquire);
 }
 
 AssetID AssetManager::FindByPath(std::string_view path) const

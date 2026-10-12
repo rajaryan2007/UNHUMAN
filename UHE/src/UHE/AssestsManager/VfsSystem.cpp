@@ -29,7 +29,7 @@ std::optional<fs::path> Vfs::Resolve(std::string_view virtualPath) const
     auto results = ResolveAll(virtualPath);
     if (results.empty())
         return std::nullopt;
-    return results.front();
+    return results.back();
 }
 
 std::vector<fs::path> Vfs::ResolveAll(std::string_view virtualPath) const
@@ -38,14 +38,22 @@ std::vector<fs::path> Vfs::ResolveAll(std::string_view virtualPath) const
     for (const auto& [root, physical] : m_Mounts)
     {
         std::string_view prefix = virtualPath;
-        // The mount prefix includes the colon ("game:"), so "gameboy:/x"
-        // never matches the "game:" mount.
         if (!prefix.starts_with(root))
             continue;
         std::string_view remainder = prefix.substr(root.size());
-        if (!remainder.empty() && (remainder.front() == '/' || remainder.front() == '\\'))
+        // Boundary check: for roots not ending in ':', require a path separator or end-of-string
+        if (!root.empty() && root.back() != ':' && !remainder.empty() &&
+            remainder.front() != '/' && remainder.front() != '\\')
+        {
+            continue;
+        }
+        while (!remainder.empty() && (remainder.front() == '/' || remainder.front() == '\\'))
             remainder.remove_prefix(1);
-        fs::path resolved = physical / fs::path(remainder).lexically_normal();
+        fs::path resolved = (physical / fs::path(remainder)).lexically_normal();
+        // Traversal guard: reject paths that escape the physical mount root
+        auto [rootEnd, _] = std::mismatch(physical.begin(), physical.end(), resolved.begin(), resolved.end());
+        if (rootEnd != physical.end())
+            continue;
         results.push_back(resolved.make_preferred());
     }
     return results;
@@ -57,10 +65,14 @@ void FileSystem::Initialize(const char *argv0) {
   fs::path exePath = fs::absolute(argv0).parent_path();
   bool foundSourceAssets = false;
 
-  // Unified asset discovery: scan ancestor directories for known project roots
-  // and bind the discovered assets folder to the "game:" virtual prefix.
-  static constexpr const char *kProjectMarkers[] = {"UHE_EDITOR", "UHEGAME"};
-
+  // Unified asset discovery: prefer the marker matching the running binary,
+  // falling back to other project markers if target-specific assets are absent.
+  std::string_view exeName = argv0 ? argv0 : "";
+  bool preferGame = exeName.find("UHEGAME") != std::string_view::npos;
+  const char *kProjectMarkers[] = {
+      preferGame ? "UHEGAME" : "UHE_EDITOR",
+      preferGame ? "UHE_EDITOR" : "UHEGAME"
+  };
   fs::path searchPath = exePath;
   while (searchPath.has_parent_path()) {
     for (const char *marker : kProjectMarkers) {

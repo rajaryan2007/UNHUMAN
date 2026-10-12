@@ -91,6 +91,7 @@ Ref<SubTexture2D> SubTexture2D::CreateFromPixels(const Ref<Texture2D>&, glm::vec
 namespace UHE::RD3d
 {
 void Animator::UpdateAnimation(float) {}
+void Animator::SetSkin(int) {}
 std::vector<LightData> LightSystem::ExtractLights(entt::registry&) { return {}; }
 Model::~Model()
 {

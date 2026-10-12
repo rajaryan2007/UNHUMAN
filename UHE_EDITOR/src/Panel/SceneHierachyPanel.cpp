@@ -1003,7 +1003,7 @@ void SceneHierarchyPanel::DrawComponents(Entity entity) {
                         bool isSelected = (anim.CurrentAnimationName == a.Name);
                         if (ImGui::Selectable(a.Name.c_str(), isSelected)) {
                             anim.CurrentAnimationName = a.Name;
-                            anim.Animator->PlayAnimation(a.Name);
+                            anim.Animator->CrossFade(a.Name, anim.CrossFadeDuration);
                             anim.IsPlaying = true;
                         }
                         if (isSelected) {

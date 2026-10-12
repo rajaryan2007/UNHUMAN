@@ -96,8 +96,8 @@ struct AssetRecord
     // Set by Unload; the record is erased by Update/UnloadUnused once
     // refCount drains to zero.
     std::atomic<bool> wantsUnload{false};
-    // Main-thread-only flag: Finalize has run and callbacks have fired.
-    bool finalized = false;
+    // Flag indicating Finalize has run and resource is ready on the main thread.
+    std::atomic<bool> finalized{false};
 
     Ref<void> data;                       // valid when state == Ready
     std::shared_ptr<IAssetLoader> loader; // owns the finalize step
@@ -147,7 +147,8 @@ public:
     // current generation (a reload invalidates older handles).
     bool IsValid() const
     {
-        return m_Record && m_Record->finalized && m_Record->generation.load() == m_Generation;
+        return m_Record && m_Record->finalized.load(std::memory_order_acquire) &&
+               m_Record->generation.load(std::memory_order_acquire) == m_Generation;
     }
     explicit operator bool() const { return IsValid(); }
 
@@ -166,7 +167,7 @@ private:
     {
         return m_Record && m_Record->generation.load(std::memory_order_acquire) == m_Generation &&
                m_Record->state.load(std::memory_order_acquire) == LoadState::Ready &&
-               m_Record->finalized && m_Record->data != nullptr;
+               m_Record->finalized.load(std::memory_order_acquire) && m_Record->data != nullptr;
     }
 
     void AddRef()
@@ -200,7 +201,8 @@ public:
     {
         if (this != &other)
         {
-            other.m_Record->refCount.fetch_add(1, std::memory_order_relaxed);
+            if (other.m_Record)
+                other.m_Record->refCount.fetch_add(1, std::memory_order_relaxed);
             ReleaseRef();
             m_Record = other.m_Record;
             m_ID = other.m_ID;
@@ -283,7 +285,7 @@ private:
                                               const std::shared_ptr<IAssetLoader>& loader);
     std::shared_ptr<AssetRecord> FindRecord(AssetID id) const;
     void FinalizeRecord(AssetRecord& record);
-    void ReloadIfChanged(AssetRecord& record);
+    void ReloadIfChanged(AssetRecord& record, std::vector<std::function<void()>>& listenersOut);
 
     mutable std::mutex m_Mutex;
     std::unordered_map<AssetID, std::shared_ptr<AssetRecord>> m_Registry;

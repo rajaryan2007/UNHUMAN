@@ -863,15 +863,17 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
                 anim.Animator->SetLoopMode(anim.LoopMode);
                 anim.Animator->SetReversed(anim.Reverse);
                 anim.Animator->SetRootMotionEnabled(anim.RootMotion);
-                if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
-                {
-                    // Apply root motion displacement delta to entity transform
-                    auto& tc = m_registry.get<TransformComponent>(entity);
-                    tc.Translation += anim.Animator->GetRootMotionDelta();
-                }
+                if (anim.Animator->GetSkinIndex() != anim.SkinIndex)
+                    anim.Animator->SetSkin(anim.SkinIndex);
                 if (anim.IsPlaying)
                 {
                     anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+                    if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
+                    {
+                        // Apply root motion displacement delta to entity transform
+                        auto& tc = m_registry.get<TransformComponent>(entity);
+                        tc.Translation += anim.Animator->GetRootMotionDelta();
+                    }
                 }
             }
         }
@@ -1197,15 +1199,17 @@ void Scene::OnUpdateRuntime(Timestep ts)
                 anim.Animator->SetLoopMode(anim.LoopMode);
                 anim.Animator->SetReversed(anim.Reverse);
                 anim.Animator->SetRootMotionEnabled(anim.RootMotion);
-                if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
-                {
-                    // Apply root motion displacement delta to entity transform
-                    auto& tc = m_registry.get<TransformComponent>(entity);
-                    tc.Translation += anim.Animator->GetRootMotionDelta();
-                }
+                if (anim.Animator->GetSkinIndex() != anim.SkinIndex)
+                    anim.Animator->SetSkin(anim.SkinIndex);
                 if (anim.IsPlaying)
                 {
                     anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+                    if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
+                    {
+                        // Apply root motion displacement delta to entity transform
+                        auto& tc = m_registry.get<TransformComponent>(entity);
+                        tc.Translation += anim.Animator->GetRootMotionDelta();
+                    }
                 }
             }
         }

@@ -56,7 +56,7 @@ TwoBoneIKResult IKSolver::SolveTwoBone(const glm::vec3& rootPos, const glm::vec3
     }
     bendNormal = glm::normalize(bendNormal);
     // Direction in the bend plane, perpendicular to the target direction.
-    glm::vec3 bendDir = glm::cross(bendNormal, targetDir);
+    glm::vec3 bendDir = glm::normalize(glm::cross(bendNormal, targetDir));
 
     // New joint placement: mid joint off the root->target axis by rootAngle.
     const glm::vec3 newMid = rootPos + upperLength *

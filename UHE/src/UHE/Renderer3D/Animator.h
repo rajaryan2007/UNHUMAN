@@ -89,8 +89,7 @@ private:
     // honouring play direction and loop wraps.
     void FireEvents(const AnimationClip& clip, float prevTime, float newTime, bool movedForward);
     // Extracts the root joint's translation change between two sample times.
-    glm::vec3 ExtractRootMotion(const AnimationClip& clip, float prevTime, float newTime, bool wrapped) const;
-
+    glm::vec3 ExtractRootMotion(const AnimationClip& clip, float prevTime, float newTime, bool wrapped, bool movedForward) const;
     glm::vec3 SamplePosition(float time, const VectorTrack& track) const;
     glm::quat SampleRotation(float time, const QuaternionTrack& track) const;
     glm::vec3 SampleScale(float time, const VectorTrack& track) const;
@@ -101,7 +100,7 @@ private:
     void BuildChildLists();
     // Multiplies the global transforms with the selected skin's inverse binds.
     void ComputeFinalMatrices();
-
+    void TraverseSkeletonRoots();
 private:
     Ref<Model> m_Model;
     int m_CurrentAnimationIndex = -1;
@@ -121,10 +120,10 @@ private:
     float m_BlendTime = 0.0f;
     float m_BlendWeight = 1.0f;
 
+    AnimationPose m_RestPose;
     AnimationPose m_PrevPose;
     AnimationPose m_CurrentPose;
     AnimationPose m_BlendedPose;
-
     EventCallback m_EventCallback;
 
     bool m_RootMotionEnabled = false;

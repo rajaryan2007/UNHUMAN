@@ -119,11 +119,11 @@ static TrackT* FindOrAddTrack(std::vector<TrackT>& tracks, int targetBone)
 // CUBICSPLINE output layout per glTF 2.0: for key k the accessor stores
 // [inTangent_k, value_k, outTangent_k]; tangents are scaled by the segment
 // duration at evaluation time.
-template <typename T, typename GltfT, typename ToGlm>
+template <typename T, typename GltfT, typename ToGlm, typename ToTangent>
 static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Accessor& valueAccessor,
                             const std::vector<float>& times, InterpolationMode interpolation,
                             std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
-                            std::vector<T>& outTangents, ToGlm toGlm)
+                            std::vector<T>& outTangents, ToGlm toGlm, ToTangent toTangent)
 {
     const bool spline = interpolation == InterpolationMode::CubicSpline;
     if (spline)
@@ -139,11 +139,11 @@ static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Access
                                                           return;
                                                       const size_t part = i % 3; // 0 in, 1 value, 2 out
                                                       if (part == 0)
-                                                          inTangents[key] = toGlm(v);
+                                                          inTangents[key] = toTangent(v);
                                                       else if (part == 1)
                                                           keys[key] = {times[key], toGlm(v)};
                                                       else
-                                                          outTangents[key] = toGlm(v);
+                                                          outTangents[key] = toTangent(v);
                                                   }, MeshoptBufferDataAdapter{&asset});
     }
     else
@@ -157,6 +157,15 @@ static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Access
                                              ++idx;
                                          }, MeshoptBufferDataAdapter{&asset});
     }
+}
+
+template <typename T, typename GltfT, typename ToGlm>
+static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Accessor& valueAccessor,
+                            const std::vector<float>& times, InterpolationMode interpolation,
+                            std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
+                            std::vector<T>& outTangents, ToGlm toGlm)
+{
+    AppendTrackKeys<T, GltfT>(asset, valueAccessor, times, interpolation, keys, inTangents, outTangents, toGlm, toGlm);
 }
 
 void Model::ParseAnimations(const fastgltf::Asset& asset)
@@ -219,8 +228,14 @@ void Model::ParseAnimations(const fastgltf::Asset& asset)
                     track->OutTangents,
                     [](const fastgltf::math::fvec4& v)
                     {
-                        // glTF rotation is x,y,z,w. GLM quat constructor takes w,x,y,z.
+                        // Orientation keyframes must be normalized unit quaternions.
                         return glm::normalize(glm::quat(v.w(), v.x(), v.y(), v.z()));
+                    },
+                    [](const fastgltf::math::fvec4& v)
+                    {
+                        // glTF 2.0: CubicSpline rotation tangents represent derivatives
+                        // and must NOT be normalized to unit length.
+                        return glm::quat(v.w(), v.x(), v.y(), v.z());
                     });
             }
             else if (channel.path == fastgltf::AnimationPath::Scale)

@@ -35,7 +35,7 @@ T SampleBetween(const Keyframe<T>& a, const Keyframe<T>& b, const T& aOutTangent
     if (!spline)
         return LinearBlend(a.Value, b.Value, u);
 
-    float t = u * span; // local segment parameter
+    float t = u; // normalized segment parameter in [0, 1]
     float t2 = t * t;
     float t3 = t2 * t;
     float h00 = 2.0f * t3 - 3.0f * t2 + 1.0f;
@@ -83,9 +83,21 @@ std::vector<size_t> ComputeKeepMask(const std::vector<Keyframe<T>>& keys, const 
     {
         const Keyframe<T>& a = keys[lastKept];
         const Keyframe<T>& b = keys[i + 1];
-        T blended =
-            SampleBetween(a, b, tangentAt(outTangents, lastKept), tangentAt(inTangents, i + 1), spline, keys[i].Time);
-        if (TrackError(keys[i].Value, blended) <= tolerance)
+
+        // Recheck all intermediate skipped keys against the candidate segment (lastKept -> i + 1).
+        bool allWithinTolerance = true;
+        for (size_t k = lastKept + 1; k <= i; ++k)
+        {
+            T blended = SampleBetween(a, b, tangentAt(outTangents, lastKept), tangentAt(inTangents, i + 1),
+                                      spline, keys[k].Time);
+            if (TrackError(keys[k].Value, blended) > tolerance)
+            {
+                allWithinTolerance = false;
+                break;
+            }
+        }
+
+        if (allWithinTolerance)
         {
             ++i; // drop key i
         }
@@ -170,7 +182,7 @@ CompressionStats RunReduction(AnimationClip& clip, const CompressSettings& setti
 
     for (auto& track : clip.PositionTracks)
     {
-        bool reduce = track.Interpolation != InterpolationMode::Step;
+        bool reduce = track.Interpolation == InterpolationMode::Linear;
         work.push_back([&track, &settings, reduce, apply] {
             return ProcessTrack<glm::vec3>(track.Keyframes, track.InTangents, track.OutTangents,
                                            settings.PositionTolerance, reduce, apply);
@@ -178,7 +190,7 @@ CompressionStats RunReduction(AnimationClip& clip, const CompressSettings& setti
     }
     for (auto& track : clip.RotationTracks)
     {
-        bool reduce = track.Interpolation != InterpolationMode::Step;
+        bool reduce = track.Interpolation == InterpolationMode::Linear;
         work.push_back([&track, &settings, reduce, apply] {
             return ProcessTrack<glm::quat>(track.Keyframes, track.InTangents, track.OutTangents,
                                            settings.RotationTolerance, reduce, apply);
@@ -186,7 +198,7 @@ CompressionStats RunReduction(AnimationClip& clip, const CompressSettings& setti
     }
     for (auto& track : clip.ScaleTracks)
     {
-        bool reduce = track.Interpolation != InterpolationMode::Step;
+        bool reduce = track.Interpolation == InterpolationMode::Linear;
         work.push_back([&track, &settings, reduce, apply] {
             return ProcessTrack<glm::vec3>(track.Keyframes, track.InTangents, track.OutTangents,
                                            settings.ScaleTolerance, reduce, apply);
