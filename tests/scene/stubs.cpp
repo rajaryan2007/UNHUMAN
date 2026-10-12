@@ -90,7 +90,8 @@ Ref<SubTexture2D> SubTexture2D::CreateFromPixels(const Ref<Texture2D>&, glm::vec
 // No models are loaded headless, so these are inert. ----
 namespace UHE::RD3d
 {
-void Animator::UpdateAnimation(float) {}
+void Animator::UpdateAnimation(f32) {}
+void Animator::SetSkin(i32) {}
 std::vector<LightData> LightSystem::ExtractLights(entt::registry&) { return {}; }
 Model::~Model()
 {

@@ -38,17 +38,18 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
     if (asset.skins.empty())
         return;
 
-    // For now, only parse the first skin
-    const auto& skin = asset.skins[0];
-
-    m_Skeleton.Bones.resize(asset.nodes.size()); // Map glTF nodes to bones directly for simplicity
-    m_Skeleton.RootBoneID = skin.skeleton.value_or(skin.joints.empty() ? -1 : static_cast<int>(skin.joints[0]));
+    // Extract unified bone hierarchy across all nodes; individual skins bind
+    // specific joint subsets and inverse bind matrices.
+    m_Skeleton.Bones.resize(asset.nodes.size());
+    m_Skeleton.RootBoneID = asset.skins[0].skeleton.has_value()
+                                ? static_cast<i32>(asset.skins[0].skeleton.value())
+                                : (asset.skins[0].joints.empty() ? -1 : static_cast<i32>(asset.skins[0].joints[0]));
 
     // 1. Build hierarchy mapping from asset.nodes
     for (size_t i = 0; i < asset.nodes.size(); ++i)
     {
         const auto& node = asset.nodes[i];
-        m_Skeleton.Bones[i].ID = static_cast<int>(i);
+        m_Skeleton.Bones[i].ID = static_cast<i32>(i);
         m_Skeleton.Bones[i].Name = node.name.empty() ? "Bone_" + std::to_string(i) : std::string(node.name);
 
         m_Skeleton.Bones[i].LocalTransform = NodeLocalTransform(node);
@@ -56,25 +57,115 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
         // Set parent
         for (auto childIdx : node.children)
         {
-            m_Skeleton.Bones[childIdx].ParentID = static_cast<int>(i);
+            m_Skeleton.Bones[childIdx].ParentID = static_cast<i32>(i);
         }
     }
 
-    m_Skeleton.JointNodes.assign(skin.joints.begin(), skin.joints.end());
-
-    // 2. Extract Inverse Bind Matrices
-    if (skin.inverseBindMatrices.has_value())
+    // 2. Every skin: joint list + inverse bind matrices.
+    for (size_t s = 0; s < asset.skins.size(); ++s)
     {
-        auto& ibmAccessor = asset.accessors[skin.inverseBindMatrices.value()];
-        size_t jointIdx = 0;
-        fastgltf::iterateAccessor<fastgltf::math::fmat4x4>(asset, ibmAccessor, [&](const fastgltf::math::fmat4x4& matrix) {
-            if (jointIdx < skin.joints.size()) {
-                size_t nodeIdx = skin.joints[jointIdx];
-                std::memcpy(&m_Skeleton.Bones[nodeIdx].InverseBindMatrix, matrix.data(), sizeof(glm::mat4));
-            }
-            jointIdx++;
-        }, MeshoptBufferDataAdapter{&asset});
+        const auto& gltfSkin = asset.skins[s];
+        Skin skin;
+        skin.Name = gltfSkin.name.empty() ? "Skin_" + std::to_string(s) : std::string(gltfSkin.name);
+        skin.JointNodes.clear();
+        skin.JointNodes.reserve(gltfSkin.joints.size());
+        for (auto joint : gltfSkin.joints)
+            skin.JointNodes.push_back(static_cast<i32>(joint));
+        skin.InverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
+
+        if (gltfSkin.inverseBindMatrices.has_value())
+        {
+            auto& ibmAccessor = asset.accessors[gltfSkin.inverseBindMatrices.value()];
+            size_t jointIdx = 0;
+            fastgltf::iterateAccessor<fastgltf::math::fmat4x4>(asset, ibmAccessor,
+                                                               [&](const fastgltf::math::fmat4x4& matrix)
+                                                               {
+                                                                   if (jointIdx < skin.InverseBindMatrices.size())
+                                                                   {
+                                                                       memcpy(&skin.InverseBindMatrices[jointIdx],
+                                                                              matrix.data(), sizeof(glm::mat4));
+                                                                   }
+                                                                   jointIdx++;
+                                                               }, MeshoptBufferDataAdapter{&asset});
+        }
+
+        // The first skin also feeds the legacy Skeleton fields so existing
+        // call sites (GetSkeleton) keep working unchanged.
+        if (s == 0)
+        {
+            m_Skeleton.JointNodes = skin.JointNodes;
+            for (size_t j = 0; j < skin.JointNodes.size(); ++j)
+                m_Skeleton.Bones[skin.JointNodes[j]].InverseBindMatrix = skin.InverseBindMatrices[j];
+        }
+
+        m_Skins.push_back(std::move(skin));
     }
+}
+
+// Returns the track already targeting this bone, or appends a new one. glTF
+// may emit several channels for the same (bone, path) pair; merging them
+// keeps the sampled pose well-defined.
+template <typename TrackT>
+static TrackT* FindOrAddTrack(std::vector<TrackT>& tracks, i32 targetBone)
+{
+    for (auto& track : tracks)
+        if (track.TargetBoneID == targetBone)
+            return &track;
+    TrackT& track = tracks.emplace_back();
+    track.TargetBoneID = targetBone;
+    return &track;
+}
+
+// CUBICSPLINE output layout per glTF 2.0: for key k the accessor stores
+// [inTangent_k, value_k, outTangent_k]; tangents are scaled by the segment
+// duration at evaluation time.
+template <typename T, typename GltfT, typename ToGlm, typename ToTangent>
+static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Accessor& valueAccessor,
+                            const std::vector<f32>& times, InterpolationMode interpolation,
+                            std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
+                            std::vector<T>& outTangents, ToGlm toGlm, ToTangent toTangent)
+{
+    const bool spline = interpolation == InterpolationMode::CubicSpline;
+    if (spline)
+    {
+        keys.resize(times.size());
+        inTangents.resize(times.size());
+        outTangents.resize(times.size());
+        fastgltf::iterateAccessorWithIndex<GltfT>(asset, valueAccessor,
+                                                  [&](GltfT v, size_t i)
+                                                  {
+                                                      const size_t key = i / 3;
+                                                      if (key >= times.size())
+                                                          return;
+                                                      const size_t part = i % 3; // 0 in, 1 value, 2 out
+                                                      if (part == 0)
+                                                          inTangents[key] = toTangent(v);
+                                                      else if (part == 1)
+                                                          keys[key] = {times[key], toGlm(v)};
+                                                      else
+                                                          outTangents[key] = toTangent(v);
+                                                  }, MeshoptBufferDataAdapter{&asset});
+    }
+    else
+    {
+        size_t idx = 0;
+        fastgltf::iterateAccessor<GltfT>(asset, valueAccessor,
+                                         [&](GltfT v)
+                                         {
+                                             if (idx < times.size())
+                                                  keys.push_back({times[idx], toGlm(v)});
+                                             ++idx;
+                                         }, MeshoptBufferDataAdapter{&asset});
+    }
+}
+
+template <typename T, typename GltfT, typename ToGlm>
+static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Accessor& valueAccessor,
+                            const std::vector<f32>& times, InterpolationMode interpolation,
+                            std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
+                            std::vector<T>& outTangents, ToGlm toGlm)
+{
+    AppendTrackKeys<T, GltfT>(asset, valueAccessor, times, interpolation, keys, inTangents, outTangents, toGlm, toGlm);
 }
 
 void Model::ParseAnimations(const fastgltf::Asset& asset)
@@ -89,65 +180,76 @@ void Model::ParseAnimations(const fastgltf::Asset& asset)
 
         for (const auto& channel : gltfAnim.channels)
         {
-            if (!channel.nodeIndex.has_value()) continue;
-            int targetNode = static_cast<int>(channel.nodeIndex.value());
+            if (!channel.nodeIndex.has_value())
+                continue;
+            i32 targetNode = static_cast<i32>(channel.nodeIndex.value());
 
             if (channel.samplerIndex >= gltfAnim.samplers.size())
                 continue;
 
             const auto& sampler = gltfAnim.samplers[channel.samplerIndex];
 
-            // Extract times
-            std::vector<float> times;
-            auto& timeAccessor = asset.accessors[sampler.inputAccessor];
-            fastgltf::iterateAccessor<float>(asset, timeAccessor, [&](float t) {
-                times.push_back(t);
-                clip.Duration = std::max(clip.Duration, t);
-            }, MeshoptBufferDataAdapter{&asset});
+            // NOTE: Map sampler interpolation explicitly per track (Step, Linear, or CubicSpline).
+            InterpolationMode interpolation = InterpolationMode::Linear;
+            if (sampler.interpolation == fastgltf::AnimationInterpolation::Step)
+                interpolation = InterpolationMode::Step;
+            else if (sampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
+                interpolation = InterpolationMode::CubicSpline;
 
-            // Extract values
+            // Extract times (one per key, also for CUBICSPLINE).
+            std::vector<f32> times;
+            auto& timeAccessor = asset.accessors[sampler.inputAccessor];
+            fastgltf::iterateAccessor<f32>(asset, timeAccessor,
+                                             [&](f32 t)
+                                             {
+                                                 times.push_back(t);
+                                                 clip.Duration = std::max(clip.Duration, t);
+                                             }, MeshoptBufferDataAdapter{&asset});
+            if (times.empty())
+                continue;
+
             auto& valueAccessor = asset.accessors[sampler.outputAccessor];
 
             if (channel.path == fastgltf::AnimationPath::Translation)
             {
-                VectorTrack track;
-                track.TargetBoneID = targetNode;
-                size_t idx = 0;
-                fastgltf::iterateAccessor<fastgltf::math::fvec3>(asset, valueAccessor, [&](fastgltf::math::fvec3 v) {
-                    // A channel whose value count exceeds its time count would read
-                    // past `times`; clamp rather than overrun.
-                    if (idx >= times.size()) return;
-                    track.Keyframes.push_back({times[idx++], glm::vec3(v.x(), v.y(), v.z())});
-                }, MeshoptBufferDataAdapter{&asset});
-                clip.PositionTracks.push_back(track);
+                VectorTrack* track = FindOrAddTrack(clip.PositionTracks, targetNode);
+                track->Interpolation = interpolation;
+                AppendTrackKeys<glm::vec3, fastgltf::math::fvec3>(
+                    asset, valueAccessor, times, interpolation, track->Keyframes, track->InTangents,
+                    track->OutTangents,
+                    [](const fastgltf::math::fvec3& v) { return glm::vec3(v.x(), v.y(), v.z()); });
             }
             else if (channel.path == fastgltf::AnimationPath::Rotation)
             {
-                QuaternionTrack track;
-                track.TargetBoneID = targetNode;
-                size_t idx = 0;
-                fastgltf::iterateAccessor<fastgltf::math::fvec4>(asset, valueAccessor, [&](fastgltf::math::fvec4 v) {
-                    if (idx >= times.size()) return;
-                    // glTF rotation is x,y,z,w. GLM quat constructor takes w,x,y,z.
-                    track.Keyframes.push_back({times[idx++], glm::normalize(glm::quat(v.w(), v.x(), v.y(), v.z()))});
-                }, MeshoptBufferDataAdapter{&asset});
-                clip.RotationTracks.push_back(track);
+                QuaternionTrack* track = FindOrAddTrack(clip.RotationTracks, targetNode);
+                track->Interpolation = interpolation;
+                AppendTrackKeys<glm::quat, fastgltf::math::fvec4>(
+                    asset, valueAccessor, times, interpolation, track->Keyframes, track->InTangents,
+                    track->OutTangents,
+                    [](const fastgltf::math::fvec4& v)
+                    {
+                        // Orientation keyframes must be normalized unit quaternions.
+                        return glm::normalize(glm::quat(v.w(), v.x(), v.y(), v.z()));
+                    },
+                    [](const fastgltf::math::fvec4& v)
+                    {
+                        // glTF 2.0: CubicSpline rotation tangents represent derivatives
+                        // and must NOT be normalized to unit length.
+                        return glm::quat(v.w(), v.x(), v.y(), v.z());
+                    });
             }
             else if (channel.path == fastgltf::AnimationPath::Scale)
             {
-                VectorTrack track;
-                track.TargetBoneID = targetNode;
-                size_t idx = 0;
-                fastgltf::iterateAccessor<fastgltf::math::fvec3>(asset, valueAccessor, [&](fastgltf::math::fvec3 v) {
-                    if (idx >= times.size()) return;
-                    track.Keyframes.push_back({times[idx++], glm::vec3(v.x(), v.y(), v.z())});
-                }, MeshoptBufferDataAdapter{&asset});
-                clip.ScaleTracks.push_back(track);
+                VectorTrack* track = FindOrAddTrack(clip.ScaleTracks, targetNode);
+                track->Interpolation = interpolation;
+                AppendTrackKeys<glm::vec3, fastgltf::math::fvec3>(
+                    asset, valueAccessor, times, interpolation, track->Keyframes, track->InTangents,
+                    track->OutTangents,
+                    [](const fastgltf::math::fvec3& v) { return glm::vec3(v.x(), v.y(), v.z()); });
             }
         }
 
         m_Animations.push_back(clip);
     }
 }
-
 } // namespace UHE::RD3d

@@ -5,7 +5,7 @@
 #include "Components.h"
 #include "Entity.h"
 #include "ScriptableEntity.h"
-#include "UHE/Core/UIID.h"
+#include "UHE/Core/UUID.h"
 #include "UHE/Renderer/Renderer2D.h"
 #include "UHE/Renderer3D/Renderer3D.h"
 #include "UHE/Renderer2D/SubTexture2D.h"
@@ -219,7 +219,13 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
             dst.CurrentAnimationName = src.CurrentAnimationName;
             dst.PlaybackSpeed = src.PlaybackSpeed;
             dst.IsPlaying = src.IsPlaying;
-            // Note: Animator itself needs to be recreated since it depends on the ModelData instance, 
+            // Playback and blending controls
+            dst.LoopMode = src.LoopMode;
+            dst.Reverse = src.Reverse;
+            dst.RootMotion = src.RootMotion;
+            dst.CrossFadeDuration = src.CrossFadeDuration;
+            dst.SkinIndex = src.SkinIndex;
+            // Note: Animator itself needs to be recreated since it depends on the ModelData instance,
             // but we can just share it or let it re-initialize in OnUpdate. We'll copy the ref.
             dst.Animator = src.Animator;
         }
@@ -851,9 +857,24 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
         for (auto entity : view)
         {
             auto& anim = view.get<AnimatorComponent>(entity);
-            if (anim.IsPlaying && anim.Animator)
+            if (anim.Animator)
             {
-                anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+                // Synchronize component playback parameters with the runtime Animator
+                anim.Animator->SetLoopMode(anim.LoopMode);
+                anim.Animator->SetReversed(anim.Reverse);
+                anim.Animator->SetRootMotionEnabled(anim.RootMotion);
+                if (anim.Animator->GetSkinIndex() != anim.SkinIndex)
+                    anim.Animator->SetSkin(anim.SkinIndex);
+                if (anim.IsPlaying)
+                {
+                    anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+                    if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
+                    {
+                        // Apply root motion displacement delta to entity transform
+                        auto& tc = m_registry.get<TransformComponent>(entity);
+                        tc.Translation += anim.Animator->GetRootMotionDelta();
+                    }
+                }
             }
         }
     }
@@ -1172,9 +1193,24 @@ void Scene::OnUpdateRuntime(Timestep ts)
         for (auto entity : view)
         {
             auto& anim = view.get<AnimatorComponent>(entity);
-            if (anim.IsPlaying && anim.Animator)
+            if (anim.Animator)
             {
-                anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+                // Synchronize component playback parameters with the runtime Animator
+                anim.Animator->SetLoopMode(anim.LoopMode);
+                anim.Animator->SetReversed(anim.Reverse);
+                anim.Animator->SetRootMotionEnabled(anim.RootMotion);
+                if (anim.Animator->GetSkinIndex() != anim.SkinIndex)
+                    anim.Animator->SetSkin(anim.SkinIndex);
+                if (anim.IsPlaying)
+                {
+                    anim.Animator->UpdateAnimation(ts * anim.PlaybackSpeed);
+                    if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
+                    {
+                        // Apply root motion displacement delta to entity transform
+                        auto& tc = m_registry.get<TransformComponent>(entity);
+                        tc.Translation += anim.Animator->GetRootMotionDelta();
+                    }
+                }
             }
         }
     }

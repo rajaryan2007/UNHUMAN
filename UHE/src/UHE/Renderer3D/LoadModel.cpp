@@ -91,6 +91,7 @@ void Model::Destroy()
     m_Skeleton.Bones.clear();
     m_Skeleton.JointNodes.clear();
     m_Skeleton.RootBoneID = -1;
+    m_Skins.clear();
     m_Nodes.clear();
     m_RootNodes.clear();
     m_NodeToMesh.clear();

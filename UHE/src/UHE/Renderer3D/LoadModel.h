@@ -365,10 +365,24 @@ private:
 
     Skeleton m_Skeleton;
     std::vector<AnimationClip> m_Animations;
+    std::vector<Skin> m_Skins;
 
 public:
     const Skeleton& GetSkeleton() const { return m_Skeleton; }
     const std::vector<AnimationClip>& GetAnimations() const { return m_Animations; }
+    const std::vector<Skin>& GetSkins() const { return m_Skins; }
+    size_t GetSkinCount() const { return m_Skins.size(); }
+    const Skin* GetSkin(i32 index) const
+    {
+        if (index < 0 || index >= static_cast<i32>(m_Skins.size()))
+            return nullptr;
+        return &m_Skins[index];
+    }
+
+    // Runtime data population without glTF dependencies.
+    void SetSkeleton(const Skeleton& skeleton) { m_Skeleton = skeleton; }
+    void AddAnimation(const AnimationClip& clip) { m_Animations.push_back(clip); }
+    void AddSkin(const Skin& skin) { m_Skins.push_back(skin); }
 };
 
 } // namespace UHE::RD3d
