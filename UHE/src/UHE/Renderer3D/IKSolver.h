@@ -6,27 +6,34 @@
 namespace UHE::RD3d
 {
 
-// Issue #41: analytic two-bone IK (arm/leg chains: shoulder->elbow->hand,
-// hip->knee->foot). Works in world space on joint positions and returns the
-// world-space rotations that bend the chain toward the target; the caller
-// composes them onto the bones' current global rotations.
+/**
+ * @brief Output rotations computed by two-bone analytic inverse kinematics.
+ */
 struct UHE_API TwoBoneIKResult
 {
     bool Solved = false;
-    // Rotation applied to the root joint (aims the chain at the target).
-    glm::quat RootRotation{1.0f, 0.0f, 0.0f, 0.0f};
-    // Rotation applied to the mid joint (the elbow/knee bend).
-    glm::quat MidRotation{1.0f, 0.0f, 0.0f, 0.0f};
+    glm::quat RootRotation{1.0f, 0.0f, 0.0f, 0.0f}; ///< Global rotation adjustment for root bone
+    glm::quat MidRotation{1.0f, 0.0f, 0.0f, 0.0f};  ///< Global rotation adjustment for middle bone (hinge)
 };
 
+/**
+ * @brief Analytic inverse kinematics solver for 2-bone kinematic chains (e.g., arms, legs).
+ */
 class UHE_API IKSolver
 {
 public:
-    // rootPos/midPos/endPos: current world positions of the three joints.
-    // targetPos: where the end joint should reach (auto-clamped to the
-    //   reachable range so over-extension bends straight instead of flipping).
-    // poleVector: a world position the mid joint bends toward (elbow/knee
-    //   direction). Collinear with the chain falls back to the current bend.
+    /**
+     * @brief Solves two-bone analytic IK targeting a 3D position with pole vector bending.
+     *
+     * Automatically clamps out-of-reach target distances to prevent geometric instability.
+     *
+     * @param rootPos World position of the root joint (e.g., shoulder/hip).
+     * @param midPos World position of the hinge joint (e.g., elbow/knee).
+     * @param endPos World position of the end-effector (e.g., wrist/ankle).
+     * @param targetPos Desired world position for the end-effector.
+     * @param poleVector Directional hint vector defining the hinge bending plane.
+     * @return TwoBoneIKResult containing relative rotation corrections.
+     */
     static TwoBoneIKResult SolveTwoBone(const glm::vec3& rootPos, const glm::vec3& midPos,
                                         const glm::vec3& endPos, const glm::vec3& targetPos,
                                         const glm::vec3& poleVector);

@@ -57,8 +57,8 @@ void FileSystem::Initialize(const char *argv0) {
   fs::path exePath = fs::absolute(argv0).parent_path();
   bool foundSourceAssets = false;
 
-  // Issue #38: unified roots - the game and editor targets share one
-  // discovery path; whichever root exists is mounted as "game:".
+  // Unified asset discovery: scan ancestor directories for known project roots
+  // and bind the discovered assets folder to the "game:" virtual prefix.
   static constexpr const char *kProjectMarkers[] = {"UHE_EDITOR", "UHEGAME"};
 
   fs::path searchPath = exePath;
@@ -92,8 +92,8 @@ void FileSystem::Initialize(const char *argv0) {
 }
 
 std::string FileSystem::Resolve(const std::string &virtualPath) {
-  // Shim for the migration: prefixless legacy paths go through the default
-  // "game:" mount; fully virtual paths ("game:/x", "engine:/x") pass through.
+  // Compatibility shim: route unqualified legacy paths to the "game:" virtual root.
+  // Fully-qualified schemes ("game:/...", "engine:/...") pass through directly.
   std::string mounted = virtualPath;
   if (!virtualPath.empty() && virtualPath.find(':') == std::string::npos)
     mounted = "game:/" + virtualPath;
@@ -101,7 +101,7 @@ std::string FileSystem::Resolve(const std::string &virtualPath) {
   if (resolved)
     return resolved->string();
 
-  // Fallback to the pre-VFS behavior so nothing regresses mid-migration.
+  // NOTE: Fallback to direct path concatenation if Vfs resolution produces no match.
   return (m_RootPath / "assets" / virtualPath).string();
 }
 

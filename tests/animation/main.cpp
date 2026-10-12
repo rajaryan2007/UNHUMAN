@@ -1,10 +1,8 @@
-// No-GPU animation runtime harness (issue #41).
+// Standalone Animation Runtime Validation Harness.
 //
-// Covers playback controls (speed, loop modes, reverse, pause), STEP/LINEAR/
-// CUBICSPLINE sampling, cross-fade blending, events, root motion, multi-skin,
-// the animation state machine, the keyframe compressor and the two-bone IK
-// solver. The Model is populated directly through the cooked-data API, so no
-// glTF parsing or GPU is involved.
+// Exercises playback controls, multi-mode interpolation (Step, Linear, CubicSpline),
+// cross-fade pose blending, notifies/events, root motion extraction, multi-skin
+// skeletal hierarchies, state machines, keyframe reduction, and two-bone analytic IK.
 #include "UHE/Renderer3D/Animator.h"
 #include "UHE/Renderer3D/AnimationStateMachine.h"
 #include "UHE/Renderer3D/AnimationCompression.h"

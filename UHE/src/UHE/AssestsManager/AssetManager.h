@@ -66,9 +66,13 @@ enum class LoadState : u32
     Failed    // LoadFromFile failed
 };
 
-// Issue #38: importer interface. LoadFromFile is pure CPU work and must be
-// safe to call on a worker thread; Finalize runs on the main thread and does
-// the GPU/upload work. Loaders must never touch the RHI from LoadFromFile.
+/**
+ * @brief Base interface for type-specific asset loaders.
+ *
+ * Threading Contract:
+ * - LoadFromFile() runs asynchronously on worker threads (CPU decode only, NO RHI/GPU calls).
+ * - Finalize() runs on the main thread (GPU resource creation, descriptor allocation).
+ */
 class IAssetLoader
 {
 public:
@@ -110,10 +114,12 @@ using LoadCallback = std::function<void(AssetID id, bool success)>;
 
 // ---- handle ----------------------------------------------------------------
 
-// Typed, refcounted view of a loaded asset. Copying a handle bumps the
-// record's refcount; destroying it releases. Handles survive the asset being
-// unloaded (IsValid simply turns false) and detect reloads through the
-// record's generation.
+/**
+ * @brief Strongly-typed, refcounted handle to an asset managed by AssetManager.
+ *
+ * Handles participate in reference counting to prevent premature reclamation.
+ * Stale handles are detected via generation mismatch following asset reload.
+ */
 template <class T>
 class AssetHandle
 {
@@ -220,10 +226,12 @@ public:
 
 // ---- manager ---------------------------------------------------------------
 
-// Issue #38: central asset registry. One record per path (path -> ID dedup),
-// refcounted typed handles, a Queued/Loading/Ready/Failed state machine, async
-// loads kicked onto the jobsystem with main-thread delivery in Update(), and
-// optional mtime-polling hot reload.
+/**
+ * @brief Central asset registry and lifecycle coordinator.
+ *
+ * Manages asynchronous loading via JobSystem, path-to-ID deduplication,
+ * refcounted asset handles, hot reload change polling, and unused memory reclamation.
+ */
 class UHE_API AssetManager
 {
 public:

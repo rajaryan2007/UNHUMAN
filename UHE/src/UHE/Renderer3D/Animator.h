@@ -8,17 +8,23 @@
 namespace UHE::RD3d
 {
 
-// Issue #41: animation runtime. On top of the old single-clip player this
-// adds playback controls (speed, loop modes, reverse, pause), STEP/LINEAR/
-// CUBICSPLINE sampling, cross-fade blending, animation events, root motion
-// extraction and multi-skin support.
+/**
+ * @brief Skeletal animation playback runtime and pose evaluation engine.
+ *
+ * Features:
+ * - Multi-track keyframe sampling (Step, Linear, CubicSpline).
+ * - Cross-fade clip blending with smooth Hermite weight curves.
+ * - Timeline notify/event firing across playhead updates.
+ * - Root motion extraction and translation detachment.
+ * - Multi-skin mesh binding and bone matrix palette calculation.
+ */
 class UHE_API Animator
 {
 public:
     Animator() = default;
     Animator(Ref<Model> model);
 
-    // ---- playback ----
+    // --- Playback Controls ---
     void UpdateAnimation(float dt);
     void PlayAnimation(const std::string& name);
     void PlayAnimation(int index);
@@ -27,48 +33,49 @@ public:
     void Stop();
     bool IsPlaying() const { return m_IsPlaying; }
 
-    // Scales animation time; 1 = authored speed.
     void SetTimeScale(float scale) { m_TimeScale = scale; }
     float GetTimeScale() const { return m_TimeScale; }
     void SetLoopMode(LoopMode mode) { m_LoopMode = mode; }
     LoopMode GetLoopMode() const { return m_LoopMode; }
     void SetReversed(bool reversed) { m_Reversed = reversed; }
     bool IsReversed() const { return m_Reversed; }
-
     float GetCurrentTime() const { return m_CurrentTime; }
     float GetDuration() const;
-    float GetNormalizedTime() const; // [0, 1], 0 when no clip
-    // Jumps to an absolute time and re-evaluates the pose immediately, so
-    // scrubbing works even while paused (editor timeline).
+    float GetNormalizedTime() const; ///< Normalized [0, 1] playback progress
+
+    /**
+     * @brief Jumps playhead to specified timestamp and immediately computes evaluated pose.
+     * Useful for scrub controls and paused previewing.
+     */
     void Seek(float time);
 
-    // ---- cross-fade blending ----
-    // Blends from the clip playing now into 'name' over 'duration' seconds.
-    // Both clips keep advancing during the fade.
+    // --- Cross-Fade Blending ---
+    /**
+     * @brief Smoothly blends from current active animation into target animation.
+     * @param duration Transition duration in seconds.
+     */
     void CrossFade(const std::string& name, float duration);
     void CrossFade(int index, float duration);
     bool IsBlending() const { return m_PrevAnimationIndex != -1; }
-    float GetBlendWeight() const { return m_BlendWeight; } // 0 = old clip, 1 = new clip
-
+    float GetBlendWeight() const { return m_BlendWeight; } ///< 0 = source, 1 = target
     // ---- events / notifies ----
     using EventCallback = std::function<void(const AnimationEvent&)>;
     void SetEventCallback(EventCallback callback) { m_EventCallback = std::move(callback); }
 
-    // ---- root motion ----
-    // When enabled, the root joint's animated translation is stripped from the
-    // final pose and reported through GetRootMotionDelta() so gameplay can
-    // move the entity instead.
+    // --- Root Motion ---
+    /**
+     * @brief Enables root motion stripping from bone pose to drive entity movement.
+     */
     void SetRootMotionEnabled(bool enable) { m_RootMotionEnabled = enable; }
     bool IsRootMotionEnabled() const { return m_RootMotionEnabled; }
-    // Translation the root joint moved during the last UpdateAnimation, in
-    // skeleton space. Zero while disabled.
     const glm::vec3& GetRootMotionDelta() const { return m_RootMotionDelta; }
 
-    // ---- skins ----
-    // Selects which of the model's skins drives the final bone matrices.
+    // --- Skin Selection ---
+    /**
+     * @brief Selects active skin index for multi-skin skinned mesh palettes.
+     */
     void SetSkin(int index);
     int GetSkinIndex() const { return m_SkinIndex; }
-
     const std::vector<glm::mat4>& GetFinalBoneMatrices() const { return m_FinalBoneMatrices; }
     Ref<Model> GetModel() const { return m_Model; }
     bool HasAnimation() const { return m_CurrentAnimationIndex != -1; }

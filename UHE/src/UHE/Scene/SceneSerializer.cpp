@@ -212,7 +212,7 @@ static void SerializeEntity(YAML::Emitter& out, Entity entity)
         out << YAML::Key << "CurrentAnimationName" << YAML::Value << ac.CurrentAnimationName;
         out << YAML::Key << "PlaybackSpeed" << YAML::Value << ac.PlaybackSpeed;
         out << YAML::Key << "IsPlaying" << YAML::Value << ac.IsPlaying;
-        // Issue #41 playback/blending controls.
+        // Playback and cross-fade blending controls
         out << YAML::Key << "LoopMode" << YAML::Value << static_cast<int>(ac.LoopMode);
         out << YAML::Key << "Reverse" << YAML::Value << ac.Reverse;
         out << YAML::Key << "RootMotion" << YAML::Value << ac.RootMotion;
@@ -612,8 +612,7 @@ bool SceneSerializer::Deserialize(const std::string& filepath)
             ac.CurrentAnimationName = acNode["CurrentAnimationName"].as<std::string>();
             ac.PlaybackSpeed = acNode["PlaybackSpeed"].as<float>();
             ac.IsPlaying = acNode["IsPlaying"].as<bool>();
-            // Issue #41 playback/blending controls (defaults keep old scenes
-            // loading).
+            // Backward-compatible defaults for legacy serialized scenes
             ac.LoopMode = acNode["LoopMode"] ? static_cast<RD3d::LoopMode>(acNode["LoopMode"].as<int>())
                                              : RD3d::LoopMode::Loop;
             ac.Reverse = acNode["Reverse"] ? acNode["Reverse"].as<bool>() : false;

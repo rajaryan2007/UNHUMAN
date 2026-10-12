@@ -11,13 +11,12 @@ namespace fs = std::filesystem;
 namespace UHE
 {
 
-// Issue #38: mount-based virtual file system. Virtual paths look like
-// "game:/models/gun.glb" or "engine:/shaders/Basic3D.slang" and resolve per
-// mount, in order, so override and mod layering fall out of ResolveAll().
-//
-// Both the editor and game targets use the same mounts instead of building
-// paths by hand. The legacy FileSystem singleton stays as a shim forwarding
-// to the default mount during migration.
+/**
+ * @brief Mount-based Virtual File System (VFS).
+ *
+ * Resolves virtual schemes (e.g. "game:/textures/wall.png", "engine:/shaders/pbr.slang")
+ * to physical filesystem paths. Supports layered mounts for modding and asset overrides.
+ */
 class UHE_API Vfs
 {
 public:
@@ -27,14 +26,23 @@ public:
         return instance;
     }
 
-    // Mounts virtualRoot (e.g. "game:") at a physical directory. Remounting
-    // an existing virtual root replaces it, keeping mount order stable.
+    /**
+     * @brief Mounts a virtual prefix to a physical directory.
+     * @param virtualRoot Virtual prefix (e.g. "game:", "engine:").
+     * @param physicalRoot Physical host path on disk.
+     * Re-mounting an existing prefix replaces its root while preserving mount order.
+     */
     void Mount(std::string_view virtualRoot, const fs::path& physicalRoot);
 
-    // First mount whose root matches; nullopt when no mount matches.
+    /**
+     * @brief Resolves a virtual path using the highest-priority matching mount.
+     * @return Absolute normalized path, or std::nullopt if no mount matched.
+     */
     std::optional<fs::path> Resolve(std::string_view virtualPath) const;
 
-    // Every mount that matches, in order - later mounts are override layers.
+    /**
+     * @brief Returns all matching paths across layered mounts in priority order.
+     */
     std::vector<fs::path> ResolveAll(std::string_view virtualPath) const;
 
     const std::vector<std::pair<std::string, fs::path>>& GetMounts() const { return m_Mounts; }
@@ -45,9 +53,13 @@ private:
     std::vector<std::pair<std::string, fs::path>> m_Mounts;
 };
 
-// Legacy singleton kept during the path -> ID / VFS migration. Initialize
-// discovers the project root and mounts it as "game:" (and the engine asset
-// directory as "engine:" when found); Resolve forwards into the VFS.
+/**
+ * @brief Legacy file system accessor maintained for backward compatibility.
+ *
+ * Automatically initializes default "game:" and "engine:" mounts.
+ * Forwarding shims redirect legacy unqualified paths to Vfs.
+ * @deprecated Use Vfs::Get().Resolve(...) for new code.
+ */
 class UHE_API FileSystem
 {
 public:

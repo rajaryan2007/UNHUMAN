@@ -38,9 +38,8 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
     if (asset.skins.empty())
         return;
 
-    // The bone hierarchy covers every node once (bones == glTF nodes); each
-    // skin then selects its own joint set and inverse bind matrices.
-    // Issue #41: all skins are parsed now, not just the first one.
+    // Extract unified bone hierarchy across all nodes; individual skins bind
+    // specific joint subsets and inverse bind matrices.
     m_Skeleton.Bones.resize(asset.nodes.size());
     m_Skeleton.RootBoneID = asset.skins[0].skeleton.has_value()
                                 ? static_cast<int>(asset.skins[0].skeleton.value())
@@ -181,8 +180,7 @@ void Model::ParseAnimations(const fastgltf::Asset& asset)
 
             const auto& sampler = gltfAnim.samplers[channel.samplerIndex];
 
-            // Issue #41: honour the sampler's interpolation mode (it used to
-            // be ignored and every track sampled as linear).
+            // NOTE: Map sampler interpolation explicitly per track (Step, Linear, or CubicSpline).
             InterpolationMode interpolation = InterpolationMode::Linear;
             if (sampler.interpolation == fastgltf::AnimationInterpolation::Step)
                 interpolation = InterpolationMode::Step;

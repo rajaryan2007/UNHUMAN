@@ -9,11 +9,9 @@ static std::random_device rd;
 static std::mt19937_64 s_Engine(rd());
 static std::uniform_int_distribution<u64> s_Distribution;
 
-// Issue #38: this set used to be dead weight - drawn IDs were never checked
-// against it, so two random 64-bit IDs could (rarely) collide silently. New
-// IDs now re-roll until they are unique among the ones minted this run.
-// Deserialized IDs take the explicit-value constructor and are not inserted;
-// they already exist in persisted scene data.
+// Tracking set for session-minted UUID collision avoidance.
+// NOTE: Explicitly constructed UUIDs (e.g. from scene deserialization) bypass this set.
+// TODO: Migrate to 128-bit UUID (RFC 4122) if distributed multi-user editing is required.
 static std::unordered_set<u64> s_UUIDMap;
 
 UUID::UUID()

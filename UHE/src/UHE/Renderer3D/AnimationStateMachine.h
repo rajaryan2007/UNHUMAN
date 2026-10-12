@@ -9,10 +9,12 @@
 namespace UHE::RD3d
 {
 
-// Issue #41: a small finite state machine driving an Animator through
-// cross-faded clip states. Transitions are gated by parameters (bool/int/
-// float) and triggers; a transition fires when all of its conditions hold
-// and, optionally, once the current state's exit time has been reached.
+/**
+ * @brief Finite State Machine (FSM) controller for skeletal animation graphs.
+ *
+ * Orchestrates clip transitions on an Animator using conditional logic (parameters and triggers).
+ * Transitions support normalized exit times and configurable cross-fade blend durations.
+ */
 class UHE_API AnimationStateMachine
 {
 public:

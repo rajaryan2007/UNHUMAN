@@ -11,13 +11,15 @@ class UheJobsystem;
 namespace UHE::RD3d
 {
 
-// Issue #41: lossy keyframe reduction ("animation compression" without
-// changing the clip format). A key is dropped when resampling the original
-// track through linear interpolation between its surviving neighbours stays
-// within tolerance; rotations are compared as spherical angles, vectors as
-// euclidean distance. STEP tracks are left untouched (reduction changes
-// their semantics) and CUBICSPLINE tracks are only reduced when the tangents
-// of the dropped key are also within tolerance of the spline-free blend.
+/**
+ * @brief Keyframe reduction settings based on chordal error tolerances.
+ *
+ * Intermediate keyframes are culled if linear interpolation between surviving neighbors
+ * produces an error strictly within the configured thresholds.
+ * - Step tracks are preserved verbatim.
+ * - Rotations are evaluated via angular difference in radians.
+ * - Translations and scales are evaluated via Euclidean distance.
+ */
 struct UHE_API CompressSettings
 {
     float PositionTolerance = 1e-3f; // linear units
@@ -45,15 +47,25 @@ struct UHE_API CompressionStats
     }
 };
 
+/**
+ * @brief In-place animation keyframe compressor and memory profiler.
+ */
 class UHE_API AnimationCompressor
 {
 public:
-    // Reduces 'clip' in place and returns what was removed. When 'jobs' is
-    // provided the tracks are reduced in parallel on the jobsystem.
+    /**
+     * @brief Optimizes keyframe counts in-place.
+     * @param clip Animation clip to compress.
+     * @param settings Error tolerances.
+     * @param jobs Optional JobSystem to parallelize per-track reduction passes.
+     * @return Statistics describing key and memory reduction.
+     */
     static CompressionStats CompressClip(AnimationClip& clip, const CompressSettings& settings = {},
                                          Jobsystem::UheJobsystem* jobs = nullptr);
 
-    // Non-mutating estimate of the same reduction, for tooling/inspector UI.
+    /**
+     * @brief Measures potential compression gains without modifying the clip.
+     */
     static CompressionStats MeasureClip(const AnimationClip& clip, const CompressSettings& settings = {});
 };
 

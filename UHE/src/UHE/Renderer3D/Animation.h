@@ -8,22 +8,24 @@
 namespace UHE::RD3d
 {
 
-// Issue #41: how the runtime steps between keyframes. Mirrors the glTF
-// sampler modes; the importer records the source sampler's mode per track.
+/**
+ * @brief Keyframe interpolation mode matching glTF 2.0 animation sampler specification.
+ */
 enum class UHE_API InterpolationMode : unsigned char
 {
-    Step,
-    Linear,
-    CubicSpline
+    Step,        ///< Instantaneous state change at keyframe time
+    Linear,      ///< Linear / spherical linear interpolation between adjacent keys
+    CubicSpline  ///< Cubic Hermite spline interpolation with in/out tangents
 };
 
-// Issue #41: playback looping policy. Loop is the default so clips authored
-// before this system keep playing the way they always have.
+/**
+ * @brief Playback wrap behavior when an animation reaches its duration boundary.
+ */
 enum class UHE_API LoopMode : unsigned char
 {
-    None,     // stop at the end
-    Loop,     // wrap around
-    PingPong  // reverse direction at each end
+    None,     ///< Clamp and stop at duration boundary
+    Loop,     ///< Wrap to start and continue playing
+    PingPong  ///< Invert playback direction upon hitting boundary
 };
 
 struct UHE_API Bone
@@ -42,13 +44,17 @@ struct UHE_API Skeleton
     int RootBoneID = -1;
 };
 
-// Issue #41: one skinned joint set. A model may carry several skins; each
-// references joints by glTF node index and owns its inverse bind matrices.
+/**
+ * @brief Skinned mesh joint collection with inverse bind pose matrices.
+ *
+ * Models may define multiple skins; each skin references joint nodes
+ * and provides parallel inverse bind matrices for GPU/CPU vertex skinning.
+ */
 struct UHE_API Skin
 {
     std::string Name;
     std::vector<int> JointNodes;
-    std::vector<glm::mat4> InverseBindMatrices; // parallel to JointNodes
+    std::vector<glm::mat4> InverseBindMatrices; ///< Parallel to JointNodes
 };
 
 template <typename T> struct UHE_API Keyframe
@@ -78,8 +84,9 @@ struct UHE_API QuaternionTrack
     std::vector<glm::quat> OutTangents;
 };
 
-// Issue #41: notifies fired by the Animator when the sample time crosses
-// Time while playing. Payload is free-form for gameplay code.
+/**
+ * @brief Timeline marker / notification fired when playback crosses its timestamp.
+ */
 struct UHE_API AnimationEvent
 {
     float Time = 0.0f;

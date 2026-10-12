@@ -219,7 +219,7 @@ Ref<Scene> Scene::Copy(Ref<Scene> other)
             dst.CurrentAnimationName = src.CurrentAnimationName;
             dst.PlaybackSpeed = src.PlaybackSpeed;
             dst.IsPlaying = src.IsPlaying;
-            // Issue #41 playback/blending controls.
+            // Playback and blending controls
             dst.LoopMode = src.LoopMode;
             dst.Reverse = src.Reverse;
             dst.RootMotion = src.RootMotion;
@@ -859,14 +859,13 @@ void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
             auto& anim = view.get<AnimatorComponent>(entity);
             if (anim.Animator)
             {
-                // Issue #41: mirror the component's playback settings onto
-                // the runtime so editor/serializer changes apply immediately.
+                // Synchronize component playback parameters with the runtime Animator
                 anim.Animator->SetLoopMode(anim.LoopMode);
                 anim.Animator->SetReversed(anim.Reverse);
                 anim.Animator->SetRootMotionEnabled(anim.RootMotion);
                 if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
                 {
-                    // Root motion: hand the extracted delta to the entity.
+                    // Apply root motion displacement delta to entity transform
                     auto& tc = m_registry.get<TransformComponent>(entity);
                     tc.Translation += anim.Animator->GetRootMotionDelta();
                 }
@@ -1194,14 +1193,13 @@ void Scene::OnUpdateRuntime(Timestep ts)
             auto& anim = view.get<AnimatorComponent>(entity);
             if (anim.Animator)
             {
-                // Issue #41: mirror the component's playback settings onto
-                // the runtime so editor/serializer changes apply immediately.
+                // Synchronize component playback parameters with the runtime Animator
                 anim.Animator->SetLoopMode(anim.LoopMode);
                 anim.Animator->SetReversed(anim.Reverse);
                 anim.Animator->SetRootMotionEnabled(anim.RootMotion);
                 if (anim.RootMotion && m_registry.all_of<TransformComponent>(entity))
                 {
-                    // Root motion: hand the extracted delta to the entity.
+                    // Apply root motion displacement delta to entity transform
                     auto& tc = m_registry.get<TransformComponent>(entity);
                     tc.Translation += anim.Animator->GetRootMotionDelta();
                 }

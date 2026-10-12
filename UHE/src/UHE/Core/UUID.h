@@ -5,6 +5,14 @@
 #include <functional>
 #include "UHE/Core/Core.h"
 namespace UHE {
+
+/**
+ * @brief 64-bit globally unique identifier for entities, assets, and resources.
+ *
+ * Fresh IDs minted by the default constructor are guaranteed unique within the
+ * active runtime session. Explicitly constructed IDs (from serialization) retain
+ * their assigned value without re-rolling.
+ */
 class UHE_API UUID {
 public:
   UUID();

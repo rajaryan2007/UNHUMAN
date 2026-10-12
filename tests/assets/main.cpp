@@ -1,9 +1,8 @@
-// No-GPU asset system harness (issue #38).
+// Standalone Asset System Validation Harness.
 //
-// Covers UUID uniqueness, the AssetManager registry (path->ID dedup,
-// refcounted handles, load state machine, sync + async loading through the
-// real Jobsystem, hot reload) and the mount-based VFS. No GPU involved: the
-// manager ships Text/Binary loaders, which are pure file IO.
+// Exercises UUID identity uniqueness, the AssetManager registry (path-to-ID dedup,
+// refcounted handles, lifecycle state machine, synchronous and asynchronous worker loading,
+// hot reload polling), and VFS mount resolution.
 #include "UHE/AssestsManager/AssetManager.h"
 #include "UHE/AssestsManager/VfsSystem.h"
 #include "UHE/Core/UUID.h"
