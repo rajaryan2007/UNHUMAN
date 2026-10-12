@@ -31,8 +31,8 @@ enum class UHE_API LoopMode : unsigned char
 struct UHE_API Bone
 {
     std::string Name;
-    int ID = -1;
-    int ParentID = -1;
+    i32 ID = -1;
+    i32 ParentID = -1;
     glm::mat4 InverseBindMatrix{1.0f};
     glm::mat4 LocalTransform{1.0f};
 };
@@ -40,8 +40,8 @@ struct UHE_API Bone
 struct UHE_API Skeleton
 {
     std::vector<Bone> Bones;
-    std::vector<int> JointNodes;
-    int RootBoneID = -1;
+    std::vector<i32> JointNodes;
+    i32 RootBoneID = -1;
 };
 
 /**
@@ -53,19 +53,19 @@ struct UHE_API Skeleton
 struct UHE_API Skin
 {
     std::string Name;
-    std::vector<int> JointNodes;
+    std::vector<i32> JointNodes;
     std::vector<glm::mat4> InverseBindMatrices; ///< Parallel to JointNodes
 };
 
 template <typename T> struct UHE_API Keyframe
 {
-    float Time;
+    f32 Time = 0.0f;
     T Value;
 };
 
 struct UHE_API VectorTrack
 {
-    int TargetBoneID = -1;
+    i32 TargetBoneID = -1;
     InterpolationMode Interpolation = InterpolationMode::Linear;
     std::vector<Keyframe<glm::vec3>> Keyframes;
     // CubicSpline only, parallel to Keyframes: Hermite tangents from the
@@ -77,7 +77,7 @@ struct UHE_API VectorTrack
 
 struct UHE_API QuaternionTrack
 {
-    int TargetBoneID = -1;
+    i32 TargetBoneID = -1;
     InterpolationMode Interpolation = InterpolationMode::Linear;
     std::vector<Keyframe<glm::quat>> Keyframes;
     std::vector<glm::quat> InTangents;
@@ -89,14 +89,14 @@ struct UHE_API QuaternionTrack
  */
 struct UHE_API AnimationEvent
 {
-    float Time = 0.0f;
+    f32 Time = 0.0f;
     std::string Name;
 };
 
 struct UHE_API AnimationClip
 {
     std::string Name;
-    float Duration = 0.0f;
+    f32 Duration = 0.0f;
     LoopMode Loop = LoopMode::Loop;
 
     std::vector<VectorTrack> PositionTracks;

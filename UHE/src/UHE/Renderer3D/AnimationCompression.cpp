@@ -10,38 +10,38 @@ namespace UHE::RD3d {
 namespace
 {
 
-float LinearBlend(float a, float b, float u) { return a + (b - a) * u; }
-glm::vec3 LinearBlend(const glm::vec3& a, const glm::vec3& b, float u) { return glm::mix(a, b, u); }
-glm::quat LinearBlend(const glm::quat& a, const glm::quat& b, float u) { return glm::slerp(a, b, u); }
+f32 LinearBlend(f32 a, f32 b, f32 u) { return a + (b - a) * u; }
+glm::vec3 LinearBlend(const glm::vec3& a, const glm::vec3& b, f32 u) { return glm::mix(a, b, u); }
+glm::quat LinearBlend(const glm::quat& a, const glm::quat& b, f32 u) { return glm::slerp(a, b, u); }
 
 // Angle between two rotations, in radians.
-float TrackError(const glm::quat& a, const glm::quat& b)
+f32 TrackError(const glm::quat& a, const glm::quat& b)
 {
-    float d = glm::clamp(std::abs(glm::dot(a, b)), 0.0f, 1.0f);
+    f32 d = glm::clamp(std::abs(glm::dot(a, b)), 0.0f, 1.0f);
     return 2.0f * std::acos(d);
 }
 
-float TrackError(const glm::vec3& a, const glm::vec3& b) { return glm::length(a - b); }
+f32 TrackError(const glm::vec3& a, const glm::vec3& b) { return glm::length(a - b); }
 
 // Value the track takes at 'time' when jumping straight from key a to key b:
 // linear for Linear tracks, one long Hermite segment for CubicSpline tracks
 // (using the surviving keys' tangents).
 template <typename T>
 T SampleBetween(const Keyframe<T>& a, const Keyframe<T>& b, const T& aOutTangent, const T& bInTangent, bool spline,
-                float time)
+                f32 time)
 {
-    float span = b.Time - a.Time;
-    float u = span > 0.0f ? glm::clamp((time - a.Time) / span, 0.0f, 1.0f) : 0.0f;
+    f32 span = b.Time - a.Time;
+    f32 u = span > 0.0f ? glm::clamp((time - a.Time) / span, 0.0f, 1.0f) : 0.0f;
     if (!spline)
         return LinearBlend(a.Value, b.Value, u);
 
-    float t = u; // normalized segment parameter in [0, 1]
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float h00 = 2.0f * t3 - 3.0f * t2 + 1.0f;
-    float h10 = t3 - 2.0f * t2 + t;
-    float h01 = -2.0f * t3 + 3.0f * t2;
-    float h11 = t3 - t2;
+    f32 t = u; // normalized segment parameter in [0, 1]
+    f32 t2 = t * t;
+    f32 t3 = t2 * t;
+    f32 h00 = 2.0f * t3 - 3.0f * t2 + 1.0f;
+    f32 h10 = t3 - 2.0f * t2 + t;
+    f32 h01 = -2.0f * t3 + 3.0f * t2;
+    f32 h11 = t3 - t2;
     T value = h00 * a.Value + h10 * span * aOutTangent + h01 * b.Value + h11 * span * bInTangent;
     if constexpr (std::is_same_v<T, glm::quat>)
         return glm::normalize(value);
@@ -57,7 +57,7 @@ T SampleBetween(const Keyframe<T>& a, const Keyframe<T>& b, const T& aOutTangent
 // first and last key).
 template <typename T>
 std::vector<size_t> ComputeKeepMask(const std::vector<Keyframe<T>>& keys, const std::vector<T>& inTangents,
-                                    const std::vector<T>& outTangents, bool spline, float tolerance)
+                                    const std::vector<T>& outTangents, bool spline, f32 tolerance)
 {
     std::vector<size_t> keep;
     if (keys.empty())
@@ -135,7 +135,7 @@ void ApplyMask(std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents, std::
 // tracks, whose step semantics would change if interior keys were dropped.
 template <typename T>
 CompressionStats ProcessTrack(std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
-                              std::vector<T>& outTangents, float tolerance, bool reduce, bool apply)
+                              std::vector<T>& outTangents, f32 tolerance, bool reduce, bool apply)
 {
     CompressionStats stats;
     stats.KeysBefore = keys.size();

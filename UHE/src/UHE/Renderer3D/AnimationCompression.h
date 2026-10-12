@@ -22,9 +22,9 @@ namespace UHE::RD3d
  */
 struct UHE_API CompressSettings
 {
-    float PositionTolerance = 1e-3f; // linear units
-    float ScaleTolerance = 1e-4f;    // scale units
-    float RotationTolerance = 0.02f; // radians (~1.15 degrees)
+    f32 PositionTolerance = 1e-3f; // linear units
+    f32 ScaleTolerance = 1e-4f;    // scale units
+    f32 RotationTolerance = 0.02f; // radians (~1.15 degrees)
 };
 
 struct UHE_API CompressionStats
@@ -37,13 +37,13 @@ struct UHE_API CompressionStats
     size_t BytesBefore = 0;
     size_t BytesAfter = 0;
 
-    float KeyReduction() const
+    f32 KeyReduction() const
     {
-        return KeysBefore > 0 ? 1.0f - static_cast<float>(KeysAfter) / static_cast<float>(KeysBefore) : 0.0f;
+        return KeysBefore > 0 ? 1.0f - static_cast<f32>(KeysAfter) / static_cast<f32>(KeysBefore) : 0.0f;
     }
-    float ByteReduction() const
+    f32 ByteReduction() const
     {
-        return BytesBefore > 0 ? 1.0f - static_cast<float>(BytesAfter) / static_cast<float>(BytesBefore) : 0.0f;
+        return BytesBefore > 0 ? 1.0f - static_cast<f32>(BytesAfter) / static_cast<f32>(BytesBefore) : 0.0f;
     }
 };
 

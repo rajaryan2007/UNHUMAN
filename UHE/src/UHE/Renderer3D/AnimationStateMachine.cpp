@@ -13,12 +13,12 @@ void AnimationStateMachine::SetBool(const std::string& name, bool value)
     m_Parameters[name] = value;
 }
 
-void AnimationStateMachine::SetInt(const std::string& name, int value)
+void AnimationStateMachine::SetInt(const std::string& name, i32 value)
 {
     m_Parameters[name] = value;
 }
 
-void AnimationStateMachine::SetFloat(const std::string& name, float value)
+void AnimationStateMachine::SetFloat(const std::string& name, f32 value)
 {
     m_Parameters[name] = value;
 }
@@ -29,16 +29,16 @@ bool AnimationStateMachine::GetBool(const std::string& name) const
     return v && std::holds_alternative<bool>(*v) ? std::get<bool>(*v) : false;
 }
 
-int AnimationStateMachine::GetInt(const std::string& name) const
+i32 AnimationStateMachine::GetInt(const std::string& name) const
 {
     const ParameterValue* v = FindParameter(name);
-    return v && std::holds_alternative<int>(*v) ? std::get<int>(*v) : 0;
+    return v && std::holds_alternative<i32>(*v) ? std::get<i32>(*v) : 0;
 }
 
-float AnimationStateMachine::GetFloat(const std::string& name) const
+f32 AnimationStateMachine::GetFloat(const std::string& name) const
 {
     const ParameterValue* v = FindParameter(name);
-    return v && std::holds_alternative<float>(*v) ? std::get<float>(*v) : 0.0f;
+    return v && std::holds_alternative<f32>(*v) ? std::get<f32>(*v) : 0.0f;
 }
 
 void AnimationStateMachine::SetTrigger(const std::string& name)
@@ -75,7 +75,7 @@ bool AnimationStateMachine::HasState(const std::string& name) const
                        [&](const State& s) { return s.Name == name; });
 }
 
-void AnimationStateMachine::Enter(const std::string& stateName, Animator& animator, float blendDuration)
+void AnimationStateMachine::Enter(const std::string& stateName, Animator& animator, f32 blendDuration)
 {
     const State* target = nullptr;
     for (const auto& state : m_States)
@@ -192,14 +192,14 @@ bool AnimationStateMachine::EvaluateCondition(const Condition& condition) const
 
     if (auto* expected = std::get_if<bool>(&condition.Value))
         return std::holds_alternative<bool>(*value) && compare(std::get<bool>(*value), *expected);
-    if (auto* expected = std::get_if<int>(&condition.Value))
-        return std::holds_alternative<int>(*value) && compare(std::get<int>(*value), *expected);
-    if (auto* expected = std::get_if<float>(&condition.Value))
-        return std::holds_alternative<float>(*value) && compare(std::get<float>(*value), *expected);
+    if (auto* expected = std::get_if<i32>(&condition.Value))
+        return std::holds_alternative<i32>(*value) && compare(std::get<i32>(*value), *expected);
+    if (auto* expected = std::get_if<f32>(&condition.Value))
+        return std::holds_alternative<f32>(*value) && compare(std::get<f32>(*value), *expected);
     return false;
 }
 
-void AnimationStateMachine::ApplyState(const State& state, Animator& animator, float blendDuration)
+void AnimationStateMachine::ApplyState(const State& state, Animator& animator, f32 blendDuration)
 {
     animator.SetLoopMode(state.Loop);
     animator.SetTimeScale(state.Speed);

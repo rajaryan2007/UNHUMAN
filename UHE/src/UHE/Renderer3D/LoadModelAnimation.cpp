@@ -42,14 +42,14 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
     // specific joint subsets and inverse bind matrices.
     m_Skeleton.Bones.resize(asset.nodes.size());
     m_Skeleton.RootBoneID = asset.skins[0].skeleton.has_value()
-                                ? static_cast<int>(asset.skins[0].skeleton.value())
-                                : (asset.skins[0].joints.empty() ? -1 : static_cast<int>(asset.skins[0].joints[0]));
+                                ? static_cast<i32>(asset.skins[0].skeleton.value())
+                                : (asset.skins[0].joints.empty() ? -1 : static_cast<i32>(asset.skins[0].joints[0]));
 
     // 1. Build hierarchy mapping from asset.nodes
     for (size_t i = 0; i < asset.nodes.size(); ++i)
     {
         const auto& node = asset.nodes[i];
-        m_Skeleton.Bones[i].ID = static_cast<int>(i);
+        m_Skeleton.Bones[i].ID = static_cast<i32>(i);
         m_Skeleton.Bones[i].Name = node.name.empty() ? "Bone_" + std::to_string(i) : std::string(node.name);
 
         m_Skeleton.Bones[i].LocalTransform = NodeLocalTransform(node);
@@ -57,7 +57,7 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
         // Set parent
         for (auto childIdx : node.children)
         {
-            m_Skeleton.Bones[childIdx].ParentID = static_cast<int>(i);
+            m_Skeleton.Bones[childIdx].ParentID = static_cast<i32>(i);
         }
     }
 
@@ -70,7 +70,7 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
         skin.JointNodes.clear();
         skin.JointNodes.reserve(gltfSkin.joints.size());
         for (auto joint : gltfSkin.joints)
-            skin.JointNodes.push_back(static_cast<int>(joint));
+            skin.JointNodes.push_back(static_cast<i32>(joint));
         skin.InverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
 
         if (gltfSkin.inverseBindMatrices.has_value())
@@ -106,7 +106,7 @@ void Model::ParseSkins(const fastgltf::Asset& asset)
 // may emit several channels for the same (bone, path) pair; merging them
 // keeps the sampled pose well-defined.
 template <typename TrackT>
-static TrackT* FindOrAddTrack(std::vector<TrackT>& tracks, int targetBone)
+static TrackT* FindOrAddTrack(std::vector<TrackT>& tracks, i32 targetBone)
 {
     for (auto& track : tracks)
         if (track.TargetBoneID == targetBone)
@@ -121,7 +121,7 @@ static TrackT* FindOrAddTrack(std::vector<TrackT>& tracks, int targetBone)
 // duration at evaluation time.
 template <typename T, typename GltfT, typename ToGlm, typename ToTangent>
 static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Accessor& valueAccessor,
-                            const std::vector<float>& times, InterpolationMode interpolation,
+                            const std::vector<f32>& times, InterpolationMode interpolation,
                             std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
                             std::vector<T>& outTangents, ToGlm toGlm, ToTangent toTangent)
 {
@@ -161,7 +161,7 @@ static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Access
 
 template <typename T, typename GltfT, typename ToGlm>
 static void AppendTrackKeys(const fastgltf::Asset& asset, const fastgltf::Accessor& valueAccessor,
-                            const std::vector<float>& times, InterpolationMode interpolation,
+                            const std::vector<f32>& times, InterpolationMode interpolation,
                             std::vector<Keyframe<T>>& keys, std::vector<T>& inTangents,
                             std::vector<T>& outTangents, ToGlm toGlm)
 {
@@ -182,7 +182,7 @@ void Model::ParseAnimations(const fastgltf::Asset& asset)
         {
             if (!channel.nodeIndex.has_value())
                 continue;
-            int targetNode = static_cast<int>(channel.nodeIndex.value());
+            i32 targetNode = static_cast<i32>(channel.nodeIndex.value());
 
             if (channel.samplerIndex >= gltfAnim.samplers.size())
                 continue;
@@ -197,10 +197,10 @@ void Model::ParseAnimations(const fastgltf::Asset& asset)
                 interpolation = InterpolationMode::CubicSpline;
 
             // Extract times (one per key, also for CUBICSPLINE).
-            std::vector<float> times;
+            std::vector<f32> times;
             auto& timeAccessor = asset.accessors[sampler.inputAccessor];
-            fastgltf::iterateAccessor<float>(asset, timeAccessor,
-                                             [&](float t)
+            fastgltf::iterateAccessor<f32>(asset, timeAccessor,
+                                             [&](f32 t)
                                              {
                                                  times.push_back(t);
                                                  clip.Duration = std::max(clip.Duration, t);

@@ -18,7 +18,7 @@ namespace UHE::RD3d
 class UHE_API AnimationStateMachine
 {
 public:
-    using ParameterValue = std::variant<bool, int, float>;
+    using ParameterValue = std::variant<bool, i32, f32>;
 
     struct UHE_API Condition
     {
@@ -34,27 +34,27 @@ public:
         std::string From;
         std::string To;
         std::vector<Condition> Conditions; // AND-combined
-        float BlendDuration = 0.25f;
+        f32 BlendDuration = 0.25f;
         bool HasExitTime = false;
-        float ExitTime = 1.0f; // normalized time the transition may fire at
+        f32 ExitTime = 1.0f; // normalized time the transition may fire at
     };
 
     struct UHE_API State
     {
         std::string Name;
         std::string ClipName; // clip the Animator plays in this state
-        float Speed = 1.0f;   // Animator time scale while in this state
+        f32 Speed = 1.0f;   // Animator time scale while in this state
         LoopMode Loop = LoopMode::Loop;
     };
 
     // ---- parameters ----
     void AddParameter(const std::string& name, ParameterValue initial = false);
     void SetBool(const std::string& name, bool value);
-    void SetInt(const std::string& name, int value);
-    void SetFloat(const std::string& name, float value);
+    void SetInt(const std::string& name, i32 value);
+    void SetFloat(const std::string& name, f32 value);
     bool GetBool(const std::string& name) const;
-    int GetInt(const std::string& name) const;
-    float GetFloat(const std::string& name) const;
+    i32 GetInt(const std::string& name) const;
+    f32 GetFloat(const std::string& name) const;
 
     // Triggers are one-shot booleans: consumed by the transition that used
     // them, so a single SetTrigger cannot re-fire a transition forever.
@@ -69,7 +69,7 @@ public:
 
     // Jumps to a state immediately (no exit-time/condition checks) with a
     // cross-fade of 'blendDuration' seconds.
-    void Enter(const std::string& stateName, Animator& animator, float blendDuration = 0.25f);
+    void Enter(const std::string& stateName, Animator& animator, f32 blendDuration = 0.25f);
 
     // Evaluates transitions from the current state and applies the first one
     // whose conditions hold. Call once per frame after the Animator update.
@@ -78,7 +78,7 @@ public:
 private:
     const ParameterValue* FindParameter(const std::string& name) const;
     bool EvaluateCondition(const Condition& condition) const;
-    void ApplyState(const State& state, Animator& animator, float blendDuration);
+    void ApplyState(const State& state, Animator& animator, f32 blendDuration);
 
     std::unordered_map<std::string, ParameterValue> m_Parameters;
     std::unordered_map<std::string, bool> m_Triggers;

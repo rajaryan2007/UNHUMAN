@@ -71,7 +71,7 @@ TwoBoneIKResult IKSolver::SolveTwoBone(const glm::vec3& rootPos, const glm::vec3
     if (glm::dot(currentRootToMid, newRootToMid) > -0.9999f)
         result.RootRotation = glm::rotation(currentRootToMid, newRootToMid);
     else
-        result.RootRotation = glm::angleAxis(glm::pi<float>(), bendNormal);
+        result.RootRotation = glm::angleAxis(glm::pi<f32>(), bendNormal);
 
     // The root rotation above only steers the upper bone; the mid rotation
     // must be expressed relative to the rotated upper bone.
